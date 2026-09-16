@@ -180,6 +180,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterByMood => 'Filter by mood';
 
   @override
+  String get navTags => 'Tags';
+
+  @override
+  String get tagsEmpty =>
+      'No tags yet.\nAdd tags to your thoughts and they will show up here.';
+
+  @override
+  String get tagHint => 'Tags (separated by spaces)';
+
+  @override
+  String get tagAdd => 'Add';
+
+  @override
+  String get renameTag => 'Rename tag';
+
+  @override
+  String get deleteTag => 'Delete tag';
+
+  @override
+  String deleteTagBody(int count) {
+    return 'The tag will be removed from $count thought(s). The thoughts themselves won\'t be deleted.';
+  }
+
+  @override
+  String get tagNameEmpty => 'Tag name can\'t be empty';
+
+  @override
   String yearTotal(int year, int count) {
     return '$year · $count entries';
   }

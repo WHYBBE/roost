@@ -17,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String _query = '';
   Mood? _mood;
+  String? _tag;
 
   @override
   Widget build(BuildContext context) {
@@ -63,16 +64,30 @@ class _HomePageState extends State<HomePage> {
                   alignment: Alignment.centerLeft,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: MoodChips(
-                      selected: _mood,
-                      onSelected: (m) => setState(() => _mood = m),
+                    child: Row(
+                      children: [
+                        // 标签筛选（选中的标签排在最前）
+                        if (_tag != null)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Text('#$_tag'),
+                              selected: true,
+                              onSelected: (_) => setState(() => _tag = null),
+                            ),
+                          ),
+                        MoodChips(
+                          selected: _mood,
+                          onSelected: (m) => setState(() => _mood = m),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
               Expanded(
                 child: StreamBuilder<List<ThoughtEntry>>(
-                  stream: appDb.watchSearch(_query, mood: _mood),
+                  stream: appDb.watchSearch(_query, mood: _mood, tagName: _tag),
                   builder: (context, snap) {
                     final entries = snap.data ?? const <ThoughtEntry>[];
                     if (snap.connectionState == ConnectionState.waiting) {
@@ -93,50 +108,60 @@ class _HomePageState extends State<HomePage> {
                       groups.putIfAbsent(e.day, () => []).add(e);
                     }
                     final days = groups.keys.toList();
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                      itemCount: days.length,
-                      itemBuilder: (context, i) {
-                        final day = days[i];
-                        final dayEntries = groups[day]!;
-                        final date = DateTime.parse(day);
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12, bottom: 4),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    DateFormat.yMMMd(
-                                            Localizations.localeOf(context)
-                                                .toString())
-                                        .format(date),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleSmall
-                                        ?.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                        ),
+                    return StreamBuilder<Map<int, List<String>>>(
+                      stream: appDb.watchAllTagNames(),
+                      builder: (context, tagSnap) {
+                        final tagMap = tagSnap.data ?? const <int, List<String>>{};
+                        return ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                          itemCount: days.length,
+                          itemBuilder: (context, i) {
+                            final day = days[i];
+                            final dayEntries = groups[day]!;
+                            final date = DateTime.parse(day);
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        DateFormat.yMMMd(
+                                                Localizations.localeOf(context)
+                                                    .toString())
+                                            .format(date),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                            ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        l.entriesCount(dayEntries.length),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall,
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    l.entriesCount(dayEntries.length),
-                                    style:
-                                        Theme.of(context).textTheme.labelSmall,
+                                ),
+                                for (final e in dayEntries)
+                                  EntryCard(
+                                    entry: e,
+                                    tags: tagMap[e.id] ?? const [],
+                                    onTap: () =>
+                                        showEntryEditor(context, existing: e),
+                                    onLongPress: () =>
+                                        confirmDelete(context, e),
                                   ),
-                                ],
-                              ),
-                            ),
-                            for (final e in dayEntries)
-                              EntryCard(
-                                entry: e,
-                                onTap: () => showEntryEditor(context, existing: e),
-                                onLongPress: () => confirmDelete(context, e),
-                              ),
-                          ],
+                              ],
+                            );
+                          },
                         );
                       },
                     );

@@ -5,6 +5,7 @@ import 'l10n/app_localizations.dart';
 import 'pages/calendar_page.dart';
 import 'pages/home_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/tags_page.dart';
 import 'pages/wander_page.dart';
 import 'settings/app_settings.dart';
 
@@ -78,7 +79,13 @@ class ResponsiveShell extends StatefulWidget {
 class _ResponsiveShellState extends State<ResponsiveShell> {
   int _index = 0;
 
-  static const _pages = [HomePage(), CalendarPage(), WanderPage(), SettingsPage()];
+  static const _pages = [
+    HomePage(),
+    TagsPage(),
+    CalendarPage(),
+    WanderPage(),
+    SettingsPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +94,7 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
 
     final destinations = [
       (icon: Icons.psychology_alt_outlined, selected: Icons.psychology_alt, label: l.navHome),
+      (icon: Icons.sell_outlined, selected: Icons.sell, label: l.navTags),
       (icon: Icons.calendar_month_outlined, selected: Icons.calendar_month, label: l.navCalendar),
       (icon: Icons.explore_outlined, selected: Icons.explore, label: l.navWander),
       (icon: Icons.settings_outlined, selected: Icons.settings, label: l.navSettings),

@@ -173,6 +173,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filterByMood => '按心情筛选';
 
   @override
+  String get navTags => '标签';
+
+  @override
+  String get tagsEmpty => '还没有标签。\n给思绪添加标签后会显示在这里。';
+
+  @override
+  String get tagHint => '标签（用空格分隔）';
+
+  @override
+  String get tagAdd => '添加';
+
+  @override
+  String get renameTag => '重命名标签';
+
+  @override
+  String get deleteTag => '删除标签';
+
+  @override
+  String deleteTagBody(int count) {
+    return '该标签将从 $count 条思绪中移除，思绪本身不会被删除。';
+  }
+
+  @override
+  String get tagNameEmpty => '标签名不能为空';
+
+  @override
   String yearTotal(int year, int count) {
     return '$year 年 · $count 条';
   }

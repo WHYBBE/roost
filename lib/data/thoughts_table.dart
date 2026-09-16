@@ -30,3 +30,20 @@ class Thoughts extends Table {
   @override
   List<Set<Column>> get uniqueKeys => [];
 }
+
+@DataClassName('Tag')
+class Tags extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().unique()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 思绪 ↔ 标签 多对多联结表
+@DataClassName('ThoughtTag')
+class ThoughtTags extends Table {
+  IntColumn get thoughtId => integer().references(Thoughts, #id)();
+  IntColumn get tagId => integer().references(Tags, #id)();
+
+  @override
+  Set<Column> get primaryKey => {thoughtId, tagId};
+}

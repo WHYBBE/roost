@@ -392,6 +392,54 @@ abstract class AppLocalizations {
   /// **'Filter by mood'**
   String get filterByMood;
 
+  /// No description provided for @navTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get navTags;
+
+  /// No description provided for @tagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet.\nAdd tags to your thoughts and they will show up here.'**
+  String get tagsEmpty;
+
+  /// No description provided for @tagHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags (separated by spaces)'**
+  String get tagHint;
+
+  /// No description provided for @tagAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get tagAdd;
+
+  /// No description provided for @renameTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename tag'**
+  String get renameTag;
+
+  /// No description provided for @deleteTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tag'**
+  String get deleteTag;
+
+  /// No description provided for @deleteTagBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The tag will be removed from {count} thought(s). The thoughts themselves won\'t be deleted.'**
+  String deleteTagBody(int count);
+
+  /// No description provided for @tagNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag name can\'t be empty'**
+  String get tagNameEmpty;
+
   /// No description provided for @yearTotal.
   ///
   /// In en, this message translates to:
