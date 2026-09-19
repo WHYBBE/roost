@@ -194,35 +194,59 @@ abstract class AppLocalizations {
   /// **'Mood'**
   String get moodLabel;
 
-  /// No description provided for @moodCalm.
+  /// No description provided for @tagEditorTitle.
   ///
   /// In en, this message translates to:
-  /// **'Calm'**
-  String get moodCalm;
+  /// **'Edit tag'**
+  String get tagEditorTitle;
 
-  /// No description provided for @moodHappy.
+  /// No description provided for @tagName.
   ///
   /// In en, this message translates to:
-  /// **'Happy'**
-  String get moodHappy;
+  /// **'Name'**
+  String get tagName;
 
-  /// No description provided for @moodNeutral.
+  /// No description provided for @tagIcon.
   ///
   /// In en, this message translates to:
-  /// **'Neutral'**
-  String get moodNeutral;
+  /// **'Icon'**
+  String get tagIcon;
 
-  /// No description provided for @moodDown.
+  /// No description provided for @noIcon.
   ///
   /// In en, this message translates to:
-  /// **'Down'**
-  String get moodDown;
+  /// **'None'**
+  String get noIcon;
 
-  /// No description provided for @moodAnxious.
+  /// No description provided for @tagColor.
   ///
   /// In en, this message translates to:
-  /// **'Anxious'**
-  String get moodAnxious;
+  /// **'Color'**
+  String get tagColor;
+
+  /// No description provided for @defaultColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get defaultColor;
+
+  /// No description provided for @kindMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get kindMood;
+
+  /// No description provided for @kindNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get kindNormal;
+
+  /// No description provided for @createMoodTag.
+  ///
+  /// In en, this message translates to:
+  /// **'New mood tag'**
+  String get createMoodTag;
 
   /// No description provided for @searchHint.
   ///

@@ -58,19 +58,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moodLabel => '心情';
 
   @override
-  String get moodCalm => '平静';
+  String get tagEditorTitle => '编辑标签';
 
   @override
-  String get moodHappy => '开心';
+  String get tagName => '名称';
 
   @override
-  String get moodNeutral => '一般';
+  String get tagIcon => '图标';
 
   @override
-  String get moodDown => '低落';
+  String get noIcon => '无';
 
   @override
-  String get moodAnxious => '焦虑';
+  String get tagColor => '颜色';
+
+  @override
+  String get defaultColor => '默认';
+
+  @override
+  String get kindMood => '心情';
+
+  @override
+  String get kindNormal => '标签';
+
+  @override
+  String get createMoodTag => '新建心情';
 
   @override
   String get searchHint => '搜索思绪…';

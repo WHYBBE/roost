@@ -58,19 +58,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodLabel => 'Mood';
 
   @override
-  String get moodCalm => 'Calm';
+  String get tagEditorTitle => 'Edit tag';
 
   @override
-  String get moodHappy => 'Happy';
+  String get tagName => 'Name';
 
   @override
-  String get moodNeutral => 'Neutral';
+  String get tagIcon => 'Icon';
 
   @override
-  String get moodDown => 'Down';
+  String get noIcon => 'None';
 
   @override
-  String get moodAnxious => 'Anxious';
+  String get tagColor => 'Color';
+
+  @override
+  String get defaultColor => 'Default';
+
+  @override
+  String get kindMood => 'Mood';
+
+  @override
+  String get kindNormal => 'Tag';
+
+  @override
+  String get createMoodTag => 'New mood tag';
 
   @override
   String get searchHint => 'Search thoughts…';

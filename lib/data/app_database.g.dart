@@ -33,15 +33,6 @@ class $ThoughtsTable extends Thoughts
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  @override
-  late final GeneratedColumnWithTypeConverter<Mood, int> mood =
-      GeneratedColumn<int>(
-        'mood',
-        aliasedName,
-        false,
-        type: DriftSqlType.int,
-        requiredDuringInsert: true,
-      ).withConverter<Mood>($ThoughtsTable.$convertermood);
   static const VerificationMeta _dayMeta = const VerificationMeta('day');
   @override
   late final GeneratedColumn<String> day = GeneratedColumn<String>(
@@ -77,7 +68,6 @@ class $ThoughtsTable extends Thoughts
   List<GeneratedColumn> get $columns => [
     id,
     content,
-    mood,
     day,
     createdAt,
     updatedAt,
@@ -146,12 +136,6 @@ class $ThoughtsTable extends Thoughts
         DriftSqlType.string,
         data['${effectivePrefix}content'],
       )!,
-      mood: $ThoughtsTable.$convertermood.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}mood'],
-        )!,
-      ),
       day: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}day'],
@@ -171,22 +155,17 @@ class $ThoughtsTable extends Thoughts
   $ThoughtsTable createAlias(String alias) {
     return $ThoughtsTable(attachedDatabase, alias);
   }
-
-  static JsonTypeConverter2<Mood, int, int> $convertermood =
-      const EnumIndexConverter<Mood>(Mood.values);
 }
 
 class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   final int id;
   final String content;
-  final Mood mood;
   final String day;
   final int createdAt;
   final int updatedAt;
   const ThoughtEntry({
     required this.id,
     required this.content,
-    required this.mood,
     required this.day,
     required this.createdAt,
     required this.updatedAt,
@@ -196,9 +175,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['content'] = Variable<String>(content);
-    {
-      map['mood'] = Variable<int>($ThoughtsTable.$convertermood.toSql(mood));
-    }
     map['day'] = Variable<String>(day);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -209,7 +185,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     return ThoughtsCompanion(
       id: Value(id),
       content: Value(content),
-      mood: Value(mood),
       day: Value(day),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -224,9 +199,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     return ThoughtEntry(
       id: serializer.fromJson<int>(json['id']),
       content: serializer.fromJson<String>(json['content']),
-      mood: $ThoughtsTable.$convertermood.fromJson(
-        serializer.fromJson<int>(json['mood']),
-      ),
       day: serializer.fromJson<String>(json['day']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -238,9 +210,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'content': serializer.toJson<String>(content),
-      'mood': serializer.toJson<int>(
-        $ThoughtsTable.$convertermood.toJson(mood),
-      ),
       'day': serializer.toJson<String>(day),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -250,14 +219,12 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   ThoughtEntry copyWith({
     int? id,
     String? content,
-    Mood? mood,
     String? day,
     int? createdAt,
     int? updatedAt,
   }) => ThoughtEntry(
     id: id ?? this.id,
     content: content ?? this.content,
-    mood: mood ?? this.mood,
     day: day ?? this.day,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -266,7 +233,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     return ThoughtEntry(
       id: data.id.present ? data.id.value : this.id,
       content: data.content.present ? data.content.value : this.content,
-      mood: data.mood.present ? data.mood.value : this.mood,
       day: data.day.present ? data.day.value : this.day,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -278,7 +244,6 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     return (StringBuffer('ThoughtEntry(')
           ..write('id: $id, ')
           ..write('content: $content, ')
-          ..write('mood: $mood, ')
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -287,14 +252,13 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   }
 
   @override
-  int get hashCode => Object.hash(id, content, mood, day, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, content, day, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ThoughtEntry &&
           other.id == this.id &&
           other.content == this.content &&
-          other.mood == this.mood &&
           other.day == this.day &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -303,14 +267,12 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
 class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   final Value<int> id;
   final Value<String> content;
-  final Value<Mood> mood;
   final Value<String> day;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const ThoughtsCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
-    this.mood = const Value.absent(),
     this.day = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -318,19 +280,16 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   ThoughtsCompanion.insert({
     this.id = const Value.absent(),
     required String content,
-    required Mood mood,
     required String day,
     required int createdAt,
     required int updatedAt,
   }) : content = Value(content),
-       mood = Value(mood),
        day = Value(day),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<ThoughtEntry> custom({
     Expression<int>? id,
     Expression<String>? content,
-    Expression<int>? mood,
     Expression<String>? day,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
@@ -338,7 +297,6 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (content != null) 'content': content,
-      if (mood != null) 'mood': mood,
       if (day != null) 'day': day,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -348,7 +306,6 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   ThoughtsCompanion copyWith({
     Value<int>? id,
     Value<String>? content,
-    Value<Mood>? mood,
     Value<String>? day,
     Value<int>? createdAt,
     Value<int>? updatedAt,
@@ -356,7 +313,6 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     return ThoughtsCompanion(
       id: id ?? this.id,
       content: content ?? this.content,
-      mood: mood ?? this.mood,
       day: day ?? this.day,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -371,11 +327,6 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     }
     if (content.present) {
       map['content'] = Variable<String>(content.value);
-    }
-    if (mood.present) {
-      map['mood'] = Variable<int>(
-        $ThoughtsTable.$convertermood.toSql(mood.value),
-      );
     }
     if (day.present) {
       map['day'] = Variable<String>(day.value);
@@ -394,7 +345,6 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     return (StringBuffer('ThoughtsCompanion(')
           ..write('id: $id, ')
           ..write('content: $content, ')
-          ..write('mood: $mood, ')
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -431,6 +381,34 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<int> kind = GeneratedColumn<int>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<int> icon = GeneratedColumn<int>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -444,7 +422,14 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, createdAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    kind,
+    icon,
+    color,
+    createdAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -467,6 +452,24 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -491,6 +494,18 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}kind'],
+      )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon'],
+      ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -507,13 +522,30 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
 class Tag extends DataClass implements Insertable<Tag> {
   final int id;
   final String name;
+  final int kind;
+  final int? icon;
+  final int? color;
   final DateTime createdAt;
-  const Tag({required this.id, required this.name, required this.createdAt});
+  const Tag({
+    required this.id,
+    required this.name,
+    required this.kind,
+    this.icon,
+    this.color,
+    required this.createdAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
+    map['kind'] = Variable<int>(kind);
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<int>(icon);
+    }
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<int>(color);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -522,6 +554,11 @@ class Tag extends DataClass implements Insertable<Tag> {
     return TagsCompanion(
       id: Value(id),
       name: Value(name),
+      kind: Value(kind),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
       createdAt: Value(createdAt),
     );
   }
@@ -534,6 +571,9 @@ class Tag extends DataClass implements Insertable<Tag> {
     return Tag(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
+      kind: serializer.fromJson<int>(json['kind']),
+      icon: serializer.fromJson<int?>(json['icon']),
+      color: serializer.fromJson<int?>(json['color']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -543,19 +583,35 @@ class Tag extends DataClass implements Insertable<Tag> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
+      'kind': serializer.toJson<int>(kind),
+      'icon': serializer.toJson<int?>(icon),
+      'color': serializer.toJson<int?>(color),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
 
-  Tag copyWith({int? id, String? name, DateTime? createdAt}) => Tag(
+  Tag copyWith({
+    int? id,
+    String? name,
+    int? kind,
+    Value<int?> icon = const Value.absent(),
+    Value<int?> color = const Value.absent(),
+    DateTime? createdAt,
+  }) => Tag(
     id: id ?? this.id,
     name: name ?? this.name,
+    kind: kind ?? this.kind,
+    icon: icon.present ? icon.value : this.icon,
+    color: color.present ? color.value : this.color,
     createdAt: createdAt ?? this.createdAt,
   );
   Tag copyWithCompanion(TagsCompanion data) {
     return Tag(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      color: data.color.present ? data.color.value : this.color,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -565,44 +621,65 @@ class Tag extends DataClass implements Insertable<Tag> {
     return (StringBuffer('Tag(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, createdAt);
+  int get hashCode => Object.hash(id, name, kind, icon, color, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Tag &&
           other.id == this.id &&
           other.name == this.name &&
+          other.kind == this.kind &&
+          other.icon == this.icon &&
+          other.color == this.color &&
           other.createdAt == this.createdAt);
 }
 
 class TagsCompanion extends UpdateCompanion<Tag> {
   final Value<int> id;
   final Value<String> name;
+  final Value<int> kind;
+  final Value<int?> icon;
+  final Value<int?> color;
   final Value<DateTime> createdAt;
   const TagsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TagsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
+    this.kind = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.color = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Tag> custom({
     Expression<int>? id,
     Expression<String>? name,
+    Expression<int>? kind,
+    Expression<int>? icon,
+    Expression<int>? color,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
+      if (kind != null) 'kind': kind,
+      if (icon != null) 'icon': icon,
+      if (color != null) 'color': color,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -610,11 +687,17 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   TagsCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
+    Value<int>? kind,
+    Value<int?>? icon,
+    Value<int?>? color,
     Value<DateTime>? createdAt,
   }) {
     return TagsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
+      kind: kind ?? this.kind,
+      icon: icon ?? this.icon,
+      color: color ?? this.color,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -628,6 +711,15 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<int>(kind.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<int>(icon.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -639,6 +731,9 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     return (StringBuffer('TagsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
+          ..write('kind: $kind, ')
+          ..write('icon: $icon, ')
+          ..write('color: $color, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -881,7 +976,6 @@ typedef $$ThoughtsTableCreateCompanionBuilder =
     ThoughtsCompanion Function({
       Value<int> id,
       required String content,
-      required Mood mood,
       required String day,
       required int createdAt,
       required int updatedAt,
@@ -890,7 +984,6 @@ typedef $$ThoughtsTableUpdateCompanionBuilder =
     ThoughtsCompanion Function({
       Value<int> id,
       Value<String> content,
-      Value<Mood> mood,
       Value<String> day,
       Value<int> createdAt,
       Value<int> updatedAt,
@@ -914,12 +1007,6 @@ class $$ThoughtsTableFilterComposer
     column: $table.content,
     builder: (column) => ColumnFilters(column),
   );
-
-  ColumnWithTypeConverterFilters<Mood, Mood, int> get mood =>
-      $composableBuilder(
-        column: $table.mood,
-        builder: (column) => ColumnWithTypeConverterFilters(column),
-      );
 
   ColumnFilters<String> get day => $composableBuilder(
     column: $table.day,
@@ -956,11 +1043,6 @@ class $$ThoughtsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get mood => $composableBuilder(
-    column: $table.mood,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get day => $composableBuilder(
     column: $table.day,
     builder: (column) => ColumnOrderings(column),
@@ -991,9 +1073,6 @@ class $$ThoughtsTableAnnotationComposer
 
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<Mood, int> get mood =>
-      $composableBuilder(column: $table.mood, builder: (column) => column);
 
   GeneratedColumn<String> get day =>
       $composableBuilder(column: $table.day, builder: (column) => column);
@@ -1038,14 +1117,12 @@ class $$ThoughtsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> content = const Value.absent(),
-                Value<Mood> mood = const Value.absent(),
                 Value<String> day = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => ThoughtsCompanion(
                 id: id,
                 content: content,
-                mood: mood,
                 day: day,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -1054,14 +1131,12 @@ class $$ThoughtsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String content,
-                required Mood mood,
                 required String day,
                 required int createdAt,
                 required int updatedAt,
               }) => ThoughtsCompanion.insert(
                 id: id,
                 content: content,
-                mood: mood,
                 day: day,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -1095,12 +1170,18 @@ typedef $$TagsTableCreateCompanionBuilder =
     TagsCompanion Function({
       Value<int> id,
       required String name,
+      Value<int> kind,
+      Value<int?> icon,
+      Value<int?> color,
       Value<DateTime> createdAt,
     });
 typedef $$TagsTableUpdateCompanionBuilder =
     TagsCompanion Function({
       Value<int> id,
       Value<String> name,
+      Value<int> kind,
+      Value<int?> icon,
+      Value<int?> color,
       Value<DateTime> createdAt,
     });
 
@@ -1119,6 +1200,21 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1146,6 +1242,21 @@ class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1166,6 +1277,15 @@ class $$TagsTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1201,16 +1321,32 @@ class $$TagsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<int> kind = const Value.absent(),
+                Value<int?> icon = const Value.absent(),
+                Value<int?> color = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
-              }) => TagsCompanion(id: id, name: name, createdAt: createdAt),
+              }) => TagsCompanion(
+                id: id,
+                name: name,
+                kind: kind,
+                icon: icon,
+                color: color,
+                createdAt: createdAt,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
+                Value<int> kind = const Value.absent(),
+                Value<int?> icon = const Value.absent(),
+                Value<int?> color = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TagsCompanion.insert(
                 id: id,
                 name: name,
+                kind: kind,
+                icon: icon,
+                color: color,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

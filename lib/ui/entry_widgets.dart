@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
+import '../data/tag_presets.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
-import 'mood.dart';
+import 'tag_view.dart';
 
 extension EntryX on ThoughtEntry {
   DateTime get createdAtLocal => DateTime.fromMillisecondsSinceEpoch(createdAt);
@@ -24,8 +25,8 @@ class EntryCard extends StatelessWidget {
 
   final ThoughtEntry entry;
 
-  /// 标签名列表；为 null 时自动加载该思绪的标签
-  final List<String>? tags;
+  /// 标签列表（含心情标签）；为 null 时自动加载
+  final List<Tag>? tags;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -33,6 +34,12 @@ class EntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final time = entry.createdAtLocal;
+    final mood = tags
+        ?.where((t) => t.tagKind == TagKind.mood)
+        .fold<Tag?>(null, (prev, t) => prev ?? t);
+    final normalTags =
+        tags?.where((t) => t.tagKind == TagKind.normal).toList() ?? const [];
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -46,14 +53,21 @@ class EntryCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(entry.mood.icon, size: 18, color: entry.mood.color(context)),
-                  const SizedBox(width: 6),
-                  Text(
-                    entry.mood.label(context),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: scheme.primary,
-                        ),
-                  ),
+                  if (mood != null) ...[
+                    Icon(
+                      mood.iconData ?? Icons.mood,
+                      size: 18,
+                      color: mood.uiColor ?? scheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      mood.name,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: mood.uiColor ?? scheme.primary,
+                          ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   const Spacer(),
                   Text(
                     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
@@ -68,10 +82,7 @@ class EntryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
-              if (tags == null)
-                _TagChipsLoader(entryId: entry.id)
-              else if (tags!.isNotEmpty)
-                TagChips(names: tags!),
+              if (normalTags.isNotEmpty) TagChips(tags: normalTags),
             ],
           ),
         ),
@@ -81,9 +92,9 @@ class EntryCard extends StatelessWidget {
 }
 
 class TagChips extends StatelessWidget {
-  const TagChips({super.key, required this.names});
+  const TagChips({super.key, required this.tags});
 
-  final List<String> names;
+  final List<Tag> tags;
 
   @override
   Widget build(BuildContext context) {
@@ -94,18 +105,32 @@ class TagChips extends StatelessWidget {
         spacing: 6,
         runSpacing: 4,
         children: [
-          for (final name in names)
+          for (final tag in tags)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: scheme.secondaryContainer,
+                color: tag.uiColor?.withValues(alpha: 0.18) ??
+                    scheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: Text(
-                '#$name',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSecondaryContainer,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tag.iconData != null) ...[
+                    Icon(
+                      tag.iconData,
+                      size: 12,
+                      color: tag.uiColor ?? scheme.onSecondaryContainer,
                     ),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    '#${tag.name}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: tag.uiColor ?? scheme.onSecondaryContainer,
+                        ),
+                  ),
+                ],
               ),
             ),
         ],
@@ -124,44 +149,21 @@ class _TagChipsLoader extends StatefulWidget {
 }
 
 class _TagChipsLoaderState extends State<_TagChipsLoader> {
-  List<String>? _tags;
+  List<Tag>? _tags;
 
   @override
   void initState() {
     super.initState();
-    appDb.tagNamesFor(widget.entryId).then((tags) {
+    appDb.tagsFor(widget.entryId).then((tags) {
       if (mounted) setState(() => _tags = tags);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final tags = _tags;
-    if (tags == null || tags.isEmpty) return const SizedBox.shrink();
-    return TagChips(names: tags);
-  }
-}
-
-class MoodChips extends StatelessWidget {
-  const MoodChips({super.key, required this.selected, required this.onSelected});
-
-  final Mood? selected;
-  final ValueChanged<Mood?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      children: [
-        for (final m in Mood.values)
-          FilterChip(
-            label: Text(m.label(context)),
-            selected: selected == m,
-            avatar: Icon(m.icon, size: 16, color: m.color(context)),
-            onSelected: (v) => onSelected(v ? m : null),
-          ),
-      ],
-    );
+    final normal = _tags?.where((t) => t.tagKind == TagKind.normal).toList();
+    if (normal == null || normal.isEmpty) return const SizedBox.shrink();
+    return TagChips(tags: normal);
   }
 }
 
@@ -169,118 +171,173 @@ Future<void> showEntryEditor(
   BuildContext context, {
   ThoughtEntry? existing,
   String? initialText,
-  Mood? initialMood,
 }) async {
   final l = AppLocalizations.of(context)!;
   final controller = TextEditingController(text: existing?.content ?? initialText ?? '');
-  var mood = existing?.mood ?? initialMood ?? Mood.calm;
   var saved = false;
-  final tags = existing == null
-      ? <String>[]
-      : List<String>.of(await appDb.tagNamesFor(existing.id));
+  final allTags = existing == null
+      ? <Tag>[]
+      : List<Tag>.of(await appDb.tagsFor(existing.id));
   if (!context.mounted) return;
+  final moodTags = await appDb.moodTags();
+  if (!context.mounted) return;
+  // 该思绪的心情标签若已被删除，仍保留在选项里供本次保存
+  for (final t in allTags) {
+    if (t.tagKind == TagKind.mood && !moodTags.any((m) => m.id == t.id)) {
+      moodTags.add(t);
+    }
+  }
   final tagController = TextEditingController();
 
   await showDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: Text(existing == null ? l.newThought : l.editThought),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: controller,
-                autofocus: existing == null,
-                maxLines: 6,
-                minLines: 3,
-                decoration: InputDecoration(
-                  hintText: l.thoughtHint,
-                  border: const OutlineInputBorder(),
+      builder: (context, setState) {
+      var mood = allTags
+          .where((t) => t.tagKind == TagKind.mood)
+          .fold<Tag?>(null, (prev, t) => prev ?? t);
+      final normalTags =
+          allTags.where((t) => t.tagKind == TagKind.normal).toList();
+
+        return AlertDialog(
+          title: Text(existing == null ? l.newThought : l.editThought),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: controller,
+                  autofocus: existing == null,
+                  maxLines: 6,
+                  minLines: 3,
+                  decoration: InputDecoration(
+                    hintText: l.thoughtHint,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(l.moodLabel, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final m in Mood.values)
-                    ChoiceChip(
-                      label: Text(m.label(context)),
-                      selected: mood == m,
-                      avatar: Icon(m.icon, size: 16, color: m.color(context)),
-                      onSelected: (_) => setState(() => mood = m),
+                const SizedBox(height: 12),
+                // 心情：特殊标签，单选；可即时新建心情标签
+                Row(
+                  children: [
+                    Text(l.moodLabel, style: Theme.of(context).textTheme.labelLarge),
+                    const Spacer(),
+                    Tooltip(
+                      message: l.createMoodTag,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () async {
+                          final name = await _promptText(
+                            context,
+                            title: l.createMoodTag,
+                          );
+                          if (name == null || name.trim().isEmpty) return;
+                          final tag = await appDb.getOrCreateTag(
+                            name,
+                            kind: TagKind.mood,
+                            icon: moodPresets.first.icon.codePoint,
+                            color: moodPresets.first.color,
+                          );
+                          allTags.removeWhere((t) => t.id == tag.id);
+                          allTags.add(tag);
+                          setState(() {});
+                        },
+                        child: const Icon(Icons.add, size: 20),
+                      ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(l.tagHint, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              if (tags.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (final name in tags)
-                        InputChip(
-                          label: Text('#$name'),
-                          visualDensity: VisualDensity.compact,
-                          onDeleted: () => setState(() => tags.remove(name)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final m in moodTags)
+                      ChoiceChip(
+                        label: Text(m.name),
+                        selected: mood?.id == m.id,
+                        avatar: Icon(
+                          m.iconData ?? Icons.mood,
+                          size: 16,
+                          color: m.uiColor,
                         ),
-                    ],
-                  ),
+                        onSelected: (sel) {
+                          allTags.removeWhere((t) => t.tagKind == TagKind.mood);
+                          if (sel) allTags.add(m);
+                          setState(() {});
+                        },
+                      ),
+                  ],
                 ),
-              TextField(
-                controller: tagController,
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.add, size: 20),
-                    tooltip: l.tagAdd,
-                    onPressed: () => _addTagsFromField(
-                        tagController, tags, () => setState(() {})),
+                const SizedBox(height: 12),
+                Text(l.tagHint, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 4),
+                if (normalTags.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        for (final t in normalTags)
+                          InputChip(
+                            label: Text('#${t.name}'),
+                            visualDensity: VisualDensity.compact,
+                            onDeleted: () =>
+                                setState(() => allTags.remove(t)),
+                          ),
+                      ],
+                    ),
                   ),
+                TextField(
+                  controller: tagController,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.add, size: 20),
+                      tooltip: l.tagAdd,
+                      onPressed: () => _addTagsFromField(
+                          tagController, allTags, () => setState(() {})),
+                    ),
+                  ),
+                  onSubmitted: (_) => _addTagsFromField(
+                      tagController, allTags, () => setState(() {})),
                 ),
-                onSubmitted: (_) => _addTagsFromField(
-                    tagController, tags, () => setState(() {})),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            onPressed: () async {
-              _addTagsFromField(tagController, tags, () {});
-              final text = controller.text.trim();
-              if (text.isEmpty) return;
-              var thoughtId = existing?.id;
-              if (existing == null) {
-                thoughtId = await appDb.insertThought(
-                  content: text,
-                  mood: mood,
-                  day: AppDatabase.today(),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.cancel),
+            ),
+            FilledButton(
+              onPressed: () async {
+                _addTagsFromField(tagController, allTags, () {});
+                final text = controller.text.trim();
+                if (text.isEmpty) return;
+                var thoughtId = existing?.id;
+                if (existing == null) {
+                  thoughtId = await appDb.insertThought(
+                    content: text,
+                    day: AppDatabase.today(),
+                  );
+                } else {
+                  await appDb.updateThought(existing.id, text);
+                }
+                await appDb.setThoughtTags(
+                  thoughtId!,
+                  allTags.map((t) => t.name).toList(),
                 );
-              } else {
-                await appDb.updateThought(existing.id, text, mood);
-              }
-              await appDb.setThoughtTags(thoughtId!, tags);
-              saved = true;
-              if (context.mounted) Navigator.pop(context, true);
-            },
-            child: Text(l.save),
-          ),
-        ],
-      ),
+                saved = true;
+                if (context.mounted) Navigator.pop(context, true);
+              },
+              child: Text(l.save),
+            ),
+          ],
+        );
+      },
     ),
   );
   controller.dispose();
@@ -292,17 +349,58 @@ Future<void> showEntryEditor(
 
 void _addTagsFromField(
   TextEditingController controller,
-  List<String> tags,
+  List<Tag> tags,
   VoidCallback onChanged,
 ) {
   final parts =
       controller.text.split(RegExp(r'[\s,，]+')).where((p) => p.trim().isNotEmpty);
   for (final part in parts) {
     final name = part.trim();
-    if (!tags.contains(name)) tags.add(name);
+    if (!tags.any((t) => t.name == name)) {
+      tags.add(Tag(
+        id: -1,
+        name: name,
+        kind: TagKind.normal.value,
+        icon: null,
+        color: null,
+        createdAt: DateTime.now(),
+      ));
+    }
   }
   controller.clear();
   onChanged();
+}
+
+Future<String?> _promptText(
+  BuildContext context, {
+  required String title,
+  String? initial,
+}) async {
+  final l = AppLocalizations.of(context)!;
+  final controller = TextEditingController(text: initial ?? '');
+  final result = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        onSubmitted: (v) => Navigator.pop(context, v),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, controller.text),
+          child: Text(l.save),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  return result;
 }
 
 Future<void> confirmDelete(BuildContext context, ThoughtEntry entry) async {

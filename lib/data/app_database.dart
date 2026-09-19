@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'tag_presets.dart';
 import 'thoughts_table.dart';
 
 part 'app_database.g.dart';
@@ -12,21 +13,62 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(tags);
-            await m.createTable(thoughtTags);
-          }
-        },
+        onCreate: (m) => m.createAll(),
+        // 情绪/标签结构经历过不兼容重构：升级/降级直接清空重建
+        onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
-          // 思绪删除时级联删除其标签联结行
           await customStatement('PRAGMA foreign_keys = ON');
+          if (details.wasCreated || details.versionBefore != null) {
+            await _seedMoodPresets();
+          }
+          await _repairTransparentSeedColors();
         },
       );
+
+  Future<void> _wipeRebuild(Migrator m, int from, int to) async {
+    await m.deleteTable('thought_tags');
+    await m.deleteTable('tags');
+    await m.deleteTable('thoughts');
+    await m.createAll();
+  }
+
+  Future<void> _seedMoodPresets() async {
+    for (final preset in moodPresets) {
+      final name = seedUseChinese ? preset.nameZh : preset.nameEn;
+      final existing =
+          await (select(tags)..where((t) => t.name.equals(name)))
+              .getSingleOrNull();
+      if (existing != null) continue;
+      await into(tags).insert(
+        TagsCompanion.insert(
+          name: name,
+          kind: Value(TagKind.mood.value),
+          icon: Value(preset.icon.codePoint),
+          color: Value(preset.color),
+        ),
+      );
+    }
+  }
+
+  /// 修复历史种子数据中 alpha=0 的透明颜色（选择器只提供不透明候选，
+  /// alpha=0 一定是旧种子 bug；幂等，每次打开执行）
+  Future<void> _repairTransparentSeedColors() async {
+    final moods =
+        await (select(tags)..where((t) => t.kind.equals(TagKind.mood.value)))
+            .get();
+    for (final mood in moods) {
+      final c = mood.color;
+      if (c != null && (c & 0xFF000000) == 0) {
+        await (update(tags)..where((t) => t.id.equals(mood.id))).write(
+          TagsCompanion(color: Value(0xFF000000 | (c & 0xFFFFFF))),
+        );
+      }
+    }
+  }
 
   static QueryExecutor _open() {
     return driftDatabase(
@@ -38,11 +80,10 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  // ---------- 写入 ----------
+  // ---------- 思绪：写入 ----------
 
   Future<int> insertThought({
     required String content,
-    required Mood mood,
     required String day,
     DateTime? createdAt,
   }) {
@@ -50,7 +91,6 @@ class AppDatabase extends _$AppDatabase {
     return into(thoughts).insert(
       ThoughtsCompanion.insert(
         content: content,
-        mood: mood,
         day: day,
         createdAt: createdAt?.millisecondsSinceEpoch ?? now,
         updatedAt: now,
@@ -58,11 +98,10 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<int> updateThought(int id, String content, Mood mood) {
+  Future<int> updateThought(int id, String content) {
     return (update(thoughts)..where((t) => t.id.equals(id))).write(
       ThoughtsCompanion(
         content: Value(content),
-        mood: Value(mood),
         updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
       ),
     );
@@ -72,21 +111,16 @@ class AppDatabase extends _$AppDatabase {
     return (delete(thoughts)..where((t) => t.id.equals(id))).go();
   }
 
-  // ---------- 查询 ----------
+  // ---------- 思绪：查询 ----------
 
-  /// 搜索全部思绪（内容 LIKE + 可选心情/标签过滤），按日期分组排列
-  Stream<List<ThoughtEntry>> watchSearch(String query,
-      {Mood? mood, String? tagName}) {
+  /// 搜索全部思绪（内容 LIKE + 可选标签过滤），按日期分组排列
+  Stream<List<ThoughtEntry>> watchSearch(String query, {String? tagName}) {
     final joined = (select(thoughts)
           ..where((t) {
             final content = query.trim();
-            final like = content.isEmpty
+            return content.isEmpty
                 ? const Constant(true)
                 : t.content.like('%$content%');
-            if (mood != null) {
-              return like & t.mood.equalsValue(mood);
-            }
-            return like;
           })
           ..orderBy([
             (t) => OrderingTerm.desc(t.day),
@@ -154,26 +188,32 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  static String formatDay(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
-
-  static String today() => formatDay(DateTime.now());
-
   // ---------- 标签 ----------
 
-  /// 获取或创建标签（按名称唯一）
-  Future<Tag> getOrCreateTag(String name) async {
+  /// 获取或创建标签（按名称唯一）；仅创建时应用 kind/icon/color
+  Future<Tag> getOrCreateTag(
+    String name, {
+    TagKind kind = TagKind.normal,
+    int? icon,
+    int? color,
+  }) async {
     final trimmed = name.trim();
-    final existing = await (select(tags)..where((t) => t.name.equals(trimmed)))
-        .getSingleOrNull();
+    final existing =
+        await (select(tags)..where((t) => t.name.equals(trimmed)))
+            .getSingleOrNull();
     if (existing != null) return existing;
-    final id = await into(tags).insert(TagsCompanion.insert(name: trimmed));
+    final id = await into(tags).insert(
+      TagsCompanion.insert(
+        name: trimmed,
+        kind: Value(kind.value),
+        icon: Value(icon),
+        color: Value(color),
+      ),
+    );
     return (select(tags)..where((t) => t.id.equals(id))).getSingle();
   }
 
-  /// 设置某条思绪的标签（整体替换）
+  /// 设置某条思绪的标签（整体替换；心情标签与普通标签同名唯一）
   Future<void> setThoughtTags(int thoughtId, List<String> names) async {
     await transaction(() async {
       await (delete(thoughtTags)
@@ -191,29 +231,28 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// 某条思绪的标签名（一次性查询）
-  Future<List<String>> tagNamesFor(int thoughtId) async {
+  /// 某条思绪的全部标签（一次性查询）
+  Future<List<Tag>> tagsFor(int thoughtId) async {
     final q = select(thoughtTags).join([
       innerJoin(tags, tags.id.equalsExp(thoughtTags.tagId)),
     ])
-      ..addColumns([tags.name])
+      ..addColumns([tags.id, tags.name, tags.kind, tags.icon, tags.color, tags.createdAt])
       ..where(thoughtTags.thoughtId.equals(thoughtId));
     final rows = await q.get();
-    return rows.map((r) => r.read(tags.name)!).toList();
+    return rows.map((r) => r.readTable(tags)).toList();
   }
 
-  /// 全部思绪的标签名映射（thoughtId → 标签名列表）
-  Stream<Map<int, List<String>>> watchAllTagNames() {
+  /// 全部思绪的标签映射（thoughtId → 标签列表）
+  Stream<Map<int, List<Tag>>> watchAllThoughtTags() {
     final q = select(thoughtTags).join([
       innerJoin(tags, tags.id.equalsExp(thoughtTags.tagId)),
-    ])
-      ..addColumns([thoughtTags.thoughtId, tags.name]);
+    ]);
     return q.watch().map((rows) {
-      final map = <int, List<String>>{};
+      final map = <int, List<Tag>>{};
       for (final r in rows) {
         map
             .putIfAbsent(r.read(thoughtTags.thoughtId)!, () => [])
-            .add(r.read(tags.name)!);
+            .add(r.readTable(tags));
       }
       return map;
     });
@@ -240,6 +279,14 @@ class AppDatabase extends _$AppDatabase {
                   ))
               .toList(),
         );
+  }
+
+  /// 全部心情标签（编辑器选择用）
+  Future<List<Tag>> moodTags() {
+    return (select(tags)
+          ..where((t) => t.kind.equals(TagKind.mood.value))
+          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .get();
   }
 
   /// 某个标签下的全部思绪
@@ -282,10 +329,24 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// 更新标签外观；传 null 即"无图标/默认颜色"
+  Future<void> setTagAppearance(int tagId, {int? icon, int? color}) async {
+    await (update(tags)..where((t) => t.id.equals(tagId))).write(
+      TagsCompanion(icon: Value(icon), color: Value(color)),
+    );
+  }
+
   /// 删除标签（联结行由外键级联删除，思绪保留）
   Future<void> deleteTag(int tagId) async {
     await (delete(tags)..where((t) => t.id.equals(tagId))).go();
   }
+
+  static String formatDay(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  static String today() => formatDay(DateTime.now());
 }
 
 /// 标签及其使用数量

@@ -6,6 +6,7 @@ import '../data/database_provider.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
+import '../ui/tag_view.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,8 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String _query = '';
-  Mood? _mood;
-  String? _tag;
+  String? _filterTag;
 
   @override
   Widget build(BuildContext context) {
@@ -58,36 +58,60 @@ class _HomePageState extends State<HomePage> {
                   onChanged: (v) => setState(() => _query = v),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        // 标签筛选（选中的标签排在最前）
-                        if (_tag != null)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FilterChip(
-                              label: Text('#$_tag'),
-                              selected: true,
-                              onSelected: (_) => setState(() => _tag = null),
-                            ),
-                          ),
-                        MoodChips(
-                          selected: _mood,
-                          onSelected: (m) => setState(() => _mood = m),
+              // 筛选行：选中的标签 + 心情标签（已被标记过的）
+              StreamBuilder<List<TagWithCount>>(
+                stream: appDb.watchTagsWithCount(),
+                builder: (context, tagSnap) {
+                  final tags = tagSnap.data ?? const <TagWithCount>[];
+                  final moodTags = tags
+                      .where((t) =>
+                          t.tag.tagKind == TagKind.mood && t.count > 0)
+                      .toList();
+                  if (tags.isEmpty) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            if (_filterTag != null)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text('#$_filterTag'),
+                                  selected: true,
+                                  onSelected: (_) =>
+                                      setState(() => _filterTag = null),
+                                ),
+                              ),
+                            for (final item in moodTags)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  label: Text(item.tag.name),
+                                  selected: _filterTag == item.tag.name,
+                                  avatar: Icon(
+                                    item.tag.iconData ?? Icons.mood,
+                                    size: 16,
+                                    color: item.tag.uiColor,
+                                  ),
+                                  onSelected: (sel) => setState(() =>
+                                      _filterTag =
+                                          sel ? item.tag.name : null),
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
               Expanded(
                 child: StreamBuilder<List<ThoughtEntry>>(
-                  stream: appDb.watchSearch(_query, mood: _mood, tagName: _tag),
+                  stream: appDb.watchSearch(_query, tagName: _filterTag),
                   builder: (context, snap) {
                     final entries = snap.data ?? const <ThoughtEntry>[];
                     if (snap.connectionState == ConnectionState.waiting) {
@@ -108,10 +132,10 @@ class _HomePageState extends State<HomePage> {
                       groups.putIfAbsent(e.day, () => []).add(e);
                     }
                     final days = groups.keys.toList();
-                    return StreamBuilder<Map<int, List<String>>>(
-                      stream: appDb.watchAllTagNames(),
+                    return StreamBuilder<Map<int, List<Tag>>>(
+                      stream: appDb.watchAllThoughtTags(),
                       builder: (context, tagSnap) {
-                        final tagMap = tagSnap.data ?? const <int, List<String>>{};
+                        final tagMap = tagSnap.data ?? const <int, List<Tag>>{};
                         return ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                           itemCount: days.length,
@@ -153,7 +177,7 @@ class _HomePageState extends State<HomePage> {
                                 for (final e in dayEntries)
                                   EntryCard(
                                     entry: e,
-                                    tags: tagMap[e.id] ?? const [],
+                                    tags: tagMap[e.id],
                                     onTap: () =>
                                         showEntryEditor(context, existing: e),
                                     onLongPress: () =>
