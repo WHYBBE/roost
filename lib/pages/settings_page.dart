@@ -4,13 +4,69 @@ import 'package:flutter/material.dart';
 
 import '../data/database_provider.dart';
 import '../data/data_io.dart';
+import '../data/tag_presets.dart';
+import '../settings/app_settings.dart';
 
 import '../l10n/app_localizations.dart';
-import '../settings/app_settings.dart';
 
 void _snack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// 主题种子色圆点：统一尺寸圆形，选中带描边+对勾；默认项带“默”字标识与 Tooltip
+Widget _seedSwatch(
+  BuildContext context, {
+  required Color color,
+  required bool selected,
+  required VoidCallback onTap,
+  bool isDefault = false,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  Widget dot = InkWell(
+    customBorder: const CircleBorder(),
+    onTap: onTap,
+    child: Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          width: 2,
+          color: selected ? scheme.primary : scheme.outlineVariant,
+        ),
+      ),
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+        ),
+        child: selected
+            ? const Icon(Icons.check, size: 18, color: Colors.white)
+            : isDefault
+                ? Text(
+                    '默',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  )
+                : null,
+      ),
+    ),
+  );
+  // Tooltip 要求 message 非空，仅默认项包裹
+  if (isDefault) {
+    dot = Tooltip(
+      message: AppLocalizations.of(context)!.defaultColor,
+      child: dot,
+    );
+  }
+  return dot;
 }
 
 Future<void> _exportData(BuildContext context) async {
@@ -201,6 +257,55 @@ class SettingsPage extends StatelessWidget {
                 ],
                 selected: {settings.theme},
                 onSelectionChanged: (s) => settings.setTheme(s.first),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l.themeColorTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              // 统一圆形网格：两行（默认+5 / 5），点阵对齐
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _seedSwatch(
+                        context,
+                        color: const Color(defaultSeedColor),
+                        selected: settings.seedColor == defaultSeedColor,
+                        isDefault: true,
+                        onTap: () => settings.setSeedColor(defaultSeedColor),
+                      ),
+                      for (final c in tagColorChoices.take(5)) ...[
+                        const SizedBox(width: 10),
+                        _seedSwatch(
+                          context,
+                          color: Color(c),
+                          selected: settings.seedColor == c,
+                          onTap: () => settings.setSeedColor(c),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final c in tagColorChoices.skip(5)) ...[
+                        _seedSwatch(
+                          context,
+                          color: Color(c),
+                          selected: settings.seedColor == c,
+                          onTap: () => settings.setSeedColor(c),
+                        ),
+                        if (c != tagColorChoices.last)
+                          const SizedBox(width: 10),
+                      ],
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Text(

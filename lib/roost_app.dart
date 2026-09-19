@@ -81,7 +81,7 @@ class _RoostAppState extends State<RoostApp> {
   }
 
   ThemeData _theme(Brightness brightness) {
-    const seed = Color(0xFF5C7C6D);
+    final seed = Color(AppSettings.instance.seedColor);
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),

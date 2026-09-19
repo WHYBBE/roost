@@ -45,6 +45,7 @@
   "@totalEntries": { "placeholders": { "count": { "type": "int" } } },
   "settingsTitle": "Settings",
   "themeTitle": "Theme",
+  "themeColorTitle": "Theme color",
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",

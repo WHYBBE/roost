@@ -41,6 +41,7 @@
   "totalEntries": "共 {count} 条",
   "settingsTitle": "设置",
   "themeTitle": "主题",
+  "themeColorTitle": "主题色",
   "themeSystem": "跟随系统",
   "themeLight": "浅色",
   "themeDark": "深色",
