@@ -133,6 +133,95 @@ void main() {
     expect(await db.watchDay(day).first, isEmpty);
   });
 
+  group('attachments', () {
+    final now = DateTime(2026, 9, 16, 10, 30);
+
+    test('插入/读取附件，blob 独立存储', () async {
+      final entry = await insert('带图思绪', day: '2026-09-16', createdAt: now);
+      final a = await db.insertAttachment(
+        thoughtId: entry.id,
+        kind: AttachmentKind.image,
+        mime: 'image/png',
+        bytes: [1, 2, 3, 4],
+      );
+      expect(a.kind, AttachmentKind.image);
+      expect(a.mime, 'image/png');
+      expect(a.sizeBytes, 4);
+      expect(a.durationMs, isNull);
+      expect(await db.attachmentData(a.id), [1, 2, 3, 4]);
+      expect((await db.watchAttachmentsFor(entry.id).first).single.id, a.id);
+    });
+
+    test('音频附件带时长，全部分组流', () async {
+      final entry = await insert('带音频', day: '2026-09-16', createdAt: now);
+      final a = await db.insertAttachment(
+        thoughtId: entry.id,
+        kind: AttachmentKind.audio,
+        mime: 'audio/mp4',
+        bytes: List.generate(10, (i) => i),
+        durationMs: 30000,
+      );
+      expect(a.durationMs, 30000);
+      final map = await db.watchAllAttachmentMeta().first;
+      expect(map[entry.id]!.single.id, a.id);
+    });
+
+    test('删除思绪级联清理附件与 blob；也可单独删附件', () async {
+      final e1 = await insert('one', day: '2026-09-16', createdAt: now);
+      final e2 = await insert('two', day: '2026-09-16', createdAt: now);
+      final a1 = await db.insertAttachment(
+        thoughtId: e1.id,
+        kind: AttachmentKind.image,
+        mime: 'image/jpeg',
+        bytes: [9],
+      );
+      final a2 = await db.insertAttachment(
+        thoughtId: e2.id,
+        kind: AttachmentKind.audio,
+        mime: 'audio/mp4',
+        bytes: [8],
+        durationMs: 1000,
+      );
+      await db.deleteAttachment(a2.id);
+      expect(await db.attachmentData(a2.id), isNull);
+      await db.deleteThought(e1.id);
+      expect(await db.attachmentData(a1.id), isNull);
+      expect(await db.watchAllAttachmentMeta().first, isEmpty);
+    });
+
+    test('导出导入往返：附件跟随新思绪，重复思绪不重复附加', () async {
+      final entry = await insert('有附件', day: '2026-09-16', createdAt: now);
+      await db.insertAttachment(
+        thoughtId: entry.id,
+        kind: AttachmentKind.audio,
+        mime: 'audio/mp4',
+        bytes: [1, 2, 3],
+        durationMs: 5000,
+      );
+      final data = await db.exportData();
+      expect(data['attachments'], hasLength(1));
+
+      // 另一个空库导入
+      var other = AppDatabase.connect(NativeDatabase.memory());
+      final count = await other.importData(data);
+      expect(count, 1);
+      final importedThoughts = await other.select(other.thoughts).get();
+      final importedAtts = await other.select(other.attachments).get();
+      final importedBlob = await other.select(other.attachmentBlobs).get();
+      expect(importedThoughts, hasLength(1));
+      expect(importedAtts.single.durationMs, 5000);
+      expect(importedBlob.single.data, [1, 2, 3]);
+      await other.close();
+
+      // 重复导入：思绪去重，附件不追加
+      other = AppDatabase.connect(NativeDatabase.memory());
+      await other.importData(data);
+      await other.importData(data);
+      expect(await other.select(other.attachments).get(), hasLength(1));
+      await other.close();
+    });
+  });
+
   group('tags', () {
     late ThoughtEntry a;
     late ThoughtEntry b;

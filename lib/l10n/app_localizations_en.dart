@@ -380,4 +380,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cleanData => 'Clear data';
+
+  @override
+  String get attachments => 'Attachments';
+
+  @override
+  String get addImage => 'Add image';
+
+  @override
+  String get recordAudio => 'Record audio';
+
+  @override
+  String get recordHint => 'Tap to start recording';
+
+  @override
+  String get recording => 'Recording';
+
+  @override
+  String get stopRecord => 'Stop';
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get attachmentTooLarge => 'File too large (max 20 MB each)';
+
+  @override
+  String get micPermissionDenied => 'Microphone permission denied';
 }

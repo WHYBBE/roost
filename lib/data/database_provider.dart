@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_database.dart';
+import 'attachment_io.dart';
 import 'data_io.dart';
 import 'tag_presets.dart';
 
@@ -197,6 +198,8 @@ class DataStore extends ChangeNotifier {
         await target.close();
       } else {
         await deleteDataFiles(file);
+        // 播放缓存以附件 id 为键，跨库可能撞号，顺手全清
+        await clearAttachmentCache();
       }
     } catch (_) {}
   }

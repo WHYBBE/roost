@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../data/app_database.dart';
@@ -5,6 +8,7 @@ import '../data/database_provider.dart';
 import '../data/tag_presets.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import 'attachment_widgets.dart';
 import 'tag_view.dart';
 
 extension EntryX on ThoughtEntry {
@@ -78,6 +82,7 @@ class EntryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
               ),
+              AttachmentStrip(thoughtId: entry.id),
               if (normalTags.isNotEmpty) TagChips(tags: normalTags),
             ],
           ),
@@ -184,6 +189,15 @@ Future<void> showEntryEditor(
     }
   }
   final tagController = TextEditingController();
+  // 附件：kept 为已入库（可移除），pending 为本次新增（未入库）
+  final existingAtts = existing == null
+      ? const <Attachment>[]
+      : List<Attachment>.of(
+          await appDb.watchAttachmentsFor(existing.id).first,
+        );
+  if (!context.mounted) return;
+  final kept = List<Attachment>.of(existingAtts);
+  final pending = <_PendingAttachment>[];
 
   await showDialog<bool>(
     context: context,
@@ -194,6 +208,15 @@ Future<void> showEntryEditor(
           .fold<Tag?>(null, (prev, t) => prev ?? t);
       final normalTags =
           allTags.where((t) => t.tagKind == TagKind.normal).toList();
+      // 编辑器内可见的全部图片（已入库 + 待新增），供查看器翻页
+      final keptImages =
+          kept.where((k) => k.kind == AttachmentKind.image).toList();
+      final pendingImages =
+          pending.where((p) => p.kind == AttachmentKind.image).toList();
+      final imageItems = [
+        for (final a in keptImages) ImageViewerItem.attachment(a.id),
+        for (final p in pendingImages) ImageViewerItem.bytes(p.bytes),
+      ];
 
         return AlertDialog(
           title: Text(existing == null ? l.newThought : l.editThought),
@@ -300,6 +323,80 @@ Future<void> showEntryEditor(
                   onSubmitted: (_) => _addTagsFromField(
                       tagController, allTags, () => setState(() {})),
                 ),
+                const SizedBox(height: 12),
+                // 附件：图片（选择）+ 音频（录音）
+                Row(
+                  children: [
+                    Text(l.attachments,
+                        style: Theme.of(context).textTheme.labelLarge),
+                    const Spacer(),
+                    Tooltip(
+                      message: l.addImage,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _pickImages(
+                            context, pending, () => setState(() {})),
+                        child: const Icon(Icons.photo_outlined, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Tooltip(
+                      message: l.recordAudio,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _recordAudio(
+                            context, pending, () => setState(() {})),
+                        child: const Icon(Icons.mic_none_outlined, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
+                if (kept.isNotEmpty || pending.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final a in kept)
+                        if (a.kind == AttachmentKind.image)
+                          AttachmentImageThumb(
+                            attachment: a,
+                            size: 72,
+                            onTap: () => showImageViewer(
+                              context,
+                              imageItems,
+                              initialIndex: keptImages.indexOf(a),
+                            ),
+                            onRemove: () => setState(() => kept.remove(a)),
+                          )
+                        else
+                          AudioChip(
+                            attachment: a,
+                            onDeleted: () => setState(() => kept.remove(a)),
+                          ),
+                      for (final p in pending)
+                        if (p.kind == AttachmentKind.image)
+                          PendingImageThumb(
+                            bytes: p.bytes,
+                            onTap: () => showImageViewer(
+                              context,
+                              imageItems,
+                              initialIndex:
+                                  keptImages.length + pendingImages.indexOf(p),
+                            ),
+                            onRemove: () => setState(() => pending.remove(p)),
+                          )
+                        else
+                          PendingAudioChip(
+                            bytes: p.bytes,
+                            mime: p.mime,
+                            playKey: p.playKey,
+                            durationMs: p.durationMs ?? 0,
+                            onRemove: () => setState(() => pending.remove(p)),
+                          ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -326,6 +423,21 @@ Future<void> showEntryEditor(
                   thoughtId!,
                   allTags.map((t) => t.name).toList(),
                 );
+                // 附件：删除被移除的已入库项，追加本次新增
+                for (final a in existingAtts) {
+                  if (!kept.any((k) => k.id == a.id)) {
+                    await appDb.deleteAttachment(a.id);
+                  }
+                }
+                for (final p in pending) {
+                  await appDb.insertAttachment(
+                    thoughtId: thoughtId,
+                    kind: p.kind,
+                    mime: p.mime,
+                    bytes: p.bytes,
+                    durationMs: p.durationMs,
+                  );
+                }
                 saved = true;
                 if (context.mounted) Navigator.pop(context, true);
               },
@@ -365,6 +477,95 @@ void _addTagsFromField(
     }
   }
   controller.clear();
+  onChanged();
+}
+
+/// 编辑器中的待新增附件
+class _PendingAttachment {
+  static int _seq = 0;
+
+  _PendingAttachment({
+    required this.bytes,
+    required this.mime,
+    required this.kind,
+    this.durationMs,
+  }) : playKey = 'pending-${_seq++}';
+
+  final Uint8List bytes;
+  final String mime;
+  final AttachmentKind kind;
+  final int? durationMs;
+
+  /// 播放器键（未入库附件的试听预览）
+  final String playKey;
+}
+
+/// 选择图片（可多选）加入 pending；超限提示并跳过
+Future<void> _pickImages(
+  BuildContext context,
+  List<_PendingAttachment> pending,
+  VoidCallback onChanged,
+) async {
+  final l = AppLocalizations.of(context)!;
+  try {
+    final files = await openFiles(
+      acceptedTypeGroups: const [
+        // macOS 的 UTType 不支持 'image/*' 通配（会令全部文件变灰），
+        // 桌面用扩展名/UTI，Web 用具体 MIME
+        XTypeGroup(
+          label: 'Images',
+          extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'],
+          uniformTypeIdentifiers: ['public.image'],
+          mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+        ),
+      ],
+    );
+    if (files.isEmpty) return;
+    for (final f in files) {
+      final bytes = await f.readAsBytes();
+      if (bytes.lengthInBytes > kMaxAttachmentBytes) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l.attachmentTooLarge)),
+          );
+        }
+        continue;
+      }
+      pending.add(_PendingAttachment(
+        bytes: bytes,
+        mime: guessImageMime(f.mimeType, f.name),
+        kind: AttachmentKind.image,
+      ));
+    }
+    onChanged();
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.opFailed)));
+    }
+  }
+}
+
+/// 录音加入 pending
+Future<void> _recordAudio(
+  BuildContext context,
+  List<_PendingAttachment> pending,
+  VoidCallback onChanged,
+) async {
+  final l = AppLocalizations.of(context)!;
+  final rec = await showAudioRecorder(context);
+  if (rec == null || !context.mounted) return;
+  if (rec.bytes.lengthInBytes > kMaxAttachmentBytes) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l.attachmentTooLarge)));
+    return;
+  }
+  pending.add(_PendingAttachment(
+    bytes: rec.bytes,
+    mime: 'audio/mp4',
+    kind: AttachmentKind.audio,
+    durationMs: rec.durationMs,
+  ));
   onChanged();
 }
 

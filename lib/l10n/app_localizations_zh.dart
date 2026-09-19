@@ -365,4 +365,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cleanData => '清理数据';
+
+  @override
+  String get attachments => '附件';
+
+  @override
+  String get addImage => '添加图片';
+
+  @override
+  String get recordAudio => '录音';
+
+  @override
+  String get recordHint => '点按开始录音';
+
+  @override
+  String get recording => '录音中';
+
+  @override
+  String get stopRecord => '停止';
+
+  @override
+  String get play => '播放';
+
+  @override
+  String get pause => '暂停';
+
+  @override
+  String get attachmentTooLarge => '文件过大（单个最多 20 MB）';
+
+  @override
+  String get micPermissionDenied => '未获得麦克风权限';
 }

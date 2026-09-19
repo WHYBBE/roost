@@ -110,5 +110,15 @@
   "opFailed": "操作失败",
   "dataCorruptTitle": "数据异常",
   "dataCorruptBody": "本地数据无法读取，可能已损坏。清理后应用将重置为初始状态（恢复预设心情），此操作无法撤销。",
-  "cleanData": "清理数据"
+  "cleanData": "清理数据",
+  "attachments": "附件",
+  "addImage": "添加图片",
+  "recordAudio": "录音",
+  "recordHint": "点按开始录音",
+  "recording": "录音中",
+  "stopRecord": "停止",
+  "play": "播放",
+  "pause": "暂停",
+  "attachmentTooLarge": "文件过大（单个最多 20 MB）",
+  "micPermissionDenied": "未获得麦克风权限"
 }

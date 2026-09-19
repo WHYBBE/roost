@@ -745,6 +745,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear data'**
   String get cleanData;
+
+  /// No description provided for @attachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachments;
+
+  /// No description provided for @addImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get addImage;
+
+  /// No description provided for @recordAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Record audio'**
+  String get recordAudio;
+
+  /// No description provided for @recordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to start recording'**
+  String get recordHint;
+
+  /// No description provided for @recording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording'**
+  String get recording;
+
+  /// No description provided for @stopRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get stopRecord;
+
+  /// No description provided for @play.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get play;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// No description provided for @attachmentTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'File too large (max 20 MB each)'**
+  String get attachmentTooLarge;
+
+  /// No description provided for @micPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission denied'**
+  String get micPermissionDenied;
 }
 
 class _AppLocalizationsDelegate

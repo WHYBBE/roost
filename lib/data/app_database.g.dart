@@ -803,6 +803,9 @@ class $ThoughtTagsTable extends ThoughtTags
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
   @override
@@ -812,6 +815,9 @@ class $ThoughtTagsTable extends ThoughtTags
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tags (id) ON DELETE CASCADE',
+    ),
   );
   @override
   List<GeneratedColumn> get $columns => [thoughtId, tagId];
@@ -1002,12 +1008,678 @@ class ThoughtTagsCompanion extends UpdateCompanion<ThoughtTag> {
   }
 }
 
+class $AttachmentsTable extends Attachments
+    with TableInfo<$AttachmentsTable, Attachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
+    'thoughtId',
+  );
+  @override
+  late final GeneratedColumn<int> thoughtId = GeneratedColumn<int>(
+    'thought_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AttachmentKind, int> kind =
+      GeneratedColumn<int>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<AttachmentKind>($AttachmentsTable.$converterkind);
+  static const VerificationMeta _mimeMeta = const VerificationMeta('mime');
+  @override
+  late final GeneratedColumn<String> mime = GeneratedColumn<String>(
+    'mime',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    thoughtId,
+    kind,
+    mime,
+    durationMs,
+    sizeBytes,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Attachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('thought_id')) {
+      context.handle(
+        _thoughtIdMeta,
+        thoughtId.isAcceptableOrUnknown(data['thought_id']!, _thoughtIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_thoughtIdMeta);
+    }
+    if (data.containsKey('mime')) {
+      context.handle(
+        _mimeMeta,
+        mime.isAcceptableOrUnknown(data['mime']!, _mimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mimeMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sizeBytesMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Attachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Attachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      thoughtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}thought_id'],
+      )!,
+      kind: $AttachmentsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      mime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $AttachmentsTable createAlias(String alias) {
+    return $AttachmentsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AttachmentKind, int, int> $converterkind =
+      const EnumIndexConverter<AttachmentKind>(AttachmentKind.values);
+}
+
+class Attachment extends DataClass implements Insertable<Attachment> {
+  final int id;
+  final int thoughtId;
+  final AttachmentKind kind;
+  final String mime;
+  final int? durationMs;
+  final int sizeBytes;
+  final DateTime createdAt;
+  const Attachment({
+    required this.id,
+    required this.thoughtId,
+    required this.kind,
+    required this.mime,
+    this.durationMs,
+    required this.sizeBytes,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['thought_id'] = Variable<int>(thoughtId);
+    {
+      map['kind'] = Variable<int>($AttachmentsTable.$converterkind.toSql(kind));
+    }
+    map['mime'] = Variable<String>(mime);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    map['size_bytes'] = Variable<int>(sizeBytes);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  AttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentsCompanion(
+      id: Value(id),
+      thoughtId: Value(thoughtId),
+      kind: Value(kind),
+      mime: Value(mime),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      sizeBytes: Value(sizeBytes),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Attachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Attachment(
+      id: serializer.fromJson<int>(json['id']),
+      thoughtId: serializer.fromJson<int>(json['thoughtId']),
+      kind: $AttachmentsTable.$converterkind.fromJson(
+        serializer.fromJson<int>(json['kind']),
+      ),
+      mime: serializer.fromJson<String>(json['mime']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      sizeBytes: serializer.fromJson<int>(json['sizeBytes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'thoughtId': serializer.toJson<int>(thoughtId),
+      'kind': serializer.toJson<int>(
+        $AttachmentsTable.$converterkind.toJson(kind),
+      ),
+      'mime': serializer.toJson<String>(mime),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'sizeBytes': serializer.toJson<int>(sizeBytes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Attachment copyWith({
+    int? id,
+    int? thoughtId,
+    AttachmentKind? kind,
+    String? mime,
+    Value<int?> durationMs = const Value.absent(),
+    int? sizeBytes,
+    DateTime? createdAt,
+  }) => Attachment(
+    id: id ?? this.id,
+    thoughtId: thoughtId ?? this.thoughtId,
+    kind: kind ?? this.kind,
+    mime: mime ?? this.mime,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    sizeBytes: sizeBytes ?? this.sizeBytes,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Attachment copyWithCompanion(AttachmentsCompanion data) {
+    return Attachment(
+      id: data.id.present ? data.id.value : this.id,
+      thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      mime: data.mime.present ? data.mime.value : this.mime,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Attachment(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('kind: $kind, ')
+          ..write('mime: $mime, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, thoughtId, kind, mime, durationMs, sizeBytes, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Attachment &&
+          other.id == this.id &&
+          other.thoughtId == this.thoughtId &&
+          other.kind == this.kind &&
+          other.mime == this.mime &&
+          other.durationMs == this.durationMs &&
+          other.sizeBytes == this.sizeBytes &&
+          other.createdAt == this.createdAt);
+}
+
+class AttachmentsCompanion extends UpdateCompanion<Attachment> {
+  final Value<int> id;
+  final Value<int> thoughtId;
+  final Value<AttachmentKind> kind;
+  final Value<String> mime;
+  final Value<int?> durationMs;
+  final Value<int> sizeBytes;
+  final Value<DateTime> createdAt;
+  const AttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.thoughtId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.mime = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  AttachmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int thoughtId,
+    required AttachmentKind kind,
+    required String mime,
+    this.durationMs = const Value.absent(),
+    required int sizeBytes,
+    this.createdAt = const Value.absent(),
+  }) : thoughtId = Value(thoughtId),
+       kind = Value(kind),
+       mime = Value(mime),
+       sizeBytes = Value(sizeBytes);
+  static Insertable<Attachment> custom({
+    Expression<int>? id,
+    Expression<int>? thoughtId,
+    Expression<int>? kind,
+    Expression<String>? mime,
+    Expression<int>? durationMs,
+    Expression<int>? sizeBytes,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (thoughtId != null) 'thought_id': thoughtId,
+      if (kind != null) 'kind': kind,
+      if (mime != null) 'mime': mime,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  AttachmentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? thoughtId,
+    Value<AttachmentKind>? kind,
+    Value<String>? mime,
+    Value<int?>? durationMs,
+    Value<int>? sizeBytes,
+    Value<DateTime>? createdAt,
+  }) {
+    return AttachmentsCompanion(
+      id: id ?? this.id,
+      thoughtId: thoughtId ?? this.thoughtId,
+      kind: kind ?? this.kind,
+      mime: mime ?? this.mime,
+      durationMs: durationMs ?? this.durationMs,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (thoughtId.present) {
+      map['thought_id'] = Variable<int>(thoughtId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<int>(
+        $AttachmentsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (mime.present) {
+      map['mime'] = Variable<String>(mime.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('kind: $kind, ')
+          ..write('mime: $mime, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AttachmentBlobsTable extends AttachmentBlobs
+    with TableInfo<$AttachmentBlobsTable, AttachmentBlob> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttachmentBlobsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _attachmentIdMeta = const VerificationMeta(
+    'attachmentId',
+  );
+  @override
+  late final GeneratedColumn<int> attachmentId = GeneratedColumn<int>(
+    'attachment_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES attachments (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<Uint8List> data = GeneratedColumn<Uint8List>(
+    'data',
+    aliasedName,
+    false,
+    type: DriftSqlType.blob,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [attachmentId, data];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attachment_blobs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AttachmentBlob> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('attachment_id')) {
+      context.handle(
+        _attachmentIdMeta,
+        attachmentId.isAcceptableOrUnknown(
+          data['attachment_id']!,
+          _attachmentIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+        _dataMeta,
+        this.data.isAcceptableOrUnknown(data['data']!, _dataMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {attachmentId};
+  @override
+  AttachmentBlob map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttachmentBlob(
+      attachmentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attachment_id'],
+      )!,
+      data: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}data'],
+      )!,
+    );
+  }
+
+  @override
+  $AttachmentBlobsTable createAlias(String alias) {
+    return $AttachmentBlobsTable(attachedDatabase, alias);
+  }
+}
+
+class AttachmentBlob extends DataClass implements Insertable<AttachmentBlob> {
+  final int attachmentId;
+  final Uint8List data;
+  const AttachmentBlob({required this.attachmentId, required this.data});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['attachment_id'] = Variable<int>(attachmentId);
+    map['data'] = Variable<Uint8List>(data);
+    return map;
+  }
+
+  AttachmentBlobsCompanion toCompanion(bool nullToAbsent) {
+    return AttachmentBlobsCompanion(
+      attachmentId: Value(attachmentId),
+      data: Value(data),
+    );
+  }
+
+  factory AttachmentBlob.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttachmentBlob(
+      attachmentId: serializer.fromJson<int>(json['attachmentId']),
+      data: serializer.fromJson<Uint8List>(json['data']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'attachmentId': serializer.toJson<int>(attachmentId),
+      'data': serializer.toJson<Uint8List>(data),
+    };
+  }
+
+  AttachmentBlob copyWith({int? attachmentId, Uint8List? data}) =>
+      AttachmentBlob(
+        attachmentId: attachmentId ?? this.attachmentId,
+        data: data ?? this.data,
+      );
+  AttachmentBlob copyWithCompanion(AttachmentBlobsCompanion data) {
+    return AttachmentBlob(
+      attachmentId: data.attachmentId.present
+          ? data.attachmentId.value
+          : this.attachmentId,
+      data: data.data.present ? data.data.value : this.data,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentBlob(')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('data: $data')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(attachmentId, $driftBlobEquality.hash(data));
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttachmentBlob &&
+          other.attachmentId == this.attachmentId &&
+          $driftBlobEquality.equals(other.data, this.data));
+}
+
+class AttachmentBlobsCompanion extends UpdateCompanion<AttachmentBlob> {
+  final Value<int> attachmentId;
+  final Value<Uint8List> data;
+  const AttachmentBlobsCompanion({
+    this.attachmentId = const Value.absent(),
+    this.data = const Value.absent(),
+  });
+  AttachmentBlobsCompanion.insert({
+    this.attachmentId = const Value.absent(),
+    required Uint8List data,
+  }) : data = Value(data);
+  static Insertable<AttachmentBlob> custom({
+    Expression<int>? attachmentId,
+    Expression<Uint8List>? data,
+  }) {
+    return RawValuesInsertable({
+      if (attachmentId != null) 'attachment_id': attachmentId,
+      if (data != null) 'data': data,
+    });
+  }
+
+  AttachmentBlobsCompanion copyWith({
+    Value<int>? attachmentId,
+    Value<Uint8List>? data,
+  }) {
+    return AttachmentBlobsCompanion(
+      attachmentId: attachmentId ?? this.attachmentId,
+      data: data ?? this.data,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (attachmentId.present) {
+      map['attachment_id'] = Variable<int>(attachmentId.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<Uint8List>(data.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttachmentBlobsCompanion(')
+          ..write('attachmentId: $attachmentId, ')
+          ..write('data: $data')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ThoughtsTable thoughts = $ThoughtsTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $ThoughtTagsTable thoughtTags = $ThoughtTagsTable(this);
+  late final $AttachmentsTable attachments = $AttachmentsTable(this);
+  late final $AttachmentBlobsTable attachmentBlobs = $AttachmentBlobsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1016,7 +1688,40 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     thoughts,
     tags,
     thoughtTags,
+    attachments,
+    attachmentBlobs,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('thought_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tags',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('thought_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'attachments',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attachment_blobs', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$ThoughtsTableCreateCompanionBuilder =
@@ -1035,6 +1740,47 @@ typedef $$ThoughtsTableUpdateCompanionBuilder =
       Value<int> createdAt,
       Value<int> updatedAt,
     });
+
+final class $$ThoughtsTableReferences
+    extends BaseReferences<_$AppDatabase, $ThoughtsTable, ThoughtEntry> {
+  $$ThoughtsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$ThoughtTagsTable, List<ThoughtTag>>
+  _thoughtTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.thoughtTags,
+    aliasName: 'thoughts__id__thought_tags__thought_id',
+  );
+
+  $$ThoughtTagsTableProcessedTableManager get thoughtTagsRefs {
+    final manager = $$ThoughtTagsTableTableManager(
+      $_db,
+      $_db.thoughtTags,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_thoughtTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$AttachmentsTable, List<Attachment>>
+  _attachmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.attachments,
+    aliasName: 'thoughts__id__attachments__thought_id',
+  );
+
+  $$AttachmentsTableProcessedTableManager get attachmentsRefs {
+    final manager = $$AttachmentsTableTableManager(
+      $_db,
+      $_db.attachments,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$ThoughtsTableFilterComposer
     extends Composer<_$AppDatabase, $ThoughtsTable> {
@@ -1069,6 +1815,56 @@ class $$ThoughtsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> thoughtTagsRefs(
+    Expression<bool> Function($$ThoughtTagsTableFilterComposer f) f,
+  ) {
+    final $$ThoughtTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtTags,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughtTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> attachmentsRefs(
+    Expression<bool> Function($$AttachmentsTableFilterComposer f) f,
+  ) {
+    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ThoughtsTableOrderingComposer
@@ -1129,6 +1925,56 @@ class $$ThoughtsTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> thoughtTagsRefs<T extends Object>(
+    Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
+  ) {
+    final $$ThoughtTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtTags,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughtTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> attachmentsRefs<T extends Object>(
+    Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
+  ) {
+    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ThoughtsTableTableManager
@@ -1142,12 +1988,9 @@ class $$ThoughtsTableTableManager
           $$ThoughtsTableAnnotationComposer,
           $$ThoughtsTableCreateCompanionBuilder,
           $$ThoughtsTableUpdateCompanionBuilder,
-          (
-            ThoughtEntry,
-            BaseReferences<_$AppDatabase, $ThoughtsTable, ThoughtEntry>,
-          ),
+          (ThoughtEntry, $$ThoughtsTableReferences),
           ThoughtEntry,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool thoughtTagsRefs, bool attachmentsRefs})
         > {
   $$ThoughtsTableTableManager(_$AppDatabase db, $ThoughtsTable table)
     : super(
@@ -1189,9 +2032,70 @@ class $$ThoughtsTableTableManager
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ThoughtsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback:
+              ({thoughtTagsRefs = false, attachmentsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (thoughtTagsRefs) db.thoughtTags,
+                    if (attachmentsRefs) db.attachments,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (thoughtTagsRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          ThoughtTag
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._thoughtTagsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).thoughtTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (attachmentsRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          Attachment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._attachmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).attachmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
         ),
       );
 }
@@ -1206,12 +2110,9 @@ typedef $$ThoughtsTableProcessedTableManager =
       $$ThoughtsTableAnnotationComposer,
       $$ThoughtsTableCreateCompanionBuilder,
       $$ThoughtsTableUpdateCompanionBuilder,
-      (
-        ThoughtEntry,
-        BaseReferences<_$AppDatabase, $ThoughtsTable, ThoughtEntry>,
-      ),
+      (ThoughtEntry, $$ThoughtsTableReferences),
       ThoughtEntry,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool thoughtTagsRefs, bool attachmentsRefs})
     >;
 typedef $$TagsTableCreateCompanionBuilder =
     TagsCompanion Function({
@@ -1233,6 +2134,29 @@ typedef $$TagsTableUpdateCompanionBuilder =
       Value<int?> color,
       Value<DateTime> createdAt,
     });
+
+final class $$TagsTableReferences
+    extends BaseReferences<_$AppDatabase, $TagsTable, Tag> {
+  $$TagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$ThoughtTagsTable, List<ThoughtTag>>
+  _thoughtTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.thoughtTags,
+    aliasName: 'tags__id__thought_tags__tag_id',
+  );
+
+  $$ThoughtTagsTableProcessedTableManager get thoughtTagsRefs {
+    final manager = $$ThoughtTagsTableTableManager(
+      $_db,
+      $_db.thoughtTags,
+    ).filter((f) => f.tagId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_thoughtTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
   $$TagsTableFilterComposer({
@@ -1276,6 +2200,31 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> thoughtTagsRefs(
+    Expression<bool> Function($$ThoughtTagsTableFilterComposer f) f,
+  ) {
+    final $$ThoughtTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughtTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
@@ -1351,6 +2300,31 @@ class $$TagsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> thoughtTagsRefs<T extends Object>(
+    Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
+  ) {
+    final $$ThoughtTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughtTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TagsTableTableManager
@@ -1364,9 +2338,9 @@ class $$TagsTableTableManager
           $$TagsTableAnnotationComposer,
           $$TagsTableCreateCompanionBuilder,
           $$TagsTableUpdateCompanionBuilder,
-          (Tag, BaseReferences<_$AppDatabase, $TagsTable, Tag>),
+          (Tag, $$TagsTableReferences),
           Tag,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool thoughtTagsRefs})
         > {
   $$TagsTableTableManager(_$AppDatabase db, $TagsTable table)
     : super(
@@ -1416,9 +2390,33 @@ class $$TagsTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$TagsTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({thoughtTagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (thoughtTagsRefs) db.thoughtTags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (thoughtTagsRefs)
+                    await $_getPrefetchedData<Tag, $TagsTable, ThoughtTag>(
+                      currentTable: table,
+                      referencedTable: $$TagsTableReferences
+                          ._thoughtTagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$TagsTableReferences(db, table, p0).thoughtTagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.tagId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -1433,9 +2431,9 @@ typedef $$TagsTableProcessedTableManager =
       $$TagsTableAnnotationComposer,
       $$TagsTableCreateCompanionBuilder,
       $$TagsTableUpdateCompanionBuilder,
-      (Tag, BaseReferences<_$AppDatabase, $TagsTable, Tag>),
+      (Tag, $$TagsTableReferences),
       Tag,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool thoughtTagsRefs})
     >;
 typedef $$ThoughtTagsTableCreateCompanionBuilder =
     ThoughtTagsCompanion Function({
@@ -1450,6 +2448,45 @@ typedef $$ThoughtTagsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$ThoughtTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $ThoughtTagsTable, ThoughtTag> {
+  $$ThoughtTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('thought_tags__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id')!;
+
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TagsTable _tagIdTable(_$AppDatabase db) =>
+      db.tags.createAlias('thought_tags__tag_id__tags__id');
+
+  $$TagsTableProcessedTableManager get tagId {
+    final $_column = $_itemColumn<int>('tag_id')!;
+
+    final manager = $$TagsTableTableManager(
+      $_db,
+      $_db.tags,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_tagIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
 class $$ThoughtTagsTableFilterComposer
     extends Composer<_$AppDatabase, $ThoughtTagsTable> {
   $$ThoughtTagsTableFilterComposer({
@@ -1459,15 +2496,51 @@ class $$ThoughtTagsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get thoughtId => $composableBuilder(
-    column: $table.thoughtId,
-    builder: (column) => ColumnFilters(column),
-  );
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
-  ColumnFilters<int> get tagId => $composableBuilder(
-    column: $table.tagId,
-    builder: (column) => ColumnFilters(column),
-  );
+  $$TagsTableFilterComposer get tagId {
+    final $$TagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableFilterComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$ThoughtTagsTableOrderingComposer
@@ -1479,15 +2552,51 @@ class $$ThoughtTagsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get thoughtId => $composableBuilder(
-    column: $table.thoughtId,
-    builder: (column) => ColumnOrderings(column),
-  );
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
-  ColumnOrderings<int> get tagId => $composableBuilder(
-    column: $table.tagId,
-    builder: (column) => ColumnOrderings(column),
-  );
+  $$TagsTableOrderingComposer get tagId {
+    final $$TagsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableOrderingComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$ThoughtTagsTableAnnotationComposer
@@ -1499,11 +2608,51 @@ class $$ThoughtTagsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get thoughtId =>
-      $composableBuilder(column: $table.thoughtId, builder: (column) => column);
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
-  GeneratedColumn<int> get tagId =>
-      $composableBuilder(column: $table.tagId, builder: (column) => column);
+  $$TagsTableAnnotationComposer get tagId {
+    final $$TagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$ThoughtTagsTableTableManager
@@ -1517,12 +2666,9 @@ class $$ThoughtTagsTableTableManager
           $$ThoughtTagsTableAnnotationComposer,
           $$ThoughtTagsTableCreateCompanionBuilder,
           $$ThoughtTagsTableUpdateCompanionBuilder,
-          (
-            ThoughtTag,
-            BaseReferences<_$AppDatabase, $ThoughtTagsTable, ThoughtTag>,
-          ),
+          (ThoughtTag, $$ThoughtTagsTableReferences),
           ThoughtTag,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool thoughtId, bool tagId})
         > {
   $$ThoughtTagsTableTableManager(_$AppDatabase db, $ThoughtTagsTable table)
     : super(
@@ -1556,9 +2702,67 @@ class $$ThoughtTagsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ThoughtTagsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({thoughtId = false, tagId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (thoughtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.thoughtId,
+                                referencedTable: $$ThoughtTagsTableReferences
+                                    ._thoughtIdTable(db),
+                                referencedColumn: $$ThoughtTagsTableReferences
+                                    ._thoughtIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (tagId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.tagId,
+                                referencedTable: $$ThoughtTagsTableReferences
+                                    ._tagIdTable(db),
+                                referencedColumn: $$ThoughtTagsTableReferences
+                                    ._tagIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -1573,12 +2777,722 @@ typedef $$ThoughtTagsTableProcessedTableManager =
       $$ThoughtTagsTableAnnotationComposer,
       $$ThoughtTagsTableCreateCompanionBuilder,
       $$ThoughtTagsTableUpdateCompanionBuilder,
-      (
-        ThoughtTag,
-        BaseReferences<_$AppDatabase, $ThoughtTagsTable, ThoughtTag>,
-      ),
+      (ThoughtTag, $$ThoughtTagsTableReferences),
       ThoughtTag,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool thoughtId, bool tagId})
+    >;
+typedef $$AttachmentsTableCreateCompanionBuilder =
+    AttachmentsCompanion Function({
+      Value<int> id,
+      required int thoughtId,
+      required AttachmentKind kind,
+      required String mime,
+      Value<int?> durationMs,
+      required int sizeBytes,
+      Value<DateTime> createdAt,
+    });
+typedef $$AttachmentsTableUpdateCompanionBuilder =
+    AttachmentsCompanion Function({
+      Value<int> id,
+      Value<int> thoughtId,
+      Value<AttachmentKind> kind,
+      Value<String> mime,
+      Value<int?> durationMs,
+      Value<int> sizeBytes,
+      Value<DateTime> createdAt,
+    });
+
+final class $$AttachmentsTableReferences
+    extends BaseReferences<_$AppDatabase, $AttachmentsTable, Attachment> {
+  $$AttachmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('attachments__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id')!;
+
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$AttachmentBlobsTable, List<AttachmentBlob>>
+  _attachmentBlobsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.attachmentBlobs,
+    aliasName: 'attachments__id__attachment_blobs__attachment_id',
+  );
+
+  $$AttachmentBlobsTableProcessedTableManager get attachmentBlobsRefs {
+    final manager = $$AttachmentBlobsTableTableManager(
+      $_db,
+      $_db.attachmentBlobs,
+    ).filter((f) => f.attachmentId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _attachmentBlobsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$AttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AttachmentKind, AttachmentKind, int>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get mime => $composableBuilder(
+    column: $table.mime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> attachmentBlobsRefs(
+    Expression<bool> Function($$AttachmentBlobsTableFilterComposer f) f,
+  ) {
+    final $$AttachmentBlobsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachmentBlobs,
+      getReferencedColumn: (t) => t.attachmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentBlobsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachmentBlobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$AttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mime => $composableBuilder(
+    column: $table.mime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentsTable> {
+  $$AttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<AttachmentKind, int> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get mime =>
+      $composableBuilder(column: $table.mime, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> attachmentBlobsRefs<T extends Object>(
+    Expression<T> Function($$AttachmentBlobsTableAnnotationComposer a) f,
+  ) {
+    final $$AttachmentBlobsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.attachmentBlobs,
+      getReferencedColumn: (t) => t.attachmentId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentBlobsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachmentBlobs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$AttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AttachmentsTable,
+          Attachment,
+          $$AttachmentsTableFilterComposer,
+          $$AttachmentsTableOrderingComposer,
+          $$AttachmentsTableAnnotationComposer,
+          $$AttachmentsTableCreateCompanionBuilder,
+          $$AttachmentsTableUpdateCompanionBuilder,
+          (Attachment, $$AttachmentsTableReferences),
+          Attachment,
+          PrefetchHooks Function({bool thoughtId, bool attachmentBlobsRefs})
+        > {
+  $$AttachmentsTableTableManager(_$AppDatabase db, $AttachmentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> thoughtId = const Value.absent(),
+                Value<AttachmentKind> kind = const Value.absent(),
+                Value<String> mime = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<int> sizeBytes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AttachmentsCompanion(
+                id: id,
+                thoughtId: thoughtId,
+                kind: kind,
+                mime: mime,
+                durationMs: durationMs,
+                sizeBytes: sizeBytes,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int thoughtId,
+                required AttachmentKind kind,
+                required String mime,
+                Value<int?> durationMs = const Value.absent(),
+                required int sizeBytes,
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => AttachmentsCompanion.insert(
+                id: id,
+                thoughtId: thoughtId,
+                kind: kind,
+                mime: mime,
+                durationMs: durationMs,
+                sizeBytes: sizeBytes,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AttachmentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({thoughtId = false, attachmentBlobsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (attachmentBlobsRefs) db.attachmentBlobs,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (thoughtId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.thoughtId,
+                                    referencedTable:
+                                        $$AttachmentsTableReferences
+                                            ._thoughtIdTable(db),
+                                    referencedColumn:
+                                        $$AttachmentsTableReferences
+                                            ._thoughtIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (attachmentBlobsRefs)
+                        await $_getPrefetchedData<
+                          Attachment,
+                          $AttachmentsTable,
+                          AttachmentBlob
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AttachmentsTableReferences
+                              ._attachmentBlobsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AttachmentsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).attachmentBlobsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.attachmentId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$AttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AttachmentsTable,
+      Attachment,
+      $$AttachmentsTableFilterComposer,
+      $$AttachmentsTableOrderingComposer,
+      $$AttachmentsTableAnnotationComposer,
+      $$AttachmentsTableCreateCompanionBuilder,
+      $$AttachmentsTableUpdateCompanionBuilder,
+      (Attachment, $$AttachmentsTableReferences),
+      Attachment,
+      PrefetchHooks Function({bool thoughtId, bool attachmentBlobsRefs})
+    >;
+typedef $$AttachmentBlobsTableCreateCompanionBuilder =
+    AttachmentBlobsCompanion Function({
+      Value<int> attachmentId,
+      required Uint8List data,
+    });
+typedef $$AttachmentBlobsTableUpdateCompanionBuilder =
+    AttachmentBlobsCompanion Function({
+      Value<int> attachmentId,
+      Value<Uint8List> data,
+    });
+
+final class $$AttachmentBlobsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $AttachmentBlobsTable, AttachmentBlob> {
+  $$AttachmentBlobsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $AttachmentsTable _attachmentIdTable(_$AppDatabase db) => db
+      .attachments
+      .createAlias('attachment_blobs__attachment_id__attachments__id');
+
+  $$AttachmentsTableProcessedTableManager get attachmentId {
+    final $_column = $_itemColumn<int>('attachment_id')!;
+
+    final manager = $$AttachmentsTableTableManager(
+      $_db,
+      $_db.attachments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_attachmentIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AttachmentBlobsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttachmentBlobsTable> {
+  $$AttachmentBlobsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<Uint8List> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AttachmentsTableFilterComposer get attachmentId {
+    final $$AttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentBlobsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttachmentBlobsTable> {
+  $$AttachmentBlobsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<Uint8List> get data => $composableBuilder(
+    column: $table.data,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AttachmentsTableOrderingComposer get attachmentId {
+    final $$AttachmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentBlobsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttachmentBlobsTable> {
+  $$AttachmentBlobsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<Uint8List> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  $$AttachmentsTableAnnotationComposer get attachmentId {
+    final $$AttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.attachmentId,
+      referencedTable: $db.attachments,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AttachmentBlobsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AttachmentBlobsTable,
+          AttachmentBlob,
+          $$AttachmentBlobsTableFilterComposer,
+          $$AttachmentBlobsTableOrderingComposer,
+          $$AttachmentBlobsTableAnnotationComposer,
+          $$AttachmentBlobsTableCreateCompanionBuilder,
+          $$AttachmentBlobsTableUpdateCompanionBuilder,
+          (AttachmentBlob, $$AttachmentBlobsTableReferences),
+          AttachmentBlob,
+          PrefetchHooks Function({bool attachmentId})
+        > {
+  $$AttachmentBlobsTableTableManager(
+    _$AppDatabase db,
+    $AttachmentBlobsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttachmentBlobsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttachmentBlobsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttachmentBlobsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> attachmentId = const Value.absent(),
+                Value<Uint8List> data = const Value.absent(),
+              }) => AttachmentBlobsCompanion(
+                attachmentId: attachmentId,
+                data: data,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> attachmentId = const Value.absent(),
+                required Uint8List data,
+              }) => AttachmentBlobsCompanion.insert(
+                attachmentId: attachmentId,
+                data: data,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AttachmentBlobsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({attachmentId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (attachmentId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.attachmentId,
+                                referencedTable:
+                                    $$AttachmentBlobsTableReferences
+                                        ._attachmentIdTable(db),
+                                referencedColumn:
+                                    $$AttachmentBlobsTableReferences
+                                        ._attachmentIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AttachmentBlobsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AttachmentBlobsTable,
+      AttachmentBlob,
+      $$AttachmentBlobsTableFilterComposer,
+      $$AttachmentBlobsTableOrderingComposer,
+      $$AttachmentBlobsTableAnnotationComposer,
+      $$AttachmentBlobsTableCreateCompanionBuilder,
+      $$AttachmentBlobsTableUpdateCompanionBuilder,
+      (AttachmentBlob, $$AttachmentBlobsTableReferences),
+      AttachmentBlob,
+      PrefetchHooks Function({bool attachmentId})
     >;
 
 class $AppDatabaseManager {
@@ -1589,4 +3503,8 @@ class $AppDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$ThoughtTagsTableTableManager get thoughtTags =>
       $$ThoughtTagsTableTableManager(_db, _db.thoughtTags);
+  $$AttachmentsTableTableManager get attachments =>
+      $$AttachmentsTableTableManager(_db, _db.attachments);
+  $$AttachmentBlobsTableTableManager get attachmentBlobs =>
+      $$AttachmentBlobsTableTableManager(_db, _db.attachmentBlobs);
 }

@@ -42,9 +42,45 @@ class Tags extends Table {
 /// 思绪 ↔ 标签 多对多联结表（心情标签也是普通联结）
 @DataClassName('ThoughtTag')
 class ThoughtTags extends Table {
-  IntColumn get thoughtId => integer().references(Thoughts, #id)();
-  IntColumn get tagId => integer().references(Tags, #id)();
+  IntColumn get thoughtId =>
+      integer().references(Thoughts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get tagId =>
+      integer().references(Tags, #id, onDelete: KeyAction.cascade)();
 
   @override
   Set<Column> get primaryKey => {thoughtId, tagId};
+}
+
+/// 附件类型
+enum AttachmentKind {
+  image(0),
+  audio(1);
+
+  final int value;
+  const AttachmentKind(this.value);
+}
+
+/// 附件元数据。与大字段分表：列表查询只读这里，避免误载大 blob
+@DataClassName('Attachment')
+class Attachments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get thoughtId =>
+      integer().references(Thoughts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get kind => intEnum<AttachmentKind>()();
+  TextColumn get mime => text()();
+  // 音频时长（毫秒）；图片为 null
+  IntColumn get durationMs => integer().nullable()();
+  IntColumn get sizeBytes => integer()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// 附件二进制内容（与 Attachments 1:1，按需读取）
+@DataClassName('AttachmentBlob')
+class AttachmentBlobs extends Table {
+  IntColumn get attachmentId =>
+      integer().references(Attachments, #id, onDelete: KeyAction.cascade)();
+  BlobColumn get data => blob()();
+
+  @override
+  Set<Column> get primaryKey => {attachmentId};
 }

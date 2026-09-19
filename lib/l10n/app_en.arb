@@ -117,5 +117,15 @@
   "opFailed": "Operation failed",
   "dataCorruptTitle": "Data issue",
   "dataCorruptBody": "Local data can't be read and may be corrupted. Clearing will reset the app to its initial state (preset moods restored). This cannot be undone.",
-  "cleanData": "Clear data"
+  "cleanData": "Clear data",
+  "attachments": "Attachments",
+  "addImage": "Add image",
+  "recordAudio": "Record audio",
+  "recordHint": "Tap to start recording",
+  "recording": "Recording",
+  "stopRecord": "Stop",
+  "play": "Play",
+  "pause": "Pause",
+  "attachmentTooLarge": "File too large (max 20 MB each)",
+  "micPermissionDenied": "Microphone permission denied"
 }

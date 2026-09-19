@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
@@ -10,7 +12,7 @@ part 'app_database.g.dart';
 bool isEmojiCodepoint(int codePoint) =>
     codePoint < 0xE000 || codePoint > 0xF8FF;
 
-@DriftDatabase(tables: [Thoughts, Tags, ThoughtTags])
+@DriftDatabase(tables: [Thoughts, Tags, ThoughtTags, Attachments, AttachmentBlobs])
 class AppDatabase extends _$AppDatabase {
   /// [name] 同时用作原生库文件名与 Web 端 IndexedDB 库名；
   /// 不同 name 即不同 vault，数据完全隔离
@@ -19,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,6 +39,8 @@ class AppDatabase extends _$AppDatabase {
       );
 
   Future<void> _wipeRebuild(Migrator m, int from, int to) async {
+    await m.deleteTable('attachment_blobs');
+    await m.deleteTable('attachments');
     await m.deleteTable('thought_tags');
     await m.deleteTable('tags');
     await m.deleteTable('thoughts');
@@ -75,9 +79,71 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// 插入附件：元数据 + 二进制一次事务写入，返回附件元数据
+  Future<Attachment> insertAttachment({
+    required int thoughtId,
+    required AttachmentKind kind,
+    required String mime,
+    required List<int> bytes,
+    int? durationMs,
+  }) async {
+    return transaction(() async {
+      final id = await into(attachments).insert(
+        AttachmentsCompanion.insert(
+          thoughtId: thoughtId,
+          kind: kind,
+          mime: mime,
+          durationMs: Value(durationMs),
+          sizeBytes: bytes.length,
+        ),
+      );
+      await into(attachmentBlobs).insert(
+        AttachmentBlobsCompanion.insert(
+          attachmentId: Value(id),
+          data: Uint8List.fromList(bytes),
+        ),
+      );
+      return (select(attachments)..where((a) => a.id.equals(id))).getSingle();
+    });
+  }
+
+  /// 某条思绪的附件（元数据，按插入顺序）
+  Stream<List<Attachment>> watchAttachmentsFor(int thoughtId) {
+    return (select(attachments)
+          ..where((a) => a.thoughtId.equals(thoughtId))
+          ..orderBy([(a) => OrderingTerm.asc(a.id)]))
+        .watch();
+  }
+
+  /// 全部附件按思绪分组（thoughtId → 附件列表），供列表页使用
+  Stream<Map<int, List<Attachment>>> watchAllAttachmentMeta() {
+    return select(attachments).watch().map((rows) {
+      final map = <int, List<Attachment>>{};
+      for (final r in rows) {
+        map.putIfAbsent(r.thoughtId, () => []).add(r);
+      }
+      return map;
+    });
+  }
+
+  /// 读取附件二进制（仅展示/播放时调用）
+  Future<List<int>?> attachmentData(int id) async {
+    final row = await (select(attachmentBlobs)
+            ..where((b) => b.attachmentId.equals(id)))
+        .getSingleOrNull();
+    return row?.data;
+  }
+
+  /// 删除附件（blob 由外键级联删除）
+  Future<void> deleteAttachment(int id) async {
+    await (delete(attachments)..where((a) => a.id.equals(id))).go();
+  }
+
   /// 清空全部业务数据并恢复预设心情
   Future<void> resetAllData() async {
     await transaction(() async {
+      await customStatement('DELETE FROM attachment_blobs');
+      await customStatement('DELETE FROM attachments');
       await customStatement('DELETE FROM thought_tags');
       await customStatement('DELETE FROM thoughts');
       await customStatement('DELETE FROM tags');
@@ -92,12 +158,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// 完整导出为纯数据结构（文件读写交给 UI 层）。
-  /// links 以思绪在 thoughts 数组中的下标 + 标签名表达联结关系。
+  /// links 以思绪在 thoughts 数组中的下标 + 标签名表达联结关系；
+  /// attachments 同样以思绪下标表达，data 为 base64。
   Future<Map<String, dynamic>> exportData() async {
     final thoughtRows = await select(thoughts).get();
     final tagRows = await select(tags).get();
     final linkRows = await select(thoughtTags).get();
+    final attachmentRows = await select(attachments).get();
+    final blobRows = await select(attachmentBlobs).get();
     final tagNameById = {for (final t in tagRows) t.id: t.name};
+    final blobById = {for (final b in blobRows) b.attachmentId: b.data};
     return {
       'app': 'roost',
       'schema': schemaVersion,
@@ -128,18 +198,34 @@ class AppDatabase extends _$AppDatabase {
             'tag': tagNameById[l.tagId],
           },
       ],
+      'attachments': [
+        for (final a in attachmentRows)
+          if (blobById.containsKey(a.id) &&
+              thoughtRows.indexWhere((t) => t.id == a.thoughtId) >= 0)
+            {
+              'thought': thoughtRows.indexWhere((t) => t.id == a.thoughtId),
+              'kind': a.kind.value,
+              'mime': a.mime,
+              'durationMs': a.durationMs,
+              'data': base64Encode(blobById[a.id]!),
+            },
+      ],
     };
   }
 
   /// 导入（合并）：思绪按“同日同内容同创建时间”去重追加；
-  /// 标签按名称合并（已存在则沿用现有定义）；联结按名重建。返回新增思绪数。
+  /// 标签按名称合并（已存在则沿用现有定义）；联结按名重建；
+  /// 附件跟随本次新导入的思绪（已存在的重复思绪不再附加，避免重复入库）。
+  /// 返回新增思绪数。
   Future<int> importData(Map<String, dynamic> data) async {
     final thoughtsIn = (data['thoughts'] as List?) ?? const [];
     final tagsIn = (data['tags'] as List?) ?? const [];
     final linksIn = (data['links'] as List?) ?? const [];
+    final attachmentsIn = (data['attachments'] as List?) ?? const [];
     var imported = 0;
     await transaction(() async {
       final thoughtIdByIndex = <int, int>{};
+      final importedIndexes = <int>{};
       for (var i = 0; i < thoughtsIn.length; i++) {
         final m = thoughtsIn[i] as Map;
         final content = (m['content'] ?? '') as String;
@@ -165,6 +251,7 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
         thoughtIdByIndex[i] = id;
+        importedIndexes.add(i);
         imported++;
       }
       for (final raw in tagsIn) {
@@ -189,6 +276,36 @@ class AppDatabase extends _$AppDatabase {
         await into(thoughtTags).insert(
           ThoughtTagsCompanion.insert(thoughtId: tid, tagId: tag.id),
           mode: InsertMode.insertOrIgnore,
+        );
+      }
+      for (final raw in attachmentsIn) {
+        final m = raw as Map;
+        final index = (m['thought'] as num?)?.toInt() ?? -1;
+        if (!importedIndexes.contains(index)) continue;
+        final kindIdx = (m['kind'] as num?)?.toInt() ?? 0;
+        if (kindIdx < 0 || kindIdx >= AttachmentKind.values.length) continue;
+        final b64 = m['data'] as String?;
+        if (b64 == null || b64.isEmpty) continue;
+        late final List<int> bytes;
+        try {
+          bytes = base64Decode(b64);
+        } catch (_) {
+          continue;
+        }
+        final attachmentId = await into(attachments).insert(
+          AttachmentsCompanion.insert(
+            thoughtId: thoughtIdByIndex[index]!,
+            kind: AttachmentKind.values[kindIdx],
+            mime: (m['mime'] ?? '') as String,
+            durationMs: Value((m['durationMs'] as num?)?.toInt()),
+            sizeBytes: bytes.length,
+          ),
+        );
+        await into(attachmentBlobs).insert(
+          AttachmentBlobsCompanion.insert(
+            attachmentId: Value(attachmentId),
+            data: Uint8List.fromList(bytes),
+          ),
         );
       }
     });
