@@ -54,11 +54,7 @@ class EntryCard extends StatelessWidget {
               Row(
                 children: [
                   if (mood != null) ...[
-                    Icon(
-                      mood.iconData ?? Icons.mood,
-                      size: 18,
-                      color: mood.uiColor ?? scheme.primary,
-                    ),
+                    TagIcon(tag: mood, size: 18, color: scheme.primary, fallback: Icons.mood),
                     const SizedBox(width: 6),
                     Text(
                       mood.name,
@@ -116,11 +112,11 @@ class TagChips extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (tag.iconData != null) ...[
-                    Icon(
-                      tag.iconData,
+                  if (tag.hasIcon) ...[
+                    TagIcon(
+                      tag: tag,
                       size: 12,
-                      color: tag.uiColor ?? scheme.onSecondaryContainer,
+                      color: scheme.onSecondaryContainer,
                     ),
                     const SizedBox(width: 4),
                   ],
@@ -256,10 +252,10 @@ Future<void> showEntryEditor(
                       ChoiceChip(
                         label: Text(m.name),
                         selected: mood?.id == m.id,
-                        avatar: Icon(
-                          m.iconData ?? Icons.mood,
+                        avatar: TagIcon(
+                          tag: m,
                           size: 16,
-                          color: m.uiColor,
+                          fallback: Icons.mood,
                         ),
                         onSelected: (sel) {
                           allTags.removeWhere((t) => t.tagKind == TagKind.mood);
@@ -357,14 +353,15 @@ void _addTagsFromField(
   for (final part in parts) {
     final name = part.trim();
     if (!tags.any((t) => t.name == name)) {
-      tags.add(Tag(
-        id: -1,
-        name: name,
-        kind: TagKind.normal.value,
-        icon: null,
-        color: null,
-        createdAt: DateTime.now(),
-      ));
+        tags.add(Tag(
+          id: -1,
+          name: name,
+          kind: TagKind.normal.value,
+          icon: null,
+          glyph: null,
+          color: null,
+          createdAt: DateTime.now(),
+        ));
     }
   }
   controller.clear();

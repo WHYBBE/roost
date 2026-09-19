@@ -6,6 +6,10 @@ import 'thoughts_table.dart';
 
 part 'app_database.g.dart';
 
+/// Material Icons 使用 Unicode 私用区（0xE000-0xF8FF）；区外码点视为 emoji
+bool isEmojiCodepoint(int codePoint) =>
+    codePoint < 0xE000 || codePoint > 0xF8FF;
+
 @DriftDatabase(tables: [Thoughts, Tags, ThoughtTags])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_open());
@@ -13,12 +17,12 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // 情绪/标签结构经历过不兼容重构：升级/降级直接清空重建
+        // 标签结构经历过不兼容重构：版本不一致直接清空重建
         onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -195,11 +199,12 @@ class AppDatabase extends _$AppDatabase {
     return (select(tags)..where((t) => t.name.equals(name))).getSingleOrNull();
   }
 
-  /// 获取或创建标签（按名称唯一）；仅创建时应用 kind/icon/color
+  /// 获取或创建标签（按名称唯一）；仅创建时应用 kind/icon/glyph/color
   Future<Tag> getOrCreateTag(
     String name, {
     TagKind kind = TagKind.normal,
     int? icon,
+    String? glyph,
     int? color,
   }) async {
     final trimmed = name.trim();
@@ -212,6 +217,7 @@ class AppDatabase extends _$AppDatabase {
         name: trimmed,
         kind: Value(kind.value),
         icon: Value(icon),
+        glyph: Value(glyph),
         color: Value(color),
       ),
     );
@@ -334,10 +340,19 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// 更新标签外观；传 null 即"无图标/默认颜色"
-  Future<void> setTagAppearance(int tagId, {int? icon, int? color}) async {
+  /// 更新标签外观；传 null 即清除（icon 与 glyph 互斥，调用方保证）
+  Future<void> setTagAppearance(
+    int tagId, {
+    int? icon,
+    String? glyph,
+    int? color,
+  }) async {
     await (update(tags)..where((t) => t.id.equals(tagId))).write(
-      TagsCompanion(icon: Value(icon), color: Value(color)),
+      TagsCompanion(
+        icon: Value(icon),
+        glyph: Value(glyph),
+        color: Value(color),
+      ),
     );
   }
 

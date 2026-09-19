@@ -149,10 +149,21 @@ class MoodPage extends StatelessWidget {
 
 /// 标签胶囊：普通样式（非列表行）；点按进入详情/编辑，长按弹出操作
 class _TagPill extends StatelessWidget {
-  const _TagPill({required this.item, this.moodStyle = false});
+  const _TagPill({
+    required this.item,
+    this.moodStyle = false,
+    this.interactive = true,
+    this.showCount = true,
+  });
 
   final TagWithCount item;
   final bool moodStyle;
+
+  /// 预览模式：无点按/长按行为
+  final bool interactive;
+
+  /// 是否显示使用数量
+  final bool showCount;
 
   @override
   Widget build(BuildContext context) {
@@ -162,17 +173,20 @@ class _TagPill extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(999),
-      onTap: () {
-        if (moodStyle) {
-          showTagEditor(context, tag: tag);
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => TagDetailPage(tagWithCount: item)),
-          );
-        }
-      },
-      onLongPress: () => _showTagActions(context, item),
+      onTap: !interactive
+          ? null
+          : () {
+              if (moodStyle) {
+                showTagEditor(context, tag: tag);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => TagDetailPage(tagWithCount: item)),
+                );
+              }
+            },
+      onLongPress: interactive ? () => _showTagActions(context, item) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -185,11 +199,11 @@ class _TagPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (tag.iconData != null) ...[
-              Icon(
-                tag.iconData,
+            if (tag.hasIcon) ...[
+              TagIcon(
+                tag: tag,
                 size: 16,
-                color: moodStyle ? c : scheme.onSurfaceVariant,
+                color: moodStyle ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
             ],
@@ -200,18 +214,41 @@ class _TagPill extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
             ),
-            const SizedBox(width: 6),
-            Text(
-              '${item.count}',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
+            if (showCount) ...[
+              const SizedBox(width: 6),
+              Text(
+                '${item.count}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
+}
+
+/// 预览名称：空时回落到占位文案
+String _previewName(String raw, AppLocalizations l) {
+  final name = raw.trim();
+  return name.isEmpty ? l.tagName : name;
+}
+
+/// 字符图标校验错误：非空时必须恰好一个字位（单码点字符或多码点 emoji 序列）
+String? _glyphError(String raw, AppLocalizations l) {
+  final s = raw.trim();
+  if (s.isEmpty) return null;
+  if (s.characters.length > 1) return l.glyphOnlyOne;
+  return null;
+}
+
+/// 通过校验的字符图标；无效（多个字位）返回 null
+String? _validatedGlyph(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty || s.characters.length > 1) return null;
+  return s;
 }
 
 /// 长按操作：查看思绪 / 编辑 / 删除
@@ -286,6 +323,7 @@ Future<void> _deleteDialog(BuildContext context, TagWithCount item) async {
 }
 
 /// 编辑标签；tag 为 null 时进入新建模式（kind 决定新建种类）
+/// 布局：名称 → 颜色（有用则用）→ 单色图标 / Emoji（Tab 切换）
 Future<void> showTagEditor(
   BuildContext context, {
   Tag? tag,
@@ -294,9 +332,15 @@ Future<void> showTagEditor(
   final l = AppLocalizations.of(context)!;
   final isCreate = tag == null;
   final nameController = TextEditingController(text: tag?.name ?? '');
+  // 字符图标（emoji/任意字符）以输入框内容为单一数据源
+  final glyphController =
+      TextEditingController(text: tag?.displayGlyph ?? '');
+  final hasGlyph = (tag?.glyph?.isNotEmpty ?? false) ||
+      (tag?.isEmojiIcon ?? false);
   int? icon = tag?.icon;
   int? color = tag?.color;
   String? nameError;
+  var tab = hasGlyph ? 1 : 0;
 
   final ok = await showDialog<bool>(
     context: context,
@@ -321,54 +365,125 @@ Future<void> showTagEditor(
                   errorText: nameError,
                 ),
               ),
+              const SizedBox(height: 10),
+              // 实时预览：名称 + 图标 + 颜色组合效果
+              _TagPill(
+                item: TagWithCount(
+                  tag: Tag(
+                    id: tag?.id ?? -1,
+                    kind: tag?.kind ?? kind.value,
+                    name: _previewName(nameController.text, l),
+                    icon: _validatedGlyph(glyphController.text) == null
+                        ? icon
+                        : null,
+                    glyph: _validatedGlyph(glyphController.text),
+                    color: color,
+                    createdAt: tag?.createdAt ?? DateTime.now(),
+                  ),
+                  count: 0,
+                ),
+                moodStyle:
+                    TagKind.fromValue(tag?.kind ?? kind.value) == TagKind.mood,
+                interactive: false,
+                showCount: false,
+              ),
               const SizedBox(height: 12),
-              Text(l.tagIcon, style: Theme.of(context).textTheme.labelLarge),
+              Text(l.tagColor, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 6),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _colorOption(
+                    context,
+                    label: l.defaultColor,
+                    selected: color == null,
+                    onTap: () => setState(() => color = null),
+                  ),
+                  for (final candidate in tagColorChoices)
+                    _colorOption(
+                      context,
+                      argb: candidate,
+                      selected: color == candidate,
+                      onTap: () => setState(() => color = candidate),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 0, label: Text(l.tagIcon)),
+                  ButtonSegment(value: 1, label: Text(l.tagEmoji)),
+                ],
+                selected: {tab},
+                onSelectionChanged: (s) => setState(() => tab = s.first),
+              ),
+              const SizedBox(height: 12),
+              if (tab == 0)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
                     _iconOption(
                       context,
                       iconData: null,
                       label: l.noIcon,
-                      selected: icon == null,
-                      onTap: () => setState(() => icon = null),
+                      selected: icon == null &&
+                          glyphController.text.trim().isEmpty,
+                      onTap: () => setState(() {
+                        icon = null;
+                        glyphController.clear();
+                      }),
                     ),
                     for (final candidate in tagIconChoices)
                       _iconOption(
                         context,
                         iconData: candidate,
-                        selected: icon == candidate.codePoint,
+                        selected: icon == candidate.codePoint &&
+                            glyphController.text.trim().isEmpty,
                         tint: color,
-                        onTap: () => setState(() => icon = candidate.codePoint),
+                        onTap: () => setState(() {
+                          icon = candidate.codePoint;
+                          glyphController.clear();
+                        }),
                       ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(l.tagColor, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 6),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _colorOption(
-                      context,
-                      label: l.defaultColor,
-                      selected: color == null,
-                      onTap: () => setState(() => color = null),
+                )
+              else ...[
+                TextField(
+                  controller: glyphController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: l.glyphHint,
+                    border: const OutlineInputBorder(),
+                    errorText: _glyphError(glyphController.text, l),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.check, size: 20),
+                      tooltip: l.save,
+                      onPressed: () =>
+                          FocusScope.of(context).unfocus(),
                     ),
-                    for (final candidate in tagColorChoices)
-                      _colorOption(
+                  ),
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final candidate in tagEmojiChoices)
+                      _emojiOption(
                         context,
-                        argb: candidate,
-                        selected: color == candidate,
-                        onTap: () => setState(() => color = candidate),
+                        emoji: candidate,
+                        selected: glyphController.text == candidate,
+                        onTap: () =>
+                            setState(() => glyphController.text = candidate),
                       ),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -388,6 +503,8 @@ Future<void> showTagEditor(
                 setState(() => nameError = l.tagExists);
                 return;
               }
+              // 字符图标非法（多个字位）时阻止保存，错误已实时显示在输入框
+              if (_glyphError(glyphController.text, l) != null) return;
               if (context.mounted) Navigator.pop(context, true);
             },
             child: Text(l.save),
@@ -397,20 +514,31 @@ Future<void> showTagEditor(
     ),
   );
   final newName = nameController.text.trim();
+  // 字符图标：恰好一个字位（单字符或单个多码点 emoji），保存前已校验
+  final finalGlyph = _validatedGlyph(glyphController.text);
   nameController.dispose();
+  glyphController.dispose();
   if (ok != true || !context.mounted) return;
+  // glyph 与 icon 互斥，glyph 优先
+  final effectiveIcon = finalGlyph == null ? icon : null;
   if (isCreate) {
     await appDb.getOrCreateTag(
       newName,
       kind: kind,
-      icon: icon,
+      icon: effectiveIcon,
+      glyph: finalGlyph,
       color: color,
     );
   } else {
     if (newName.isNotEmpty && newName != tag.name) {
       await appDb.renameTag(tag.id, newName);
     }
-    await appDb.setTagAppearance(tag.id, icon: icon, color: color);
+    await appDb.setTagAppearance(
+      tag.id,
+      icon: effectiveIcon,
+      glyph: finalGlyph,
+      color: color,
+    );
   }
 }
 
@@ -445,6 +573,31 @@ Widget _iconOption(
                 size: 20,
                 color: tint != null ? Color(tint) : scheme.onSurface,
               ),
+      ),
+    ),
+  );
+}
+
+Widget _emojiOption(
+  BuildContext context, {
+  required String emoji,
+  required bool selected,
+  required VoidCallback onTap,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(right: 6),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: selected ? scheme.primaryContainer : scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(8),
+          border: selected ? Border.all(color: scheme.primary, width: 1.5) : null,
+        ),
+        child: Text(emoji, style: const TextStyle(fontSize: 18)),
       ),
     ),
   );
@@ -498,58 +651,98 @@ class TagDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
+    final scheme = Theme.of(context).colorScheme;
+    final tagId = tagWithCount.tag.id;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('#${tagWithCount.tag.name}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => showTagEditor(context, tag: tagWithCount.tag),
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<ThoughtEntry>>(
-        stream: appDb.watchEntriesWithTag(tagWithCount.tag.id),
-        builder: (context, snap) {
-          final entries = snap.data ?? const <ThoughtEntry>[];
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+    return StreamBuilder<List<TagWithCount>>(
+      // 跟随最新外观（图标/颜色/名称）：编辑保存后再次进入不显示旧结果
+      stream: appDb.watchTagsWithCount(),
+      builder: (context, tagSnap) {
+        TagWithCount current = tagWithCount;
+        for (final t in tagSnap.data ?? const <TagWithCount>[]) {
+          if (t.tag.id == tagId) {
+            current = t;
+            break;
           }
-          if (entries.isEmpty) {
-            return Center(child: Text(l.emptyDay));
-          }
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: entries.length,
-                itemBuilder: (context, i) {
-                  final e = entries[i];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 2),
-                        child: Text(
-                          DateFormat.yMMMd(locale).format(e.dayDate),
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ),
-                      EntryCard(
-                        entry: e,
-                        onTap: () => showEntryEditor(context, existing: e),
-                        onLongPress: () => confirmDelete(context, e),
-                      ),
-                    ],
-                  );
-                },
-              ),
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (current.tag.hasIcon) ...[
+                  TagIcon(tag: current.tag, size: 18, color: scheme.primary),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(
+                    '#${current.tag.name}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                // 编辑按钮必须用最新 tag 对象，否则保存后重开会显示旧值
+                onPressed: () => showTagEditor(context, tag: current.tag),
+              ),
+            ],
+          ),
+          body: StreamBuilder<List<ThoughtEntry>>(
+            stream: appDb.watchEntriesWithTag(tagId),
+            builder: (context, snap) {
+              final entries = snap.data ?? const <ThoughtEntry>[];
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (entries.isEmpty) {
+                return Center(child: Text(l.emptyDay));
+              }
+              final children = <Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    l.entriesCount(entries.length),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ];
+              // 按日分组：同一天只显示一次日期头
+              String? lastDay;
+              for (final e in entries) {
+                if (e.day != lastDay) {
+                  lastDay = e.day;
+                  children.add(Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 2),
+                    child: Text(
+                      DateFormat.yMMMd(locale).format(e.dayDate),
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ));
+                }
+                children.add(EntryCard(
+                  entry: e,
+                  onTap: () => showEntryEditor(context, existing: e),
+                  onLongPress: () => confirmDelete(context, e),
+                ));
+              }
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: children,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

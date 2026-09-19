@@ -32,6 +32,8 @@ class Tags extends Table {
   IntColumn get kind => integer().withDefault(const Constant(0))();
   // 自定义图标（Material Icons codepoint），null = 无图标
   IntColumn get icon => integer().nullable()();
+  // 自定义字符图标（任意 emoji/字符），null = 无；与 icon 互斥，glyph 优先
+  TextColumn get glyph => text().nullable()();
   // 自定义颜色（ARGB32），null = 使用主题默认
   IntColumn get color => integer().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

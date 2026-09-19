@@ -400,6 +400,15 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _glyphMeta = const VerificationMeta('glyph');
+  @override
+  late final GeneratedColumn<String> glyph = GeneratedColumn<String>(
+    'glyph',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
   late final GeneratedColumn<int> color = GeneratedColumn<int>(
@@ -427,6 +436,7 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     name,
     kind,
     icon,
+    glyph,
     color,
     createdAt,
   ];
@@ -463,6 +473,12 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
       context.handle(
         _iconMeta,
         icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    if (data.containsKey('glyph')) {
+      context.handle(
+        _glyphMeta,
+        glyph.isAcceptableOrUnknown(data['glyph']!, _glyphMeta),
       );
     }
     if (data.containsKey('color')) {
@@ -502,6 +518,10 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
         DriftSqlType.int,
         data['${effectivePrefix}icon'],
       ),
+      glyph: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}glyph'],
+      ),
       color: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}color'],
@@ -524,6 +544,7 @@ class Tag extends DataClass implements Insertable<Tag> {
   final String name;
   final int kind;
   final int? icon;
+  final String? glyph;
   final int? color;
   final DateTime createdAt;
   const Tag({
@@ -531,6 +552,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     required this.name,
     required this.kind,
     this.icon,
+    this.glyph,
     this.color,
     required this.createdAt,
   });
@@ -542,6 +564,9 @@ class Tag extends DataClass implements Insertable<Tag> {
     map['kind'] = Variable<int>(kind);
     if (!nullToAbsent || icon != null) {
       map['icon'] = Variable<int>(icon);
+    }
+    if (!nullToAbsent || glyph != null) {
+      map['glyph'] = Variable<String>(glyph);
     }
     if (!nullToAbsent || color != null) {
       map['color'] = Variable<int>(color);
@@ -556,6 +581,9 @@ class Tag extends DataClass implements Insertable<Tag> {
       name: Value(name),
       kind: Value(kind),
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+      glyph: glyph == null && nullToAbsent
+          ? const Value.absent()
+          : Value(glyph),
       color: color == null && nullToAbsent
           ? const Value.absent()
           : Value(color),
@@ -573,6 +601,7 @@ class Tag extends DataClass implements Insertable<Tag> {
       name: serializer.fromJson<String>(json['name']),
       kind: serializer.fromJson<int>(json['kind']),
       icon: serializer.fromJson<int?>(json['icon']),
+      glyph: serializer.fromJson<String?>(json['glyph']),
       color: serializer.fromJson<int?>(json['color']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -585,6 +614,7 @@ class Tag extends DataClass implements Insertable<Tag> {
       'name': serializer.toJson<String>(name),
       'kind': serializer.toJson<int>(kind),
       'icon': serializer.toJson<int?>(icon),
+      'glyph': serializer.toJson<String?>(glyph),
       'color': serializer.toJson<int?>(color),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -595,6 +625,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     String? name,
     int? kind,
     Value<int?> icon = const Value.absent(),
+    Value<String?> glyph = const Value.absent(),
     Value<int?> color = const Value.absent(),
     DateTime? createdAt,
   }) => Tag(
@@ -602,6 +633,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     name: name ?? this.name,
     kind: kind ?? this.kind,
     icon: icon.present ? icon.value : this.icon,
+    glyph: glyph.present ? glyph.value : this.glyph,
     color: color.present ? color.value : this.color,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -611,6 +643,7 @@ class Tag extends DataClass implements Insertable<Tag> {
       name: data.name.present ? data.name.value : this.name,
       kind: data.kind.present ? data.kind.value : this.kind,
       icon: data.icon.present ? data.icon.value : this.icon,
+      glyph: data.glyph.present ? data.glyph.value : this.glyph,
       color: data.color.present ? data.color.value : this.color,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -623,6 +656,7 @@ class Tag extends DataClass implements Insertable<Tag> {
           ..write('name: $name, ')
           ..write('kind: $kind, ')
           ..write('icon: $icon, ')
+          ..write('glyph: $glyph, ')
           ..write('color: $color, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -630,7 +664,8 @@ class Tag extends DataClass implements Insertable<Tag> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, kind, icon, color, createdAt);
+  int get hashCode =>
+      Object.hash(id, name, kind, icon, glyph, color, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -639,6 +674,7 @@ class Tag extends DataClass implements Insertable<Tag> {
           other.name == this.name &&
           other.kind == this.kind &&
           other.icon == this.icon &&
+          other.glyph == this.glyph &&
           other.color == this.color &&
           other.createdAt == this.createdAt);
 }
@@ -648,6 +684,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   final Value<String> name;
   final Value<int> kind;
   final Value<int?> icon;
+  final Value<String?> glyph;
   final Value<int?> color;
   final Value<DateTime> createdAt;
   const TagsCompanion({
@@ -655,6 +692,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     this.name = const Value.absent(),
     this.kind = const Value.absent(),
     this.icon = const Value.absent(),
+    this.glyph = const Value.absent(),
     this.color = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -663,6 +701,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     required String name,
     this.kind = const Value.absent(),
     this.icon = const Value.absent(),
+    this.glyph = const Value.absent(),
     this.color = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : name = Value(name);
@@ -671,6 +710,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     Expression<String>? name,
     Expression<int>? kind,
     Expression<int>? icon,
+    Expression<String>? glyph,
     Expression<int>? color,
     Expression<DateTime>? createdAt,
   }) {
@@ -679,6 +719,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
       if (name != null) 'name': name,
       if (kind != null) 'kind': kind,
       if (icon != null) 'icon': icon,
+      if (glyph != null) 'glyph': glyph,
       if (color != null) 'color': color,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -689,6 +730,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     Value<String>? name,
     Value<int>? kind,
     Value<int?>? icon,
+    Value<String?>? glyph,
     Value<int?>? color,
     Value<DateTime>? createdAt,
   }) {
@@ -697,6 +739,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
       name: name ?? this.name,
       kind: kind ?? this.kind,
       icon: icon ?? this.icon,
+      glyph: glyph ?? this.glyph,
       color: color ?? this.color,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -717,6 +760,9 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     if (icon.present) {
       map['icon'] = Variable<int>(icon.value);
     }
+    if (glyph.present) {
+      map['glyph'] = Variable<String>(glyph.value);
+    }
     if (color.present) {
       map['color'] = Variable<int>(color.value);
     }
@@ -733,6 +779,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
           ..write('name: $name, ')
           ..write('kind: $kind, ')
           ..write('icon: $icon, ')
+          ..write('glyph: $glyph, ')
           ..write('color: $color, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -1172,6 +1219,7 @@ typedef $$TagsTableCreateCompanionBuilder =
       required String name,
       Value<int> kind,
       Value<int?> icon,
+      Value<String?> glyph,
       Value<int?> color,
       Value<DateTime> createdAt,
     });
@@ -1181,6 +1229,7 @@ typedef $$TagsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> kind,
       Value<int?> icon,
+      Value<String?> glyph,
       Value<int?> color,
       Value<DateTime> createdAt,
     });
@@ -1210,6 +1259,11 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
 
   ColumnFilters<int> get icon => $composableBuilder(
     column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get glyph => $composableBuilder(
+    column: $table.glyph,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1252,6 +1306,11 @@ class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get glyph => $composableBuilder(
+    column: $table.glyph,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get color => $composableBuilder(
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
@@ -1283,6 +1342,9 @@ class $$TagsTableAnnotationComposer
 
   GeneratedColumn<int> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get glyph =>
+      $composableBuilder(column: $table.glyph, builder: (column) => column);
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
@@ -1323,6 +1385,7 @@ class $$TagsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> kind = const Value.absent(),
                 Value<int?> icon = const Value.absent(),
+                Value<String?> glyph = const Value.absent(),
                 Value<int?> color = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TagsCompanion(
@@ -1330,6 +1393,7 @@ class $$TagsTableTableManager
                 name: name,
                 kind: kind,
                 icon: icon,
+                glyph: glyph,
                 color: color,
                 createdAt: createdAt,
               ),
@@ -1339,6 +1403,7 @@ class $$TagsTableTableManager
                 required String name,
                 Value<int> kind = const Value.absent(),
                 Value<int?> icon = const Value.absent(),
+                Value<String?> glyph = const Value.absent(),
                 Value<int?> color = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TagsCompanion.insert(
@@ -1346,6 +1411,7 @@ class $$TagsTableTableManager
                 name: name,
                 kind: kind,
                 icon: icon,
+                glyph: glyph,
                 color: color,
                 createdAt: createdAt,
               ),

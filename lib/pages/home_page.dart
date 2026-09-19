@@ -92,10 +92,10 @@ class _HomePageState extends State<HomePage> {
                                 child: FilterChip(
                                   label: Text(item.tag.name),
                                   selected: _filterTag == item.tag.name,
-                                  avatar: Icon(
-                                    item.tag.iconData ?? Icons.mood,
+                                  avatar: TagIcon(
+                                    tag: item.tag,
                                     size: 16,
-                                    color: item.tag.uiColor,
+                                    fallback: Icons.mood,
                                   ),
                                   onSelected: (sel) => setState(() =>
                                       _filterTag =

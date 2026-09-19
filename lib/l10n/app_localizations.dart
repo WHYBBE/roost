@@ -212,6 +212,24 @@ abstract class AppLocalizations {
   /// **'Icon'**
   String get tagIcon;
 
+  /// No description provided for @tagEmoji.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get tagEmoji;
+
+  /// No description provided for @glyphHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Any character or emoji'**
+  String get glyphHint;
+
+  /// No description provided for @glyphOnlyOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a single character or emoji'**
+  String get glyphOnlyOne;
+
   /// No description provided for @noIcon.
   ///
   /// In en, this message translates to:

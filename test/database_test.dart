@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roost/data/app_database.dart';
 import 'package:roost/data/tag_presets.dart';
@@ -271,6 +272,24 @@ void main() {
       expect(moods.every((t) => (t.tag.color! & 0xFF000000) != 0), isTrue);
       await d.close();
       await dir.delete(recursive: true);
+    });
+
+    test('glyph 字符图标持久化，与 icon 互斥', () async {
+      final t = await db.getOrCreateTag('自定义', glyph: '⚡', color: 0xFF112233);
+      expect(t.glyph, '⚡');
+      expect(t.hasIcon, isTrue);
+      expect(t.displayGlyph, '⚡');
+
+      // 改成 Material 图标：glyph 应清空
+      await db.setTagAppearance(t.id, icon: Icons.star.codePoint, color: null);
+      final after = await db.tagByName('自定义');
+      expect(after?.glyph, isNull);
+      expect(after?.icon, Icons.star.codePoint);
+
+      // 改回任意多字符
+      await db.setTagAppearance(t.id, glyph: '哈哈', color: 0xFF112233);
+      final back = await db.tagByName('自定义');
+      expect(back?.displayGlyph, '哈哈');
     });
 
     test('删除思绪时级联清理其标签联结行', () async {

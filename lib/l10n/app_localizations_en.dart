@@ -67,6 +67,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagIcon => 'Icon';
 
   @override
+  String get tagEmoji => 'Emoji';
+
+  @override
+  String get glyphHint => 'Any character or emoji';
+
+  @override
+  String get glyphOnlyOne => 'Enter a single character or emoji';
+
+  @override
   String get noIcon => 'None';
 
   @override

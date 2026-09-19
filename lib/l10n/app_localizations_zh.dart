@@ -67,6 +67,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tagIcon => '图标';
 
   @override
+  String get tagEmoji => 'Emoji';
+
+  @override
+  String get glyphHint => '输入任意字符或 Emoji';
+
+  @override
+  String get glyphOnlyOne => '只能输入一个字符或一个 Emoji';
+
+  @override
   String get noIcon => '无';
 
   @override
