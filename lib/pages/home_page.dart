@@ -7,6 +7,7 @@ import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
+import '../ui/vault_switcher.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,6 +32,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBarVaultSwitcher(context),
         title: Text(l.navHome),
         actions: [
           IconButton(

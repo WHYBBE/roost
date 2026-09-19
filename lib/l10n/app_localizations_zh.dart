@@ -270,6 +270,41 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepGoing => '继续';
 
   @override
+  String get vaultTitle => '保险库';
+
+  @override
+  String get vaultSectionHint => '每个保险库的思绪与标签完全独立。';
+
+  @override
+  String get vaultActive => '当前';
+
+  @override
+  String get createVault => '新建保险库';
+
+  @override
+  String get vaultNameHint => '保险库名称';
+
+  @override
+  String get vaultCreated => '已创建并切换到新保险库';
+
+  @override
+  String get renameVault => '重命名保险库';
+
+  @override
+  String get deleteVault => '删除保险库';
+
+  @override
+  String deleteVaultBody(String name) {
+    return '将永久删除「$name」中的全部数据，且无法恢复。';
+  }
+
+  @override
+  String get vaultDeleted => '已删除保险库';
+
+  @override
+  String get lastVaultWarn => '至少保留一个保险库';
+
+  @override
   String get dataSection => '数据';
 
   @override

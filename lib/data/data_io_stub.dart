@@ -3,4 +3,4 @@ Future<String?> pickAndReadJson() async => null;
 
 Future<bool> saveJsonToFile(String content) async => false;
 
-Future<bool> deleteDataFiles() async => false;
+Future<bool> deleteDataFiles(String dbName) async => false;

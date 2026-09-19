@@ -560,6 +560,72 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get keepGoing;
 
+  /// No description provided for @vaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vaults'**
+  String get vaultTitle;
+
+  /// No description provided for @vaultSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Thoughts and tags are fully isolated per vault.'**
+  String get vaultSectionHint;
+
+  /// No description provided for @vaultActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get vaultActive;
+
+  /// No description provided for @createVault.
+  ///
+  /// In en, this message translates to:
+  /// **'New vault'**
+  String get createVault;
+
+  /// No description provided for @vaultNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault name'**
+  String get vaultNameHint;
+
+  /// No description provided for @vaultCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Created and switched to the new vault'**
+  String get vaultCreated;
+
+  /// No description provided for @renameVault.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename vault'**
+  String get renameVault;
+
+  /// No description provided for @deleteVault.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete vault'**
+  String get deleteVault;
+
+  /// No description provided for @deleteVaultBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes all data in \"{name}\". This cannot be undone.'**
+  String deleteVaultBody(String name);
+
+  /// No description provided for @vaultDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Vault deleted'**
+  String get vaultDeleted;
+
+  /// No description provided for @lastVaultWarn.
+  ///
+  /// In en, this message translates to:
+  /// **'At least one vault is required'**
+  String get lastVaultWarn;
+
   /// No description provided for @dataSection.
   ///
   /// In en, this message translates to:

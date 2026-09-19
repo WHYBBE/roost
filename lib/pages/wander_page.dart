@@ -5,6 +5,7 @@ import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
+import '../ui/vault_switcher.dart';
 
 class WanderPage extends StatefulWidget {
   const WanderPage({super.key});
@@ -49,7 +50,10 @@ class _WanderPageState extends State<WanderPage> {
     final random = _random;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.wanderTitle)),
+      appBar: AppBar(
+        leading: appBarVaultSwitcher(context),
+        title: Text(l.wanderTitle),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           setState(() => _random = null);

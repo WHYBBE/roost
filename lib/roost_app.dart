@@ -10,6 +10,7 @@ import 'pages/settings_page.dart';
 import 'pages/tags_page.dart';
 import 'pages/wander_page.dart';
 import 'settings/app_settings.dart';
+import 'ui/vault_switcher.dart';
 
 class RoostApp extends StatefulWidget {
   const RoostApp({super.key});
@@ -24,18 +25,15 @@ class _RoostAppState extends State<RoostApp> {
     super.initState();
     AppSettings.instance.addListener(_onChanged);
     DataStore.instance.addListener(_onChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkHealth());
+    _bootstrap();
   }
 
   void _onChanged() => setState(() {});
 
-  /// 启动健康检查：文件损坏/表结构不匹配时进入清理引导
-  Future<void> _checkHealth() async {
-    if (DataStore.instance.corrupted) return;
-    final healthy = await appDb.isHealthy();
-    if (!healthy) {
-      DataStore.instance.setCorrupted(true);
-    }
+  /// 启动引导：加载保险库注册表并打开当前库，随后健康检查
+  Future<void> _bootstrap() async {
+    await DataStore.instance.init();
+    await DataStore.instance.checkHealth();
   }
 
   @override
@@ -70,13 +68,15 @@ class _RoostAppState extends State<RoostApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // 数据库实例被替换（清理/重置）时以 epoch 为 key 强制整树重建
-      home: DataStore.instance.corrupted
-          ? const _CorruptedDataView()
-          : KeyedSubtree(
-              key: ValueKey('db-epoch-${DataStore.instance.epoch}'),
-              child: const ResponsiveShell(),
-            ),
+      // 数据库实例被替换（切换保险库/清理/重置）时以 epoch 为 key 强制整树重建
+      home: !DataStore.instance.ready
+          ? const SizedBox.shrink()
+          : DataStore.instance.corrupted
+              ? const _CorruptedDataView()
+              : KeyedSubtree(
+                  key: ValueKey('db-epoch-${DataStore.instance.epoch}'),
+                  child: const ResponsiveShell(),
+                ),
     );
   }
 
@@ -148,15 +148,21 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
                       ],
                     ),
                   ),
-                  destinations: [
-                    for (final d in destinations)
-                      NavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selected),
-                        label: Text(d.label),
-                      ),
-                  ],
-                ),
+                 destinations: [
+                     for (final d in destinations)
+                       NavigationRailDestination(
+                         icon: Icon(d.icon),
+                         selectedIcon: Icon(d.selected),
+                         label: Text(d.label),
+                       ),
+                   ],
+                   // 左下角：当前保险库快速切换（底部留出呼吸边距）
+                   trailing: const Padding(
+                     padding: EdgeInsets.only(bottom: 12),
+                     child: VaultSwitchButton.rail(),
+                   ),
+                   trailingAtBottom: true,
+                 ),
               ),
             Expanded(child: _pages[_index]),
           ],
@@ -233,7 +239,11 @@ class _CorruptedDataView extends StatelessWidget {
       try {
         await appDb.resetAllData();
       } catch (_) {
-        await deleteDataFiles();
+        try {
+          await deleteDataFiles(
+            DataStore.instance.currentVault?.file ?? 'roost',
+          );
+        } catch (_) {}
         await DataStore.instance.reopen();
       }
     }

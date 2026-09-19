@@ -12,7 +12,9 @@ bool isEmojiCodepoint(int codePoint) =>
 
 @DriftDatabase(tables: [Thoughts, Tags, ThoughtTags])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_open());
+  /// [name] 同时用作原生库文件名与 Web 端 IndexedDB 库名；
+  /// 不同 name 即不同 vault，数据完全隔离
+  AppDatabase({String name = 'roost'}) : super(_open(name));
 
   AppDatabase.connect(super.connection);
 
@@ -193,9 +195,9 @@ class AppDatabase extends _$AppDatabase {
     return imported;
   }
 
-  static QueryExecutor _open() {
+  static QueryExecutor _open(String name) {
     return driftDatabase(
-      name: 'roost',
+      name: name,
       web: DriftWebOptions(
         sqlite3Wasm: Uri.parse('sqlite3.wasm'),
         driftWorker: Uri.parse('drift_worker.js'),

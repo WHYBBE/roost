@@ -24,8 +24,8 @@ Future<bool> saveJsonToFile(String content) async {
   return true;
 }
 
-/// 删除本地数据库文件（尽力而为；用于无法通过 SQL 修复的损坏数据）
-Future<bool> deleteDataFiles() async {
+/// 删除指定库的本地数据库文件（尽力而为；用于删除 vault 或无法修复的损坏数据）
+Future<bool> deleteDataFiles(String dbName) async {
   var deleted = false;
   final dirs = <Directory?>[
     await _safe(() => getApplicationDocumentsDirectory()),
@@ -35,7 +35,7 @@ Future<bool> deleteDataFiles() async {
     if (dir == null) continue;
     for (final suffix in ['', '-wal', '-shm', '-journal']) {
       try {
-        final f = File('${dir.path}/roost.sqlite$suffix');
+        final f = File('${dir.path}/$dbName.sqlite$suffix');
         if (await f.exists()) {
           await f.delete();
           deleted = true;

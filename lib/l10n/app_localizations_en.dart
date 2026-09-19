@@ -279,6 +279,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepGoing => 'Continue';
 
   @override
+  String get vaultTitle => 'Vaults';
+
+  @override
+  String get vaultSectionHint =>
+      'Thoughts and tags are fully isolated per vault.';
+
+  @override
+  String get vaultActive => 'Active';
+
+  @override
+  String get createVault => 'New vault';
+
+  @override
+  String get vaultNameHint => 'Vault name';
+
+  @override
+  String get vaultCreated => 'Created and switched to the new vault';
+
+  @override
+  String get renameVault => 'Rename vault';
+
+  @override
+  String get deleteVault => 'Delete vault';
+
+  @override
+  String deleteVaultBody(String name) {
+    return 'This permanently deletes all data in \"$name\". This cannot be undone.';
+  }
+
+  @override
+  String get vaultDeleted => 'Vault deleted';
+
+  @override
+  String get lastVaultWarn => 'At least one vault is required';
+
+  @override
   String get dataSection => 'Data';
 
   @override

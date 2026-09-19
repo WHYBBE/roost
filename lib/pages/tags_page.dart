@@ -8,6 +8,7 @@ import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
+import '../ui/vault_switcher.dart';
 
 /// 标签管理：心情管理入口 + 普通标签胶囊墙（非列表），点按查看、长按操作
 class TagsPage extends StatelessWidget {
@@ -20,6 +21,7 @@ class TagsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBarVaultSwitcher(context),
         title: Text(l.navTags),
         actions: [
           IconButton(

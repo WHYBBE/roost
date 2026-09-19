@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/heatmap.dart';
 import '../ui/mood.dart';
+import '../ui/vault_switcher.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -36,6 +37,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBarVaultSwitcher(context),
         title: Text(l.navCalendar),
         actions: [
           IconButton(
