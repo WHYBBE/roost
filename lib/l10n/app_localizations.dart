@@ -464,6 +464,48 @@ abstract class AppLocalizations {
   /// **'Tag name can\'t be empty'**
   String get tagNameEmpty;
 
+  /// No description provided for @tagExists.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag with this name already exists'**
+  String get tagExists;
+
+  /// No description provided for @addTag.
+  ///
+  /// In en, this message translates to:
+  /// **'New tag'**
+  String get addTag;
+
+  /// No description provided for @addMood.
+  ///
+  /// In en, this message translates to:
+  /// **'New mood'**
+  String get addMood;
+
+  /// No description provided for @moodManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Moods'**
+  String get moodManagement;
+
+  /// No description provided for @moodCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 mood} other{{count} moods}}'**
+  String moodCount(int count);
+
+  /// No description provided for @moodsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No moods yet.\nTap + to create one.'**
+  String get moodsEmpty;
+
+  /// No description provided for @viewEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'View entries'**
+  String get viewEntries;
+
   /// No description provided for @yearTotal.
   ///
   /// In en, this message translates to:

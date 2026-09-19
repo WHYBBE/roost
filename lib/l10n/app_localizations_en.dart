@@ -219,6 +219,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tagNameEmpty => 'Tag name can\'t be empty';
 
   @override
+  String get tagExists => 'A tag with this name already exists';
+
+  @override
+  String get addTag => 'New tag';
+
+  @override
+  String get addMood => 'New mood';
+
+  @override
+  String get moodManagement => 'Moods';
+
+  @override
+  String moodCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count moods',
+      one: '1 mood',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get moodsEmpty => 'No moods yet.\nTap + to create one.';
+
+  @override
+  String get viewEntries => 'View entries';
+
+  @override
   String yearTotal(int year, int count) {
     return '$year · $count entries';
   }

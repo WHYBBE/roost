@@ -211,6 +211,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tagNameEmpty => '标签名不能为空';
 
   @override
+  String get tagExists => '已存在同名标签';
+
+  @override
+  String get addTag => '新建标签';
+
+  @override
+  String get addMood => '新建心情';
+
+  @override
+  String get moodManagement => '心情管理';
+
+  @override
+  String moodCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个心情',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get moodsEmpty => '还没有心情。\n点右上角 + 新建一个。';
+
+  @override
+  String get viewEntries => '查看思绪';
+
+  @override
   String yearTotal(int year, int count) {
     return '$year 年 · $count 条';
   }

@@ -9,108 +9,135 @@ import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
 
-/// 标签页：标签列表（含心情标签）+ 使用数量，支持编辑外观 / 删除
+/// 标签管理：心情管理入口 + 普通标签胶囊墙（非列表），点按查看、长按操作
 class TagsPage extends StatelessWidget {
   const TagsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.navTags)),
+      appBar: AppBar(
+        title: Text(l.navTags),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: l.addTag,
+            onPressed: () => showTagEditor(context, kind: TagKind.normal),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<TagWithCount>>(
         stream: appDb.watchTagsWithCount(),
         builder: (context, snap) {
-          final tags = snap.data ?? const <TagWithCount>[];
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (tags.isEmpty) {
+          final all = snap.data ?? const <TagWithCount>[];
+          final moodCount =
+              all.where((e) => e.tag.tagKind == TagKind.mood).length;
+          final normal =
+              all.where((e) => e.tag.tagKind == TagKind.normal).toList();
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: ListTile(
+                  leading: Icon(Icons.mood_outlined, color: scheme.primary),
+                  title: Text(l.moodManagement),
+                  subtitle:
+                      moodCount > 0 ? Text(l.moodCount(moodCount)) : null,
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MoodPage()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (normal.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Text(
+                    l.tagsEmpty,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                )
+              else
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final item in normal) _TagPill(item: item),
+                    ],
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// 心情管理：独立界面，复用标签胶囊与编辑器
+class MoodPage extends StatelessWidget {
+  const MoodPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l.moodManagement),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: l.addMood,
+            onPressed: () => showTagEditor(context, kind: TagKind.mood),
+          ),
+        ],
+      ),
+      body: StreamBuilder<List<TagWithCount>>(
+        stream: appDb.watchTagsWithCount(),
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final moods = (snap.data ?? const <TagWithCount>[])
+              .where((e) => e.tag.tagKind == TagKind.mood)
+              .toList();
+          if (moods.isEmpty) {
             return Center(
               child: Text(
-                l.tagsEmpty,
+                l.moodsEmpty,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             );
           }
-          return Center(
+          return Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: tags.length,
-                itemBuilder: (context, i) {
-                  final item = tags[i];
-                  final isMood = item.tag.tagKind == TagKind.mood;
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      leading: Icon(
-                        item.tag.iconData ?? Icons.sell_outlined,
-                        color: item.tag.uiColor ??
-                            Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(child: Text(item.tag.name)),
-                          if (isMood) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .secondaryContainer,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                l.kindMood,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSecondaryContainer,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      subtitle: Text(l.entriesCount(item.count)),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TagDetailPage(tagWithCount: item),
-                        ),
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (action) {
-                          if (action == 'edit') {
-                            showTagEditor(context, item.tag);
-                          } else if (action == 'delete') {
-                            _deleteDialog(context, item);
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Text(l.tagEditorTitle),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Text(l.deleteTag),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final m in moods) _TagPill(item: m, moodStyle: true),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
@@ -118,47 +145,168 @@ class TagsPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Future<void> _deleteDialog(BuildContext context, TagWithCount item) async {
-    final l = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.deleteTag),
-        content: Text(l.deleteTagBody(item.count)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l.cancel),
+/// 标签胶囊：普通样式（非列表行）；点按进入详情/编辑，长按弹出操作
+class _TagPill extends StatelessWidget {
+  const _TagPill({required this.item, this.moodStyle = false});
+
+  final TagWithCount item;
+  final bool moodStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tag = item.tag;
+    final c = tag.uiColor ?? scheme.primary;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () {
+        if (moodStyle) {
+          showTagEditor(context, tag: tag);
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => TagDetailPage(tagWithCount: item)),
+          );
+        }
+      },
+      onLongPress: () => _showTagActions(context, item),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: moodStyle ? c.withValues(alpha: 0.15) : scheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: moodStyle ? c.withValues(alpha: 0.4) : scheme.outlineVariant,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (tag.iconData != null) ...[
+              Icon(
+                tag.iconData,
+                size: 16,
+                color: moodStyle ? c : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              moodStyle ? tag.name : '#${tag.name}',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: moodStyle ? c : scheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l.delete),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Text(
+              '${item.count}',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
-    if (ok == true) {
-      await appDb.deleteTag(item.tag.id);
-    }
   }
 }
 
-/// 编辑标签：名称 + 图标 + 颜色（图标/颜色可留空 = 无图标/默认色）
-Future<void> showTagEditor(BuildContext context, Tag tag) async {
+/// 长按操作：查看思绪 / 编辑 / 删除
+Future<void> _showTagActions(BuildContext context, TagWithCount item) async {
   final l = AppLocalizations.of(context)!;
-  final nameController = TextEditingController(text: tag.name);
-  int? icon = tag.icon;
-  int? color = tag.color;
+  await showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.visibility_outlined),
+            title: Text(l.viewEntries),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TagDetailPage(tagWithCount: item),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: Text(l.tagEditorTitle),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              showTagEditor(context, tag: item.tag);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l.deleteTag),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              _deleteDialog(context, item);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _deleteDialog(BuildContext context, TagWithCount item) async {
+  final l = AppLocalizations.of(context)!;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l.deleteTag),
+      content: Text(l.deleteTagBody(item.count)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(l.delete),
+        ),
+      ],
+    ),
+  );
+  if (ok == true) {
+    await appDb.deleteTag(item.tag.id);
+  }
+}
+
+/// 编辑标签；tag 为 null 时进入新建模式（kind 决定新建种类）
+Future<void> showTagEditor(
+  BuildContext context, {
+  Tag? tag,
+  TagKind kind = TagKind.normal,
+}) async {
+  final l = AppLocalizations.of(context)!;
+  final isCreate = tag == null;
+  final nameController = TextEditingController(text: tag?.name ?? '');
+  int? icon = tag?.icon;
+  int? color = tag?.color;
+  String? nameError;
 
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: Text(l.tagEditorTitle),
+        title: Text(
+          isCreate
+              ? (kind == TagKind.mood ? l.addMood : l.addTag)
+              : l.tagEditorTitle,
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -166,9 +314,11 @@ Future<void> showTagEditor(BuildContext context, Tag tag) async {
             children: [
               TextField(
                 controller: nameController,
+                autofocus: isCreate,
                 decoration: InputDecoration(
                   labelText: l.tagName,
                   border: const OutlineInputBorder(),
+                  errorText: nameError,
                 ),
               ),
               const SizedBox(height: 12),
@@ -228,9 +378,17 @@ Future<void> showTagEditor(BuildContext context, Tag tag) async {
             child: Text(l.cancel),
           ),
           FilledButton(
-            onPressed: () {
-              if (nameController.text.trim().isEmpty) return;
-              Navigator.pop(context, true);
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                setState(() => nameError = l.tagNameEmpty);
+                return;
+              }
+              if (isCreate && await appDb.tagByName(name) != null) {
+                setState(() => nameError = l.tagExists);
+                return;
+              }
+              if (context.mounted) Navigator.pop(context, true);
             },
             child: Text(l.save),
           ),
@@ -240,7 +398,15 @@ Future<void> showTagEditor(BuildContext context, Tag tag) async {
   );
   final newName = nameController.text.trim();
   nameController.dispose();
-  if (ok == true && context.mounted) {
+  if (ok != true || !context.mounted) return;
+  if (isCreate) {
+    await appDb.getOrCreateTag(
+      newName,
+      kind: kind,
+      icon: icon,
+      color: color,
+    );
+  } else {
     if (newName.isNotEmpty && newName != tag.name) {
       await appDb.renameTag(tag.id, newName);
     }
@@ -339,7 +505,7 @@ class TagDetailPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () => showTagEditor(context, tagWithCount.tag),
+            onPressed: () => showTagEditor(context, tag: tagWithCount.tag),
           ),
         ],
       ),

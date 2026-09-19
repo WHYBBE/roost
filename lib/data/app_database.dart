@@ -190,6 +190,11 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- 标签 ----------
 
+  /// 按名称查找标签（重名唯一）
+  Future<Tag?> tagByName(String name) {
+    return (select(tags)..where((t) => t.name.equals(name))).getSingleOrNull();
+  }
+
   /// 获取或创建标签（按名称唯一）；仅创建时应用 kind/icon/color
   Future<Tag> getOrCreateTag(
     String name, {
