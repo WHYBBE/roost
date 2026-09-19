@@ -26,10 +26,13 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
-          if (details.wasCreated || details.versionBefore != null) {
-            await _seedMoodPresets();
-          }
+          // 仅新建或升级（清空重建）后播种；用户删除的预设不会被重新种回
+          final needsSeed = details.wasCreated ||
+              (details.versionBefore != null &&
+                  details.versionBefore != details.versionNow);
+          if (needsSeed) await _seedMoodPresets();
           await _repairTransparentSeedColors();
+          await _repairSeedMoodPresets();
         },
       );
 
@@ -69,6 +72,65 @@ class AppDatabase extends _$AppDatabase {
       if (c != null && (c & 0xFF000000) == 0) {
         await (update(tags)..where((t) => t.id.equals(mood.id))).write(
           TagsCompanion(color: Value(0xFF000000 | (c & 0xFFFFFF))),
+        );
+      }
+    }
+  }
+
+  /// 旧种子心情收敛（幂等，每次打开执行）。
+  /// 只处理"未编辑过的原始种子"——名称/图标/颜色与预设签名完全一致
+  /// （图标允许 legacySeedIcon，即旧预设图标）；用户改过任何一项即视为
+  /// 自定义心情，永不覆盖。
+  Future<void> _repairSeedMoodPresets() async {
+    Expression<bool> isMood(Tags t) => t.kind.equals(TagKind.mood.value);
+    for (final preset in moodPresets) {
+      final targetName = seedUseChinese ? preset.nameZh : preset.nameEn;
+      final otherName = seedUseChinese ? preset.nameEn : preset.nameZh;
+      final other = await (select(tags)
+            ..where((t) => t.name.equals(otherName) & isMood(t)))
+          .getSingleOrNull();
+      if (other == null) continue;
+      // 非原始种子（用户编辑过）不动
+      final pristine = (other.icon == preset.icon.codePoint ||
+              other.icon == legacySeedIcon) &&
+          other.color == preset.color;
+      if (!pristine) continue;
+      final target = await tagByName(targetName);
+      if (target != null && target.kind != TagKind.mood.value) {
+        // 目标名被普通标签占用，不动
+        continue;
+      }
+      if (target != null) {
+        // 双语并存：联结行合并到目标，删除另一语言版本
+        final joins = await (select(thoughtTags)
+              ..where((t) => t.tagId.equals(other.id)))
+            .get();
+        for (final row in joins) {
+          await into(thoughtTags).insert(
+            ThoughtTagsCompanion.insert(
+                thoughtId: row.thoughtId, tagId: target.id),
+            mode: InsertMode.insertOrIgnore,
+          );
+        }
+        await (delete(tags)..where((t) => t.id.equals(other.id))).go();
+      } else {
+        await (update(tags)..where((t) => t.id.equals(other.id))).write(
+          TagsCompanion(name: Value(targetName)),
+        );
+      }
+    }
+    // 历史遗留图标修复（仅未编辑种子）
+    for (final preset in moodPresets) {
+      final tag = await (select(tags)
+            ..where((t) =>
+                t.name.equals(
+                    seedUseChinese ? preset.nameZh : preset.nameEn) &
+                isMood(t)))
+          .getSingleOrNull();
+      final pristine = tag != null && tag.color == preset.color;
+      if (pristine && tag.icon == legacySeedIcon) {
+        await (update(tags)..where((t) => t.id.equals(tag.id))).write(
+          TagsCompanion(icon: Value(preset.icon.codePoint)),
         );
       }
     }

@@ -1,5 +1,6 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 /// 内置心情标签预设（用于初始化种子数据）
 class MoodPreset {
@@ -16,8 +17,11 @@ const moodPresets = [
   MoodPreset('开心', 'Happy', Icons.sentiment_very_satisfied, 0xFFFFB300),
   MoodPreset('一般', 'Neutral', Icons.sentiment_neutral, 0xFF607D8B),
   MoodPreset('低落', 'Down', Icons.sentiment_dissatisfied, 0xFF3F51B5),
-  MoodPreset('焦虑', 'Anxious', Icons.waving_hand, 0xFFFF5722),
+  MoodPreset('焦虑', 'Anxious', Icons.bolt, 0xFFFF5722),
 ];
+
+/// 历史种子遗留的焦虑图标（waving_hand 在小尺寸下观感差），用于一次性修复
+const legacySeedIcon = 0xF0AE3; // Icons.waving_hand.codePoint
 
 /// 标签图标候选（编辑器图标选择器；Material Icons 私用区 codepoint，可着色）
 const tagIconChoices = <IconData>[
@@ -256,5 +260,8 @@ const tagColorChoices = <int>[
   0xFF795548, // brown
 ];
 
-/// 迁移时的种子语言判断
-bool get seedUseChinese => Intl.systemLocale.startsWith('zh');
+/// 迁移时的种子语言判断：取平台分发的首选语言
+/// （Intl.systemLocale 在原生端默认 en_US 不可靠；PlatformDispatcher
+/// 在 macOS/Windows/iOS/Android/Web 均能真实反映系统语言）
+bool get seedUseChinese =>
+    PlatformDispatcher.instance.locale.languageCode.toLowerCase() == 'zh';

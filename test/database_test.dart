@@ -274,6 +274,57 @@ void main() {
       await dir.delete(recursive: true);
     });
 
+    test('心情预设收敛：双语并存时合并联结行到当前语言', () async {
+      final dir = await Directory.systemTemp.createTemp('roost_test');
+      final path = '${dir.path}/converge.sqlite';
+
+      // 第一次打开（测试环境英文，播种 Calm 等）；
+      // 模拟旧 bug 留下的中文重名预设并挂上联结（未编辑的原始种子签名）
+      var d = AppDatabase.connect(NativeDatabase(File(path)));
+      await d.getOrCreateTag(
+        '平静',
+        kind: TagKind.mood,
+        icon: legacySeedIcon,
+        color: 0xFF009688,
+      );
+      final thoughtId =
+          await d.insertThought(content: '内容', day: AppDatabase.today());
+      await d.setThoughtTags(thoughtId, ['平静']);
+      await d.close();
+
+      // 重连：'平静' 应合并进 'Calm'（英文环境的预设名），联结行迁移
+      d = AppDatabase.connect(NativeDatabase(File(path)));
+      final tags = await d.select(d.tags).get();
+      expect(tags.any((t) => t.name == '平静'), isFalse, reason: '旧语言版本应被合并删除');
+      expect(tags.any((t) => t.name == 'Calm'), isTrue);
+      expect((await d.tagsFor(thoughtId)).map((t) => t.name), contains('Calm'));
+      await d.close();
+      await dir.delete(recursive: true);
+    });
+
+    test('用户编辑过的心情不被收敛/播种覆盖', () async {
+      final dir = await Directory.systemTemp.createTemp('roost_test');
+      final path = '${dir.path}/edited.sqlite';
+
+      // 第一次打开后把 Calm 改名并改色（模拟用户自定义）
+      var d = AppDatabase.connect(NativeDatabase(File(path)));
+      await d.customStatement(
+          "UPDATE tags SET name = '平静', icon = 58749, color = 1 "
+          "WHERE name = 'Calm'");
+      // 删掉一个预设，验证不会被重新种回
+      await d.customStatement("DELETE FROM tags WHERE name = 'Happy'");
+      await d.close();
+
+      // 重连：改名/换色的不被覆盖，删除的不复活
+      d = AppDatabase.connect(NativeDatabase(File(path)));
+      final names = (await d.select(d.tags).get()).map((t) => t.name).toSet();
+      expect(names.contains('平静'), isTrue, reason: '用户自定义名不应被改名');
+      expect(names.contains('Calm'), isFalse, reason: '不应重新种回原英文名');
+      expect(names.contains('Happy'), isFalse, reason: '用户删除的预设不应复活');
+      await d.close();
+      await dir.delete(recursive: true);
+    });
+
     test('glyph 字符图标持久化，与 icon 互斥', () async {
       final t = await db.getOrCreateTag('自定义', glyph: '⚡', color: 0xFF112233);
       expect(t.glyph, '⚡');
