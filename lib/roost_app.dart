@@ -65,6 +65,8 @@ class _RoostAppState extends State<RoostApp> {
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
+      // 选中态靠底色与头像表达；勾选图标与头像重叠显乱
+      chipTheme: const ChipThemeData(showCheckmark: false),
     );
   }
 }

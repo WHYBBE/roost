@@ -76,16 +76,6 @@ class _HomePageState extends State<HomePage> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            if (_filterTag != null)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  label: Text('#$_filterTag'),
-                                  selected: true,
-                                  onSelected: (_) =>
-                                      setState(() => _filterTag = null),
-                                ),
-                              ),
                             for (final item in moodTags)
                               Padding(
                                 padding: const EdgeInsets.only(right: 8),
