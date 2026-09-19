@@ -256,7 +256,75 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepWriting => '继续记录';
 
   @override
-  String longestStreak(int days) {
+  String longestStreak(Object days) {
     return '最长 $days 天';
   }
+
+  @override
+  String get confirm => '确认';
+
+  @override
+  String get keepGoing => '继续';
+
+  @override
+  String get dataSection => '数据';
+
+  @override
+  String get exportData => '导出数据';
+
+  @override
+  String get importData => '导入数据（合并）';
+
+  @override
+  String get resetMoodTags => '重置心情标签';
+
+  @override
+  String get resetAllData => '清空全部数据';
+
+  @override
+  String get exportDone => '已导出';
+
+  @override
+  String get exportUnsupported => '当前平台不支持导出';
+
+  @override
+  String get importMergeBody => '导入的思绪与标签将合并到现有数据中。';
+
+  @override
+  String importDone(int count) {
+    return '已导入 $count 条';
+  }
+
+  @override
+  String get importInvalid => '文件格式不正确';
+
+  @override
+  String get resetMoodBody => '将删除全部心情标签及其标记，然后恢复预设心情。普通标签与思绪不受影响。';
+
+  @override
+  String get resetAllBody1 => '将删除全部思绪、标签与心情，此操作无法撤销。';
+
+  @override
+  String get doubleConfirmTitle => '二次确认';
+
+  @override
+  String get doubleConfirmClear => '再确认一次：真的要清空本地数据吗？';
+
+  @override
+  String get confirmClear => '确认清空';
+
+  @override
+  String get resetDone => '已重置';
+
+  @override
+  String get opFailed => '操作失败';
+
+  @override
+  String get dataCorruptTitle => '数据异常';
+
+  @override
+  String get dataCorruptBody => '本地数据无法读取，可能已损坏。清理后应用将重置为初始状态（恢复预设心情），此操作无法撤销。';
+
+  @override
+  String get cleanData => '清理数据';
 }

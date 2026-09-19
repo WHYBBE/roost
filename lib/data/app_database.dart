@@ -22,7 +22,7 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // 标签结构经历过不兼容重构：版本不一致直接清空重建
+        // 不做兼容迁移：版本不一致直接清空重建，由 UI 引导用户清理异常数据
         onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -31,8 +31,6 @@ class AppDatabase extends _$AppDatabase {
               (details.versionBefore != null &&
                   details.versionBefore != details.versionNow);
           if (needsSeed) await _seedMoodPresets();
-          await _repairTransparentSeedColors();
-          await _repairSeedMoodPresets();
         },
       );
 
@@ -61,79 +59,138 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
-  /// 修复历史种子数据中 alpha=0 的透明颜色（选择器只提供不透明候选，
-  /// alpha=0 一定是旧种子 bug；幂等，每次打开执行）
-  Future<void> _repairTransparentSeedColors() async {
-    final moods =
-        await (select(tags)..where((t) => t.kind.equals(TagKind.mood.value)))
-            .get();
-    for (final mood in moods) {
-      final c = mood.color;
-      if (c != null && (c & 0xFF000000) == 0) {
-        await (update(tags)..where((t) => t.id.equals(mood.id))).write(
-          TagsCompanion(color: Value(0xFF000000 | (c & 0xFFFFFF))),
-        );
-      }
+  /// 健康检查：quick_check 通过且业务表可读。文件损坏、表结构不匹配均视为异常
+  Future<bool> isHealthy() async {
+    try {
+      final rows = await customSelect('PRAGMA quick_check').get();
+      final ok = rows.isNotEmpty && rows.first.read<String>('quick_check') == 'ok';
+      if (!ok) return false;
+      await select(tags).get();
+      await select(thoughts).get();
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
-  /// 旧种子心情收敛（幂等，每次打开执行）。
-  /// 只处理"未编辑过的原始种子"——名称/图标/颜色与预设签名完全一致
-  /// （图标允许 legacySeedIcon，即旧预设图标）；用户改过任何一项即视为
-  /// 自定义心情，永不覆盖。
-  Future<void> _repairSeedMoodPresets() async {
-    Expression<bool> isMood(Tags t) => t.kind.equals(TagKind.mood.value);
-    for (final preset in moodPresets) {
-      final targetName = seedUseChinese ? preset.nameZh : preset.nameEn;
-      final otherName = seedUseChinese ? preset.nameEn : preset.nameZh;
-      final other = await (select(tags)
-            ..where((t) => t.name.equals(otherName) & isMood(t)))
-          .getSingleOrNull();
-      if (other == null) continue;
-      // 非原始种子（用户编辑过）不动
-      final pristine = (other.icon == preset.icon.codePoint ||
-              other.icon == legacySeedIcon) &&
-          other.color == preset.color;
-      if (!pristine) continue;
-      final target = await tagByName(targetName);
-      if (target != null && target.kind != TagKind.mood.value) {
-        // 目标名被普通标签占用，不动
-        continue;
-      }
-      if (target != null) {
-        // 双语并存：联结行合并到目标，删除另一语言版本
-        final joins = await (select(thoughtTags)
-              ..where((t) => t.tagId.equals(other.id)))
-            .get();
-        for (final row in joins) {
-          await into(thoughtTags).insert(
-            ThoughtTagsCompanion.insert(
-                thoughtId: row.thoughtId, tagId: target.id),
-            mode: InsertMode.insertOrIgnore,
-          );
+  /// 清空全部业务数据并恢复预设心情
+  Future<void> resetAllData() async {
+    await transaction(() async {
+      await customStatement('DELETE FROM thought_tags');
+      await customStatement('DELETE FROM thoughts');
+      await customStatement('DELETE FROM tags');
+    });
+    await _seedMoodPresets();
+  }
+
+  /// 重置心情标签：删除全部心情标签（联结级联清理），恢复预设
+  Future<void> resetMoodTags() async {
+    await (delete(tags)..where((t) => t.kind.equals(TagKind.mood.value))).go();
+    await _seedMoodPresets();
+  }
+
+  /// 完整导出为纯数据结构（文件读写交给 UI 层）。
+  /// links 以思绪在 thoughts 数组中的下标 + 标签名表达联结关系。
+  Future<Map<String, dynamic>> exportData() async {
+    final thoughtRows = await select(thoughts).get();
+    final tagRows = await select(tags).get();
+    final linkRows = await select(thoughtTags).get();
+    final tagNameById = {for (final t in tagRows) t.id: t.name};
+    return {
+      'app': 'roost',
+      'schema': schemaVersion,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'thoughts': [
+        for (final t in thoughtRows)
+          {
+            'content': t.content,
+            'day': t.day,
+            'createdAt': t.createdAt,
+            'updatedAt': t.updatedAt,
+          },
+      ],
+      'tags': [
+        for (final t in tagRows)
+          {
+            'name': t.name,
+            'kind': t.kind,
+            'icon': t.icon,
+            'glyph': t.glyph,
+            'color': t.color,
+          },
+      ],
+      'links': [
+        for (final l in linkRows)
+          {
+            'thought': thoughtRows.indexWhere((t) => t.id == l.thoughtId),
+            'tag': tagNameById[l.tagId],
+          },
+      ],
+    };
+  }
+
+  /// 导入（合并）：思绪按“同日同内容同创建时间”去重追加；
+  /// 标签按名称合并（已存在则沿用现有定义）；联结按名重建。返回新增思绪数。
+  Future<int> importData(Map<String, dynamic> data) async {
+    final thoughtsIn = (data['thoughts'] as List?) ?? const [];
+    final tagsIn = (data['tags'] as List?) ?? const [];
+    final linksIn = (data['links'] as List?) ?? const [];
+    var imported = 0;
+    await transaction(() async {
+      final thoughtIdByIndex = <int, int>{};
+      for (var i = 0; i < thoughtsIn.length; i++) {
+        final m = thoughtsIn[i] as Map;
+        final content = (m['content'] ?? '') as String;
+        final day = (m['day'] ?? '') as String;
+        final createdAt = (m['createdAt'] as num?)?.toInt() ?? 0;
+        final updatedAt = (m['updatedAt'] as num?)?.toInt() ?? createdAt;
+        if (content.isEmpty || day.isEmpty) continue;
+        final dup = await (select(thoughts)
+              ..where((t) => t.day.equals(day) &
+                  t.createdAt.equals(createdAt) &
+                  t.content.equals(content)))
+            .getSingleOrNull();
+        if (dup != null) {
+          thoughtIdByIndex[i] = dup.id;
+          continue;
         }
-        await (delete(tags)..where((t) => t.id.equals(other.id))).go();
-      } else {
-        await (update(tags)..where((t) => t.id.equals(other.id))).write(
-          TagsCompanion(name: Value(targetName)),
+        final id = await into(thoughts).insert(
+          ThoughtsCompanion.insert(
+            content: content,
+            day: day,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+          ),
+        );
+        thoughtIdByIndex[i] = id;
+        imported++;
+      }
+      for (final raw in tagsIn) {
+        final m = raw as Map;
+        final name = ((m['name'] ?? '') as String).trim();
+        if (name.isEmpty) continue;
+        await getOrCreateTag(
+          name,
+          kind: TagKind.fromValue((m['kind'] as num?)?.toInt() ?? 0),
+          icon: (m['icon'] as num?)?.toInt(),
+          glyph: m['glyph'] as String?,
+          color: (m['color'] as num?)?.toInt(),
         );
       }
-    }
-    // 历史遗留图标修复（仅未编辑种子）
-    for (final preset in moodPresets) {
-      final tag = await (select(tags)
-            ..where((t) =>
-                t.name.equals(
-                    seedUseChinese ? preset.nameZh : preset.nameEn) &
-                isMood(t)))
-          .getSingleOrNull();
-      final pristine = tag != null && tag.color == preset.color;
-      if (pristine && tag.icon == legacySeedIcon) {
-        await (update(tags)..where((t) => t.id.equals(tag.id))).write(
-          TagsCompanion(icon: Value(preset.icon.codePoint)),
+      for (final raw in linksIn) {
+        final m = raw as Map;
+        final tid = thoughtIdByIndex[(m['thought'] as num?)?.toInt() ?? -1];
+        final tagName = m['tag'] as String?;
+        if (tid == null || tagName == null) continue;
+        final tag = await tagByName(tagName);
+        if (tag == null) continue;
+        await into(thoughtTags).insert(
+          ThoughtTagsCompanion.insert(thoughtId: tid, tagId: tag.id),
+          mode: InsertMode.insertOrIgnore,
         );
       }
-    }
+    });
+    return imported;
   }
 
   static QueryExecutor _open() {

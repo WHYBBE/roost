@@ -20,9 +20,6 @@ const moodPresets = [
   MoodPreset('焦虑', 'Anxious', Icons.bolt, 0xFFFF5722),
 ];
 
-/// 历史种子遗留的焦虑图标（waving_hand 在小尺寸下观感差），用于一次性修复
-const legacySeedIcon = 0xF0AE3; // Icons.waving_hand.codePoint
-
 /// 标签图标候选（编辑器图标选择器；Material Icons 私用区 codepoint，可着色）
 const tagIconChoices = <IconData>[
   // 心情/情绪

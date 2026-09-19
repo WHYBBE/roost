@@ -265,7 +265,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepWriting => 'Keep writing';
 
   @override
-  String longestStreak(int days) {
+  String longestStreak(Object days) {
     return 'Longest $days day(s)';
   }
+
+  @override
+  String get confirm => 'Confirm';
+
+  @override
+  String get keepGoing => 'Continue';
+
+  @override
+  String get dataSection => 'Data';
+
+  @override
+  String get exportData => 'Export data';
+
+  @override
+  String get importData => 'Import data (merge)';
+
+  @override
+  String get resetMoodTags => 'Reset mood tags';
+
+  @override
+  String get resetAllData => 'Reset all data';
+
+  @override
+  String get exportDone => 'Exported';
+
+  @override
+  String get exportUnsupported => 'Export is not supported on this platform';
+
+  @override
+  String get importMergeBody =>
+      'Imported thoughts and tags will be merged into existing data.';
+
+  @override
+  String importDone(int count) {
+    return 'Imported $count';
+  }
+
+  @override
+  String get importInvalid => 'Invalid file format';
+
+  @override
+  String get resetMoodBody =>
+      'All mood tags and their marks will be removed, then the presets will be restored. Normal tags and thoughts are not affected.';
+
+  @override
+  String get resetAllBody1 =>
+      'All thoughts, tags and moods will be deleted. This cannot be undone.';
+
+  @override
+  String get doubleConfirmTitle => 'Confirm again';
+
+  @override
+  String get doubleConfirmClear =>
+      'One more confirmation: really clear all local data?';
+
+  @override
+  String get confirmClear => 'Clear now';
+
+  @override
+  String get resetDone => 'Reset done';
+
+  @override
+  String get opFailed => 'Operation failed';
+
+  @override
+  String get dataCorruptTitle => 'Data issue';
+
+  @override
+  String get dataCorruptBody =>
+      'Local data can\'t be read and may be corrupted. Clearing will reset the app to its initial state (preset moods restored). This cannot be undone.';
+
+  @override
+  String get cleanData => 'Clear data';
 }

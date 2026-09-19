@@ -540,7 +540,139 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Longest {days} day(s)'**
-  String longestStreak(int days);
+  String longestStreak(Object days);
+
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirm;
+
+  /// No description provided for @keepGoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get keepGoing;
+
+  /// No description provided for @dataSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get dataSection;
+
+  /// No description provided for @exportData.
+  ///
+  /// In en, this message translates to:
+  /// **'Export data'**
+  String get exportData;
+
+  /// No description provided for @importData.
+  ///
+  /// In en, this message translates to:
+  /// **'Import data (merge)'**
+  String get importData;
+
+  /// No description provided for @resetMoodTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset mood tags'**
+  String get resetMoodTags;
+
+  /// No description provided for @resetAllData.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset all data'**
+  String get resetAllData;
+
+  /// No description provided for @exportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported'**
+  String get exportDone;
+
+  /// No description provided for @exportUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Export is not supported on this platform'**
+  String get exportUnsupported;
+
+  /// No description provided for @importMergeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported thoughts and tags will be merged into existing data.'**
+  String get importMergeBody;
+
+  /// No description provided for @importDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported {count}'**
+  String importDone(int count);
+
+  /// No description provided for @importInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file format'**
+  String get importInvalid;
+
+  /// No description provided for @resetMoodBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All mood tags and their marks will be removed, then the presets will be restored. Normal tags and thoughts are not affected.'**
+  String get resetMoodBody;
+
+  /// No description provided for @resetAllBody1.
+  ///
+  /// In en, this message translates to:
+  /// **'All thoughts, tags and moods will be deleted. This cannot be undone.'**
+  String get resetAllBody1;
+
+  /// No description provided for @doubleConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm again'**
+  String get doubleConfirmTitle;
+
+  /// No description provided for @doubleConfirmClear.
+  ///
+  /// In en, this message translates to:
+  /// **'One more confirmation: really clear all local data?'**
+  String get doubleConfirmClear;
+
+  /// No description provided for @confirmClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear now'**
+  String get confirmClear;
+
+  /// No description provided for @resetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset done'**
+  String get resetDone;
+
+  /// No description provided for @opFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed'**
+  String get opFailed;
+
+  /// No description provided for @dataCorruptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Data issue'**
+  String get dataCorruptTitle;
+
+  /// No description provided for @dataCorruptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Local data can\'t be read and may be corrupted. Clearing will reset the app to its initial state (preset moods restored). This cannot be undone.'**
+  String get dataCorruptBody;
+
+  /// No description provided for @cleanData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear data'**
+  String get cleanData;
 }
 
 class _AppLocalizationsDelegate

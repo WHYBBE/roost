@@ -254,75 +254,87 @@ void main() {
           isNotEmpty);
     });
 
-    test('修复历史种子遗留的透明颜色', () async {
+    test('用户删除的预设心情不会重新播种', () async {
       final dir = await Directory.systemTemp.createTemp('roost_test');
-      final path = '${dir.path}/repair.sqlite';
+      final path = '${dir.path}/noseed.sqlite';
 
-      // 第一次打开：播种后注入旧种子 bug（全部心情标签 alpha=0）
       var d = AppDatabase.connect(NativeDatabase(File(path)));
-      await d.customStatement('UPDATE tags SET color = 16757504 WHERE kind = 1');
-      await d.close();
-
-      // 重连：beforeOpen 应修复透明色
-      d = AppDatabase.connect(NativeDatabase(File(path)));
-      final moods = (await d.watchTagsWithCount().first)
-          .where((t) => t.tag.tagKind == TagKind.mood)
-          .toList();
-      expect(moods, isNotEmpty);
-      expect(moods.every((t) => (t.tag.color! & 0xFF000000) != 0), isTrue);
-      await d.close();
-      await dir.delete(recursive: true);
-    });
-
-    test('心情预设收敛：双语并存时合并联结行到当前语言', () async {
-      final dir = await Directory.systemTemp.createTemp('roost_test');
-      final path = '${dir.path}/converge.sqlite';
-
-      // 第一次打开（测试环境英文，播种 Calm 等）；
-      // 模拟旧 bug 留下的中文重名预设并挂上联结（未编辑的原始种子签名）
-      var d = AppDatabase.connect(NativeDatabase(File(path)));
-      await d.getOrCreateTag(
-        '平静',
-        kind: TagKind.mood,
-        icon: legacySeedIcon,
-        color: 0xFF009688,
-      );
-      final thoughtId =
-          await d.insertThought(content: '内容', day: AppDatabase.today());
-      await d.setThoughtTags(thoughtId, ['平静']);
-      await d.close();
-
-      // 重连：'平静' 应合并进 'Calm'（英文环境的预设名），联结行迁移
-      d = AppDatabase.connect(NativeDatabase(File(path)));
-      final tags = await d.select(d.tags).get();
-      expect(tags.any((t) => t.name == '平静'), isFalse, reason: '旧语言版本应被合并删除');
-      expect(tags.any((t) => t.name == 'Calm'), isTrue);
-      expect((await d.tagsFor(thoughtId)).map((t) => t.name), contains('Calm'));
-      await d.close();
-      await dir.delete(recursive: true);
-    });
-
-    test('用户编辑过的心情不被收敛/播种覆盖', () async {
-      final dir = await Directory.systemTemp.createTemp('roost_test');
-      final path = '${dir.path}/edited.sqlite';
-
-      // 第一次打开后把 Calm 改名并改色（模拟用户自定义）
-      var d = AppDatabase.connect(NativeDatabase(File(path)));
-      await d.customStatement(
-          "UPDATE tags SET name = '平静', icon = 58749, color = 1 "
-          "WHERE name = 'Calm'");
-      // 删掉一个预设，验证不会被重新种回
       await d.customStatement("DELETE FROM tags WHERE name = 'Happy'");
       await d.close();
 
-      // 重连：改名/换色的不被覆盖，删除的不复活
+      // 重连：正常打开不播种，删除的预设不复活
       d = AppDatabase.connect(NativeDatabase(File(path)));
       final names = (await d.select(d.tags).get()).map((t) => t.name).toSet();
-      expect(names.contains('平静'), isTrue, reason: '用户自定义名不应被改名');
-      expect(names.contains('Calm'), isFalse, reason: '不应重新种回原英文名');
-      expect(names.contains('Happy'), isFalse, reason: '用户删除的预设不应复活');
+      expect(names.contains('Happy'), isFalse);
+      expect(names.contains('Calm'), isTrue);
       await d.close();
       await dir.delete(recursive: true);
+    });
+
+    test('清空全部数据并恢复预设心情', () async {
+      await db.setThoughtTags(a.id, ['工作']);
+      await db.resetAllData();
+      expect(await db.select(db.thoughts).get(), isEmpty);
+      expect(await db.select(db.thoughtTags).get(), isEmpty);
+      final moods = (await db.select(db.tags).get())
+          .where((t) => t.tagKind == TagKind.mood)
+          .toList();
+      expect(moods, hasLength(moodPresets.length));
+      expect(
+        moods.every((t) => t.icon != null && t.color != null),
+        isTrue,
+      );
+    });
+
+    test('重置心情标签：预设恢复，普通标签与思绪保留', () async {
+      final t2 = await insert('另一条',
+          day: AppDatabase.today(), createdAt: DateTime(2026, 9, 19, 9));
+      final mood =
+          await db.getOrCreateTag('心情X', kind: TagKind.mood, icon: 1, color: 2);
+      await db.setThoughtTags(a.id, [mood.name, '工作']);
+      await db.resetMoodTags();
+      // 自定义心情被清掉，预设已恢复
+      final moods = (await db.select(db.tags).get())
+          .where((t) => t.tagKind == TagKind.mood)
+          .toList();
+      expect(moods.map((t) => t.name), isNot(contains('心情X')));
+      expect(moods, hasLength(moodPresets.length));
+      // 心情联结被清掉，普通标签与思绪保留
+      expect((await db.tagsFor(a.id)).map((t) => t.name), ['工作']);
+      expect((await db.watchAllEntries().first).map((e) => e.id),
+          containsAll([a.id, t2.id]));
+    });
+
+    test('导出/清空/导入（合并）往返，重复导入去重', () async {
+      final t2 = await insert('第二条',
+          day: '2026-09-18', createdAt: DateTime(2026, 9, 18, 9));
+      await db.setThoughtTags(a.id, ['焦虑']);
+      await db.setThoughtTags(t2.id, ['工作']);
+      // 手动改一下心情标签外观，验证导入合并时沿用现有定义
+      await db.setTagAppearance(
+          (await db.tagByName('焦虑'))!.id, color: 0xFF123456);
+
+      final data = await db.exportData();
+      expect((data['thoughts'] as List), hasLength(3));
+      expect((data['tags'] as List), isNotEmpty);
+
+      await db.resetAllData();
+      expect(await db.select(db.thoughts).get(), isEmpty);
+
+      final count = await db.importData(data);
+      expect(count, 3);
+      final entries = await db.watchAllEntries().first;
+      expect(entries, hasLength(3));
+      final restored = entries.firstWhere((e) => e.content == a.content);
+      expect((await db.tagsFor(restored.id)).map((t) => t.name),
+          contains('焦虑'));
+      // 导入时沿用现有标签定义（自定义颜色保留）
+      final mood = await db.tagByName('焦虑');
+      expect(mood?.color, 0xFF123456);
+
+      // 再次导入：全部命中去重，不新增
+      expect(await db.importData(data), 0);
+      expect((await db.watchAllEntries().first), hasLength(3));
     });
 
     test('glyph 字符图标持久化，与 icon 互斥', () async {

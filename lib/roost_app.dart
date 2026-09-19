@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'data/data_io.dart';
+import 'data/database_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/calendar_page.dart';
 import 'pages/home_page.dart';
@@ -21,13 +23,25 @@ class _RoostAppState extends State<RoostApp> {
   void initState() {
     super.initState();
     AppSettings.instance.addListener(_onChanged);
+    DataStore.instance.addListener(_onChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkHealth());
   }
 
   void _onChanged() => setState(() {});
 
+  /// 启动健康检查：文件损坏/表结构不匹配时进入清理引导
+  Future<void> _checkHealth() async {
+    if (DataStore.instance.corrupted) return;
+    final healthy = await appDb.isHealthy();
+    if (!healthy) {
+      DataStore.instance.setCorrupted(true);
+    }
+  }
+
   @override
   void dispose() {
     AppSettings.instance.removeListener(_onChanged);
+    DataStore.instance.removeListener(_onChanged);
     super.dispose();
   }
 
@@ -56,7 +70,13 @@ class _RoostAppState extends State<RoostApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const ResponsiveShell(),
+      // 数据库实例被替换（清理/重置）时以 epoch 为 key 强制整树重建
+      home: DataStore.instance.corrupted
+          ? const _CorruptedDataView()
+          : KeyedSubtree(
+              key: ValueKey('db-epoch-${DataStore.instance.epoch}'),
+              child: const ResponsiveShell(),
+            ),
     );
   }
 
@@ -156,6 +176,108 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
                   ),
               ],
             ),
+    );
+  }
+}
+
+/// 数据异常引导页：清理数据（二次确认后执行）
+class _CorruptedDataView extends StatelessWidget {
+  const _CorruptedDataView();
+
+  Future<void> _clearData(BuildContext context) async {
+    final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final first = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.dataCorruptTitle),
+        content: Text(l.dataCorruptBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.cleanData),
+          ),
+        ],
+      ),
+    );
+    if (first != true || !context.mounted) return;
+    // 二次确认
+    final second = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.doubleConfirmTitle),
+        content: Text(l.doubleConfirmClear),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: scheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.confirmClear),
+          ),
+        ],
+      ),
+    );
+    if (second != true) return;
+    // 依次尝试：SQL 清空 → 换新库实例 → 删除库文件重建
+    try {
+      await appDb.resetAllData();
+    } catch (_) {
+      await DataStore.instance.reopen();
+      try {
+        await appDb.resetAllData();
+      } catch (_) {
+        await deleteDataFiles();
+        await DataStore.instance.reopen();
+      }
+    }
+    DataStore.instance.setCorrupted(false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: Text(l.appName)),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 56, color: scheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  l.dataCorruptTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l.dataCorruptBody,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: scheme.error),
+                  onPressed: () => _clearData(context),
+                  icon: const Icon(Icons.cleaning_services_outlined),
+                  label: Text(l.cleanData),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
