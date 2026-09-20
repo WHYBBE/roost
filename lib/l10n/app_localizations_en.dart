@@ -454,4 +454,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glyphWork => 'W';
+
+  @override
+  String get weekStartTitle => 'First day of week';
+
+  @override
+  String get weekStartSunday => 'Sunday';
+
+  @override
+  String get weekStartMonday => 'Monday';
 }

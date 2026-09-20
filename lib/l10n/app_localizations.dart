@@ -889,6 +889,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'W'**
   String get glyphWork;
+
+  /// No description provided for @weekStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'First day of week'**
+  String get weekStartTitle;
+
+  /// No description provided for @weekStartSunday.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get weekStartSunday;
+
+  /// No description provided for @weekStartMonday.
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get weekStartMonday;
 }
 
 class _AppLocalizationsDelegate

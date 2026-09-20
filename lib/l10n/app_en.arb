@@ -141,5 +141,8 @@
   "clearFlag": "Clear mark",
   "defaultRestLabel": "Default off",
   "glyphRest": "O",
-  "glyphWork": "W"
+  "glyphWork": "W",
+  "weekStartTitle": "First day of week",
+  "weekStartSunday": "Sunday",
+  "weekStartMonday": "Monday"
 }

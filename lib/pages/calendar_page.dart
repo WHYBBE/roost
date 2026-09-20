@@ -7,6 +7,7 @@ import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/app_settings.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/heatmap.dart';
 import '../ui/mood.dart';
@@ -38,6 +39,14 @@ class _CalendarPageState extends State<CalendarPage> {
     if (explicit != null) return explicit;
     return date.weekday >= DateTime.saturday ? DayFlag.rest : null;
   }
+
+  /// 每周起始日（设置可调，默认周日）
+  int get _firstWeekday => AppSettings.instance.weekStart == WeekStart.monday
+      ? DateTime.monday
+      : DateTime.sunday;
+
+  /// weekday → 列/行索引（起始日为 0）
+  int _rowIndex(int weekday) => (weekday - _firstWeekday + 7) % 7;
 
   @override
   Widget build(BuildContext context) {
@@ -254,7 +263,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final narrowWeekdays = DateFormat.E(locale).dateSymbols.NARROWWEEKDAYS;
     final first = DateTime(_year, _month, 1);
     final daysInMonth = DateTime(_year, _month + 1, 1).difference(first).inDays;
-    final leading = first.weekday - 1;
+    final leading = _rowIndex(first.weekday);
     final today = AppDatabase.today();
 
     Widget dayCell(DateTime date) {
@@ -275,9 +284,14 @@ class _CalendarPageState extends State<CalendarPage> {
         border = Border.all(color: scheme.onSurface, width: 1.2);
       }
 
-      final fg = !date.isAfter(DateTime.now()) && level >= 4
+      final filled = !date.isAfter(DateTime.now()) && level >= 4;
+      final weekendRest = flag == DayFlag.rest && !isExplicit;
+      // 满档用反色；周末默认休的日期数字用弱红（纸质日历习惯）
+      final fg = filled
           ? scheme.onPrimary
-          : scheme.onSurface;
+          : weekendRest
+              ? scheme.error.withValues(alpha: 0.55)
+              : scheme.onSurface;
 
       return Expanded(
         child: AspectRatio(
@@ -409,11 +423,11 @@ class _CalendarPageState extends State<CalendarPage> {
             const SizedBox(height: 4),
             Row(
               children: [
-                for (var wd = 1; wd <= 7; wd++)
+                for (var i = 0; i < 7; i++)
                   Expanded(
                     child: Center(
                       child: Text(
-                        narrowWeekdays[wd % 7],
+                        narrowWeekdays[(_firstWeekday + i) % 7],
                         style: Theme.of(context)
                             .textTheme
                             .labelSmall
@@ -432,7 +446,8 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   /// 构建周列：列 = 周，行 = 星期几（周一在上，与 GitHub 一致）
-  List<List<DateTime?>> _buildWeeks() => buildWeeksForYear(_year);
+  List<List<DateTime?>> _buildWeeks() =>
+      buildWeeksForYear(_year, startWeekday: _firstWeekday);
 
   /// 宽屏：GitHub 年度热力图。格子尺寸按视口宽度自适应缩放，
   /// 保证整年（含 12 月）完整显示、无需滚动。
@@ -463,7 +478,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 // 月份标签
                 for (var m = 1; m <= 12; m++)
                   ..._monthLabel(context, weeks, m, locale, cell, gap),
-                // 星期标签（一 / 三 / 五）
+                // 星期标签（起始日为第 0 行，取第 2/4/6 行：一/三/五 等）
                 for (final row in [1, 3, 5])
                   Positioned(
                     left: 0,
@@ -474,7 +489,8 @@ class _CalendarPageState extends State<CalendarPage> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          _narrowWeekday(locale, row + 1),
+                          _narrowWeekday(
+                              locale, (row + _firstWeekday - 1) % 7 + 1),
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall
@@ -506,7 +522,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         locale: locale,
                         cellSize: cell,
                         left: _leftGutter + w * pitch,
-                        top: _topGutter + (date.weekday - 1) * pitch,
+                        top: _topGutter + _rowIndex(date.weekday) * pitch,
                       ),
               ],
             ),

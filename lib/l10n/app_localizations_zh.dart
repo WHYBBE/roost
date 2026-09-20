@@ -437,4 +437,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get glyphWork => '班';
+
+  @override
+  String get weekStartTitle => '每周起始日';
+
+  @override
+  String get weekStartSunday => '周日';
+
+  @override
+  String get weekStartMonday => '周一';
 }

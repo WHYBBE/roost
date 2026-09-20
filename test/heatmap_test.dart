@@ -46,5 +46,17 @@ void main() {
         }
       }
     });
+
+    test('周日开头：2026 年（1月1日=周四 → 4 个前导空位）', () {
+      final weeks =
+          buildWeeksForYear(2026, startWeekday: DateTime.sunday);
+      expect(weeks.first.take(4), everyElement(isNull));
+      expect(weeks.first[4], DateTime(2026, 1, 1));
+      // 完整周列以周日开头
+      expect(weeks[1].first, isNotNull);
+      expect(weeks[1].first!.weekday, DateTime.sunday);
+      final totalDays = weeks.expand((w) => w).whereType<DateTime>().length;
+      expect(totalDays, 365);
+    });
   });
 }

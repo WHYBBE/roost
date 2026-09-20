@@ -485,6 +485,26 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
+                l.weekStartTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<WeekStart>(
+                segments: [
+                  ButtonSegment(
+                    value: WeekStart.sunday,
+                    label: Text(l.weekStartSunday),
+                  ),
+                  ButtonSegment(
+                    value: WeekStart.monday,
+                    label: Text(l.weekStartMonday),
+                  ),
+                ],
+                selected: {settings.weekStart},
+                onSelectionChanged: (s) => settings.setWeekStart(s.first),
+              ),
+              const SizedBox(height: 24),
+              Text(
                 l.vaultTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),

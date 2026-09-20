@@ -5,6 +5,7 @@ import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/app_settings.dart';
 
 /// 国家放假安排管理：周六日默认休息，法定假日（休）与调休补班（班）手动录入。
 /// 12 个月份卡片，点按任意日期弹出设置面板。
@@ -81,9 +82,15 @@ class _HolidayPlanPageState extends State<HolidayPlanPage> {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final narrowWeekdays = DateFormat.E(locale).dateSymbols.NARROWWEEKDAYS;
+    // 每周起始日与日历页一致（设置可调，默认周日）
+    final firstWeekday =
+        AppSettings.instance.weekStart == WeekStart.monday
+            ? DateTime.monday
+            : DateTime.sunday;
+    int rowIndex(int weekday) => (weekday - firstWeekday + 7) % 7;
     final first = DateTime(_year, month, 1);
     final daysInMonth = DateTime(_year, month + 1, 1).difference(first).inDays;
-    final leading = first.weekday - 1;
+    final leading = rowIndex(first.weekday);
 
     Widget cell(DateTime date) {
       final dayStr = AppDatabase.formatDay(date);
@@ -171,11 +178,11 @@ class _HolidayPlanPageState extends State<HolidayPlanPage> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  for (var wd = 1; wd <= 7; wd++)
+                  for (var i = 0; i < 7; i++)
                     Expanded(
                       child: Center(
                         child: Text(
-                          narrowWeekdays[wd % 7],
+                          narrowWeekdays[(firstWeekday + i) % 7],
                           style: textTheme.labelSmall
                               ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
