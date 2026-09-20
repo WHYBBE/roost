@@ -119,9 +119,16 @@ class AttachmentAudioHost extends ChangeNotifier {
 
 /// 思绪卡片附件区：图片缩略图 + 音频播放 chip
 class AttachmentStrip extends StatelessWidget {
-  const AttachmentStrip({super.key, required this.thoughtId});
+  const AttachmentStrip({
+    super.key,
+    required this.thoughtId,
+    this.thumbSize = 64,
+  });
 
   final int thoughtId;
+
+  /// 图片缩略图边长（卡片里更紧凑；编辑器用默认更大尺寸）
+  final double thumbSize;
 
   @override
   Widget build(BuildContext context) {
@@ -139,10 +146,12 @@ class AttachmentStrip extends StatelessWidget {
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               for (final a in images)
                 AttachmentImageThumb(
                   attachment: a,
+                  size: thumbSize,
                   onTap: () => showAttachmentImages(
                     context,
                     images,

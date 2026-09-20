@@ -48,13 +48,17 @@ class EntryCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
+        // 桌面端明确的可点击反馈
+        mouseCursor: SystemMouseCursors.click,
+        hoverColor: scheme.primary.withValues(alpha: 0.06),
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 元信息行靠左：心情 + 时间连排，避免右上大片空白
               Row(
                 children: [
                   if (mood != null) ...[
@@ -66,23 +70,23 @@ class EntryCard extends StatelessWidget {
                             color: mood.uiColor ?? scheme.primary,
                           ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                   ],
-                  const Spacer(),
                   Text(
                     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
-                    style: Theme.of(context).textTheme.labelSmall,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              SelectionArea(
-                child: Text(
-                  entry.content,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
+              const SizedBox(height: 6),
+              // 不能用 SelectionArea：会接管点击手势，导致卡片无法点按编辑
+              Text(
+                entry.content,
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-              AttachmentStrip(thoughtId: entry.id),
+              AttachmentStrip(thoughtId: entry.id, thumbSize: 64),
               if (normalTags.isNotEmpty) TagChips(tags: normalTags),
             ],
           ),
@@ -376,7 +380,25 @@ Future<void> showEntryEditor(
       ];
 
         return AlertDialog(
-          title: Text(existing == null ? l.newThought : l.editThought),
+          title: Row(
+            children: [
+              Text(existing == null ? l.newThought : l.editThought),
+              const Spacer(),
+              // 删除藏在标题栏：图标形式，确认后关闭编辑器
+              if (existing != null)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  color: Theme.of(context).colorScheme.error,
+                  tooltip: l.delete,
+                  onPressed: () async {
+                    final deleted = await confirmDelete(context, existing);
+                    if (deleted && context.mounted) {
+                      Navigator.pop(context, true);
+                    }
+                  },
+                ),
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -868,7 +890,8 @@ Future<String?> _promptText(
   return result;
 }
 
-Future<void> confirmDelete(BuildContext context, ThoughtEntry entry) async {
+/// 删除确认；返回是否确实删除
+Future<bool> confirmDelete(BuildContext context, ThoughtEntry entry) async {
   final l = AppLocalizations.of(context)!;
   final ok = await showDialog<bool>(
     context: context,
@@ -893,4 +916,5 @@ Future<void> confirmDelete(BuildContext context, ThoughtEntry entry) async {
   if (ok == true) {
     await appDb.deleteThought(entry.id);
   }
+  return ok == true;
 }
