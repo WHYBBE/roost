@@ -1789,6 +1789,21 @@ class $EventTypesTable extends EventTypes
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _counterMeta = const VerificationMeta(
+    'counter',
+  );
+  @override
+  late final GeneratedColumn<bool> counter = GeneratedColumn<bool>(
+    'counter',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("counter" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1797,6 +1812,7 @@ class $EventTypesTable extends EventTypes
     glyph,
     mark,
     sortOrder,
+    counter,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1841,6 +1857,12 @@ class $EventTypesTable extends EventTypes
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('counter')) {
+      context.handle(
+        _counterMeta,
+        counter.isAcceptableOrUnknown(data['counter']!, _counterMeta),
+      );
+    }
     return context;
   }
 
@@ -1876,6 +1898,10 @@ class $EventTypesTable extends EventTypes
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      counter: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}counter'],
+      )!,
     );
   }
 
@@ -1895,6 +1921,7 @@ class EventType extends DataClass implements Insertable<EventType> {
   final String? glyph;
   final CalendarMark mark;
   final int sortOrder;
+  final bool counter;
   const EventType({
     required this.id,
     required this.name,
@@ -1902,6 +1929,7 @@ class EventType extends DataClass implements Insertable<EventType> {
     this.glyph,
     required this.mark,
     required this.sortOrder,
+    required this.counter,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1916,6 +1944,7 @@ class EventType extends DataClass implements Insertable<EventType> {
       map['mark'] = Variable<int>($EventTypesTable.$convertermark.toSql(mark));
     }
     map['sort_order'] = Variable<int>(sortOrder);
+    map['counter'] = Variable<bool>(counter);
     return map;
   }
 
@@ -1929,6 +1958,7 @@ class EventType extends DataClass implements Insertable<EventType> {
           : Value(glyph),
       mark: Value(mark),
       sortOrder: Value(sortOrder),
+      counter: Value(counter),
     );
   }
 
@@ -1946,6 +1976,7 @@ class EventType extends DataClass implements Insertable<EventType> {
         serializer.fromJson<int>(json['mark']),
       ),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      counter: serializer.fromJson<bool>(json['counter']),
     );
   }
   @override
@@ -1960,6 +1991,7 @@ class EventType extends DataClass implements Insertable<EventType> {
         $EventTypesTable.$convertermark.toJson(mark),
       ),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'counter': serializer.toJson<bool>(counter),
     };
   }
 
@@ -1970,6 +2002,7 @@ class EventType extends DataClass implements Insertable<EventType> {
     Value<String?> glyph = const Value.absent(),
     CalendarMark? mark,
     int? sortOrder,
+    bool? counter,
   }) => EventType(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -1977,6 +2010,7 @@ class EventType extends DataClass implements Insertable<EventType> {
     glyph: glyph.present ? glyph.value : this.glyph,
     mark: mark ?? this.mark,
     sortOrder: sortOrder ?? this.sortOrder,
+    counter: counter ?? this.counter,
   );
   EventType copyWithCompanion(EventTypesCompanion data) {
     return EventType(
@@ -1986,6 +2020,7 @@ class EventType extends DataClass implements Insertable<EventType> {
       glyph: data.glyph.present ? data.glyph.value : this.glyph,
       mark: data.mark.present ? data.mark.value : this.mark,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      counter: data.counter.present ? data.counter.value : this.counter,
     );
   }
 
@@ -1997,13 +2032,15 @@ class EventType extends DataClass implements Insertable<EventType> {
           ..write('color: $color, ')
           ..write('glyph: $glyph, ')
           ..write('mark: $mark, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('counter: $counter')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, color, glyph, mark, sortOrder);
+  int get hashCode =>
+      Object.hash(id, name, color, glyph, mark, sortOrder, counter);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2013,7 +2050,8 @@ class EventType extends DataClass implements Insertable<EventType> {
           other.color == this.color &&
           other.glyph == this.glyph &&
           other.mark == this.mark &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.counter == this.counter);
 }
 
 class EventTypesCompanion extends UpdateCompanion<EventType> {
@@ -2023,6 +2061,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
   final Value<String?> glyph;
   final Value<CalendarMark> mark;
   final Value<int> sortOrder;
+  final Value<bool> counter;
   const EventTypesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -2030,6 +2069,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
     this.glyph = const Value.absent(),
     this.mark = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.counter = const Value.absent(),
   });
   EventTypesCompanion.insert({
     this.id = const Value.absent(),
@@ -2038,6 +2078,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
     this.glyph = const Value.absent(),
     this.mark = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.counter = const Value.absent(),
   }) : name = Value(name),
        color = Value(color);
   static Insertable<EventType> custom({
@@ -2047,6 +2088,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
     Expression<String>? glyph,
     Expression<int>? mark,
     Expression<int>? sortOrder,
+    Expression<bool>? counter,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2055,6 +2097,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
       if (glyph != null) 'glyph': glyph,
       if (mark != null) 'mark': mark,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (counter != null) 'counter': counter,
     });
   }
 
@@ -2065,6 +2108,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
     Value<String?>? glyph,
     Value<CalendarMark>? mark,
     Value<int>? sortOrder,
+    Value<bool>? counter,
   }) {
     return EventTypesCompanion(
       id: id ?? this.id,
@@ -2073,6 +2117,7 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
       glyph: glyph ?? this.glyph,
       mark: mark ?? this.mark,
       sortOrder: sortOrder ?? this.sortOrder,
+      counter: counter ?? this.counter,
     );
   }
 
@@ -2099,6 +2144,9 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (counter.present) {
+      map['counter'] = Variable<bool>(counter.value);
+    }
     return map;
   }
 
@@ -2110,7 +2158,8 @@ class EventTypesCompanion extends UpdateCompanion<EventType> {
           ..write('color: $color, ')
           ..write('glyph: $glyph, ')
           ..write('mark: $mark, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('counter: $counter')
           ..write(')'))
         .toString();
   }
@@ -2191,6 +2240,16 @@ class $CalendarEventsTable extends CalendarEvents
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
     'thoughtId',
   );
@@ -2213,6 +2272,7 @@ class $CalendarEventsTable extends CalendarEvents
     startDate,
     endDate,
     annual,
+    count,
     thoughtId,
   ];
   @override
@@ -2264,6 +2324,12 @@ class $CalendarEventsTable extends CalendarEvents
         annual.isAcceptableOrUnknown(data['annual']!, _annualMeta),
       );
     }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
     if (data.containsKey('thought_id')) {
       context.handle(
         _thoughtIdMeta,
@@ -2303,6 +2369,10 @@ class $CalendarEventsTable extends CalendarEvents
         DriftSqlType.bool,
         data['${effectivePrefix}annual'],
       )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      )!,
       thoughtId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}thought_id'],
@@ -2323,6 +2393,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
   final String startDate;
   final String? endDate;
   final bool annual;
+  final int count;
   final int? thoughtId;
   const CalendarEvent({
     required this.id,
@@ -2331,6 +2402,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     required this.startDate,
     this.endDate,
     required this.annual,
+    required this.count,
     this.thoughtId,
   });
   @override
@@ -2346,6 +2418,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       map['end_date'] = Variable<String>(endDate);
     }
     map['annual'] = Variable<bool>(annual);
+    map['count'] = Variable<int>(count);
     if (!nullToAbsent || thoughtId != null) {
       map['thought_id'] = Variable<int>(thoughtId);
     }
@@ -2364,6 +2437,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ? const Value.absent()
           : Value(endDate),
       annual: Value(annual),
+      count: Value(count),
       thoughtId: thoughtId == null && nullToAbsent
           ? const Value.absent()
           : Value(thoughtId),
@@ -2382,6 +2456,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startDate: serializer.fromJson<String>(json['startDate']),
       endDate: serializer.fromJson<String?>(json['endDate']),
       annual: serializer.fromJson<bool>(json['annual']),
+      count: serializer.fromJson<int>(json['count']),
       thoughtId: serializer.fromJson<int?>(json['thoughtId']),
     );
   }
@@ -2395,6 +2470,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       'startDate': serializer.toJson<String>(startDate),
       'endDate': serializer.toJson<String?>(endDate),
       'annual': serializer.toJson<bool>(annual),
+      'count': serializer.toJson<int>(count),
       'thoughtId': serializer.toJson<int?>(thoughtId),
     };
   }
@@ -2406,6 +2482,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     String? startDate,
     Value<String?> endDate = const Value.absent(),
     bool? annual,
+    int? count,
     Value<int?> thoughtId = const Value.absent(),
   }) => CalendarEvent(
     id: id ?? this.id,
@@ -2414,6 +2491,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
     startDate: startDate ?? this.startDate,
     endDate: endDate.present ? endDate.value : this.endDate,
     annual: annual ?? this.annual,
+    count: count ?? this.count,
     thoughtId: thoughtId.present ? thoughtId.value : this.thoughtId,
   );
   CalendarEvent copyWithCompanion(CalendarEventsCompanion data) {
@@ -2424,6 +2502,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       annual: data.annual.present ? data.annual.value : this.annual,
+      count: data.count.present ? data.count.value : this.count,
       thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
     );
   }
@@ -2437,14 +2516,23 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('annual: $annual, ')
+          ..write('count: $count, ')
           ..write('thoughtId: $thoughtId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, typeId, title, startDate, endDate, annual, thoughtId);
+  int get hashCode => Object.hash(
+    id,
+    typeId,
+    title,
+    startDate,
+    endDate,
+    annual,
+    count,
+    thoughtId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2455,6 +2543,7 @@ class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
           other.annual == this.annual &&
+          other.count == this.count &&
           other.thoughtId == this.thoughtId);
 }
 
@@ -2465,6 +2554,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
   final Value<String> startDate;
   final Value<String?> endDate;
   final Value<bool> annual;
+  final Value<int> count;
   final Value<int?> thoughtId;
   const CalendarEventsCompanion({
     this.id = const Value.absent(),
@@ -2473,6 +2563,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
     this.annual = const Value.absent(),
+    this.count = const Value.absent(),
     this.thoughtId = const Value.absent(),
   });
   CalendarEventsCompanion.insert({
@@ -2482,6 +2573,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     required String startDate,
     this.endDate = const Value.absent(),
     this.annual = const Value.absent(),
+    this.count = const Value.absent(),
     this.thoughtId = const Value.absent(),
   }) : typeId = Value(typeId),
        startDate = Value(startDate);
@@ -2492,6 +2584,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Expression<String>? startDate,
     Expression<String>? endDate,
     Expression<bool>? annual,
+    Expression<int>? count,
     Expression<int>? thoughtId,
   }) {
     return RawValuesInsertable({
@@ -2501,6 +2594,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
       if (annual != null) 'annual': annual,
+      if (count != null) 'count': count,
       if (thoughtId != null) 'thought_id': thoughtId,
     });
   }
@@ -2512,6 +2606,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     Value<String>? startDate,
     Value<String?>? endDate,
     Value<bool>? annual,
+    Value<int>? count,
     Value<int?>? thoughtId,
   }) {
     return CalendarEventsCompanion(
@@ -2521,6 +2616,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       annual: annual ?? this.annual,
+      count: count ?? this.count,
       thoughtId: thoughtId ?? this.thoughtId,
     );
   }
@@ -2546,6 +2642,9 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
     if (annual.present) {
       map['annual'] = Variable<bool>(annual.value);
     }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
     if (thoughtId.present) {
       map['thought_id'] = Variable<int>(thoughtId.value);
     }
@@ -2561,6 +2660,7 @@ class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
           ..write('annual: $annual, ')
+          ..write('count: $count, ')
           ..write('thoughtId: $thoughtId')
           ..write(')'))
         .toString();
@@ -4540,6 +4640,7 @@ typedef $$EventTypesTableCreateCompanionBuilder =
       Value<String?> glyph,
       Value<CalendarMark> mark,
       Value<int> sortOrder,
+      Value<bool> counter,
     });
 typedef $$EventTypesTableUpdateCompanionBuilder =
     EventTypesCompanion Function({
@@ -4549,6 +4650,7 @@ typedef $$EventTypesTableUpdateCompanionBuilder =
       Value<String?> glyph,
       Value<CalendarMark> mark,
       Value<int> sortOrder,
+      Value<bool> counter,
     });
 
 final class $$EventTypesTableReferences
@@ -4611,6 +4713,11 @@ class $$EventTypesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get counter => $composableBuilder(
+    column: $table.counter,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4678,6 +4785,11 @@ class $$EventTypesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get counter => $composableBuilder(
+    column: $table.counter,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$EventTypesTableAnnotationComposer
@@ -4706,6 +4818,9 @@ class $$EventTypesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get counter =>
+      $composableBuilder(column: $table.counter, builder: (column) => column);
 
   Expression<T> calendarEventsRefs<T extends Object>(
     Expression<T> Function($$CalendarEventsTableAnnotationComposer a) f,
@@ -4767,6 +4882,7 @@ class $$EventTypesTableTableManager
                 Value<String?> glyph = const Value.absent(),
                 Value<CalendarMark> mark = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> counter = const Value.absent(),
               }) => EventTypesCompanion(
                 id: id,
                 name: name,
@@ -4774,6 +4890,7 @@ class $$EventTypesTableTableManager
                 glyph: glyph,
                 mark: mark,
                 sortOrder: sortOrder,
+                counter: counter,
               ),
           createCompanionCallback:
               ({
@@ -4783,6 +4900,7 @@ class $$EventTypesTableTableManager
                 Value<String?> glyph = const Value.absent(),
                 Value<CalendarMark> mark = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> counter = const Value.absent(),
               }) => EventTypesCompanion.insert(
                 id: id,
                 name: name,
@@ -4790,6 +4908,7 @@ class $$EventTypesTableTableManager
                 glyph: glyph,
                 mark: mark,
                 sortOrder: sortOrder,
+                counter: counter,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4857,6 +4976,7 @@ typedef $$CalendarEventsTableCreateCompanionBuilder =
       required String startDate,
       Value<String?> endDate,
       Value<bool> annual,
+      Value<int> count,
       Value<int?> thoughtId,
     });
 typedef $$CalendarEventsTableUpdateCompanionBuilder =
@@ -4867,6 +4987,7 @@ typedef $$CalendarEventsTableUpdateCompanionBuilder =
       Value<String> startDate,
       Value<String?> endDate,
       Value<bool> annual,
+      Value<int> count,
       Value<int?> thoughtId,
     });
 
@@ -4944,6 +5065,11 @@ class $$CalendarEventsTableFilterComposer
 
   ColumnFilters<bool> get annual => $composableBuilder(
     column: $table.annual,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5028,6 +5154,11 @@ class $$CalendarEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EventTypesTableOrderingComposer get typeId {
     final $$EventTypesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5098,6 +5229,9 @@ class $$CalendarEventsTableAnnotationComposer
 
   GeneratedColumn<bool> get annual =>
       $composableBuilder(column: $table.annual, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
 
   $$EventTypesTableAnnotationComposer get typeId {
     final $$EventTypesTableAnnotationComposer composer = $composerBuilder(
@@ -5182,6 +5316,7 @@ class $$CalendarEventsTableTableManager
                 Value<String> startDate = const Value.absent(),
                 Value<String?> endDate = const Value.absent(),
                 Value<bool> annual = const Value.absent(),
+                Value<int> count = const Value.absent(),
                 Value<int?> thoughtId = const Value.absent(),
               }) => CalendarEventsCompanion(
                 id: id,
@@ -5190,6 +5325,7 @@ class $$CalendarEventsTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 annual: annual,
+                count: count,
                 thoughtId: thoughtId,
               ),
           createCompanionCallback:
@@ -5200,6 +5336,7 @@ class $$CalendarEventsTableTableManager
                 required String startDate,
                 Value<String?> endDate = const Value.absent(),
                 Value<bool> annual = const Value.absent(),
+                Value<int> count = const Value.absent(),
                 Value<int?> thoughtId = const Value.absent(),
               }) => CalendarEventsCompanion.insert(
                 id: id,
@@ -5208,6 +5345,7 @@ class $$CalendarEventsTableTableManager
                 startDate: startDate,
                 endDate: endDate,
                 annual: annual,
+                count: count,
                 thoughtId: thoughtId,
               ),
           withReferenceMapper: (p0) => p0

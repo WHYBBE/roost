@@ -115,6 +115,8 @@ class EventTypes extends Table {
   IntColumn get mark =>
       intEnum<CalendarMark>().withDefault(const Constant(0))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  // 计数器类型：每天可 +1 计次（打卡、次数统计），不走日期区间
+  BoolColumn get counter => boolean().withDefault(const Constant(false))();
 }
 
 /// 日历事件：单日或日期区间，可每年循环（生日），可选联动一条思绪
@@ -130,6 +132,8 @@ class CalendarEvents extends Table {
   TextColumn get endDate => text().nullable()();
   // 每年循环（按 startDate 的月-日）
   BoolColumn get annual => boolean().withDefault(const Constant(false))();
+  // 计数器当日次数（非计数器事件恒为 1）
+  IntColumn get count => integer().withDefault(const Constant(1))();
   // 联动思绪（万物皆思绪）；思绪被删时置空，事件保留
   IntColumn get thoughtId =>
       integer().nullable().references(Thoughts, #id, onDelete: KeyAction.setNull)();

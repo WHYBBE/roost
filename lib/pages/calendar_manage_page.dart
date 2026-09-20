@@ -13,23 +13,25 @@ class _TypePreset {
   final String Function(AppLocalizations l) name;
   final CalendarMark mark;
   final String? glyph;
-  const _TypePreset(this.name, this.mark, this.glyph);
+  final bool counter;
+  const _TypePreset(this.name, {this.mark = CalendarMark.none, this.glyph, this.counter = false});
 }
 
 /// 日历统一管理：完全自定义的事件类型（分组承载），
 /// 国家节假日/调休、生日、月经周期、旅行等都是类型的特例；
-/// 带 annualDate 的思绪（特殊日子）也在此管理（万物皆思绪）
+/// 计数器类型可每日 +1 计次；带 annualDate 的思绪（特殊日子）也在此管理
 class CalendarManagePage extends StatelessWidget {
   const CalendarManagePage({super.key});
 
   static const _presets = [
     _TypePreset(
-        _presetHoliday, CalendarMark.rest, '休'),
+        _presetHoliday, mark: CalendarMark.rest, glyph: '休'),
     _TypePreset(
-        _presetMakeup, CalendarMark.work, '班'),
-    _TypePreset(_presetBirthday, CalendarMark.none, '🎂'),
-    _TypePreset(_presetPeriod, CalendarMark.none, '🩸'),
-    _TypePreset(_presetTravel, CalendarMark.none, '✈️'),
+        _presetMakeup, mark: CalendarMark.work, glyph: '班'),
+    _TypePreset(_presetBirthday, glyph: '🎂'),
+    _TypePreset(_presetPeriod, glyph: '🩸'),
+    _TypePreset(_presetTravel, glyph: '✈️'),
+    _TypePreset(_presetCheckIn, counter: true, glyph: '✅'),
   ];
 
   static String _presetHoliday(AppLocalizations l) => l.presetHoliday;
@@ -37,6 +39,7 @@ class CalendarManagePage extends StatelessWidget {
   static String _presetBirthday(AppLocalizations l) => l.presetBirthday;
   static String _presetPeriod(AppLocalizations l) => l.presetPeriod;
   static String _presetTravel(AppLocalizations l) => l.presetTravel;
+  static String _presetCheckIn(AppLocalizations l) => l.presetCheckIn;
 
   // ---------- 类型对话框 ----------
 
@@ -50,6 +53,7 @@ class CalendarManagePage extends StatelessWidget {
     final glyph = TextEditingController(text: existing?.glyph ?? '');
     var color = existing?.color ?? tagColorChoices.first;
     var mark = existing?.mark ?? CalendarMark.none;
+    var counter = existing?.counter ?? false;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -71,6 +75,7 @@ class CalendarManagePage extends StatelessWidget {
                           onPressed: () => setState(() {
                             name.text = preset.name(l);
                             mark = preset.mark;
+                            counter = preset.counter;
                             glyph.text = preset.glyph ?? '';
                           }),
                         ),
@@ -126,6 +131,17 @@ class CalendarManagePage extends StatelessWidget {
                   onSelectionChanged: (s) => setState(() => mark = s.first),
                 ),
                 const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l.counterType),
+                  subtitle: Text(
+                    l.counterHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  value: counter,
+                  onChanged: (v) => setState(() => counter = v),
+                ),
+                const SizedBox(height: 4),
                 TextField(
                   controller: glyph,
                   decoration:
@@ -157,6 +173,7 @@ class CalendarManagePage extends StatelessWidget {
         color: color,
         glyph: glyphText.isEmpty ? null : glyphText,
         mark: mark,
+        counter: counter,
       );
     } else {
       await appDb.updateEventType(
@@ -165,6 +182,7 @@ class CalendarManagePage extends StatelessWidget {
         color: color,
         glyph: glyphText.isEmpty ? null : glyphText,
         mark: mark,
+        counter: counter,
       );
     }
   }
@@ -458,6 +476,11 @@ class CalendarManagePage extends StatelessWidget {
               for (final e in events) {
                 byType.putIfAbsent(e.typeId, () => []).add(e);
               }
+              // 计数器类型累计
+              final totals = <int, int>{};
+              for (final e in events) {
+                totals[e.typeId] = (totals[e.typeId] ?? 0) + e.count;
+              }
               return StreamBuilder<List<ThoughtEntry>>(
                 stream: appDb.watchAnnualEvents(),
                 builder: (context, thSnap) {
@@ -536,7 +559,9 @@ class CalendarManagePage extends StatelessWidget {
                             leading: typeIcon(type),
                             title: Text(type.name),
                             subtitle: Text(
-                              '${(byType[type.id] ?? const []).length} · ${markLabel(type.mark)}',
+                              type.counter
+                                  ? l.totalCount(totals[type.id] ?? 0)
+                                  : '${(byType[type.id] ?? const []).length} · ${markLabel(type.mark)}',
                               style: Theme.of(context)
                                   .textTheme
                                   .labelSmall
@@ -565,59 +590,113 @@ class CalendarManagePage extends StatelessWidget {
                               ],
                             ),
                             children: [
-                              for (final e in byType[type.id] ?? const [])
+                              if (type.counter) ...[
+                                // 计数器：今天 +1
                                 ListTile(
                                   dense: true,
-                                  leading: typeIcon(type, size: 24),
-                                  title: Text(e.title ?? type.name),
-                                  subtitle: Text(_eventRange(e, locale)),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (e.thoughtId != null)
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.link,
-                                            size: 16,
-                                            color: scheme.primary,
-                                          ),
-                                        ),
-                                      if (e.annual)
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.repeat,
-                                            size: 16,
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      IconButton(
-                                        icon: const Icon(
-                                            Icons.delete_outline,
-                                            size: 20),
-                                        onPressed: () =>
-                                            appDb.deleteEvent(e.id),
-                                      ),
-                                    ],
+                                  leading: Icon(Icons.add_circle_outline,
+                                      color: scheme.primary),
+                                  title: Text(l.addOne),
+                                  onTap: () => appDb.incrementCounter(
+                                    typeId: type.id,
+                                    date: AppDatabase.today(),
                                   ),
+                                ),
+                                // 按日计次列表（新日期在前）
+                                for (final e
+                                    in (byType[type.id] ??
+                                            const <CalendarEvent>[])
+                                        .reversed)
+                                  ListTile(
+                                    dense: true,
+                                    leading: typeIcon(type, size: 24),
+                                    title: Text(
+                                      '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))}'
+                                      '${e.count > 1 ? ' ×${e.count}' : ''}',
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 20),
+                                          onPressed: () =>
+                                              appDb.decrementCounter(
+                                            typeId: type.id,
+                                            date: e.startDate,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.add_circle_outline,
+                                              size: 20),
+                                          onPressed: () =>
+                                              appDb.incrementCounter(
+                                            typeId: type.id,
+                                            date: e.startDate,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ] else ...[
+                                for (final e in byType[type.id] ?? const [])
+                                  ListTile(
+                                    dense: true,
+                                    leading: typeIcon(type, size: 24),
+                                    title: Text(e.title ?? type.name),
+                                    subtitle:
+                                        Text(_eventRange(e, locale)),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (e.thoughtId != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 4),
+                                            child: Icon(
+                                              Icons.link,
+                                              size: 16,
+                                              color: scheme.primary,
+                                            ),
+                                          ),
+                                        if (e.annual)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                right: 4),
+                                            child: Icon(
+                                              Icons.repeat,
+                                              size: 16,
+                                              color:
+                                                  scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        IconButton(
+                                          icon: const Icon(
+                                              Icons.delete_outline,
+                                              size: 20),
+                                          onPressed: () =>
+                                              appDb.deleteEvent(e.id),
+                                        ),
+                                      ],
+                                    ),
+                                    onTap: () => _showEventDialog(
+                                      context,
+                                      type: type,
+                                      existing: e,
+                                    ),
+                                  ),
+                                ListTile(
+                                  dense: true,
+                                  leading: const Icon(Icons.add),
+                                  title: Text(l.addEvent),
                                   onTap: () => _showEventDialog(
                                     context,
                                     type: type,
-                                    existing: e,
                                   ),
                                 ),
-                              ListTile(
-                                dense: true,
-                                leading: const Icon(Icons.add),
-                                title: Text(l.addEvent),
-                                onTap: () => _showEventDialog(
-                                  context,
-                                  type: type,
-                                ),
-                              ),
+                              ],
                             ],
                           ),
                         ),

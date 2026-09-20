@@ -583,6 +583,45 @@ void main() {
       expect(kept.thoughtId, isNull);
     });
 
+    test('计数器：+1 累计、-1 清零删行', () async {
+      final typeId = await db.createEventType(
+        name: '打卡',
+        color: 0xFF4CAF50,
+        counter: true,
+      );
+      // 普通（非计数器）类型不受影响
+      final normalType = await db.createEventType(name: '事件', color: 0xFF112233);
+
+      await db.incrementCounter(typeId: typeId, date: '2026-09-20');
+      await db.incrementCounter(typeId: typeId, date: '2026-09-20');
+      await db.incrementCounter(typeId: typeId, date: '2026-09-21');
+      var rows = await db.watchEvents().first;
+      expect(rows.where((e) => e.typeId == typeId), hasLength(2));
+      final day1 = rows.firstWhere(
+          (e) => e.typeId == typeId && e.startDate == '2026-09-20');
+      expect(day1.count, 2);
+
+      // 计数行不算区间/循环事件
+      expect(day1.endDate, isNull);
+      expect(day1.annual, isFalse);
+
+      // -1 到 0：行删除
+      await db.decrementCounter(typeId: typeId, date: '2026-09-20');
+      await db.decrementCounter(typeId: typeId, date: '2026-09-20');
+      rows = await db.watchEvents().first;
+      expect(
+        rows.where(
+            (e) => e.typeId == typeId && e.startDate == '2026-09-20'),
+        isEmpty,
+      );
+      // 无行时 -1 忽略不崩溃
+      await db.decrementCounter(typeId: typeId, date: '2026-09-20');
+
+      // 普通事件的 count 恒为 1
+      await db.insertEvent(typeId: normalType, startDate: '2026-01-01');
+      expect((await db.watchEvents().first).last.count, 1);
+    });
+
     test('导出/导入往返：类型、事件与联动', () async {
       final typeId = await db.createEventType(
         name: '生日',
@@ -621,6 +660,31 @@ void main() {
       // 联动的思绪也一并导入
       final linked = await db2.watchAnnualEvents().first;
       expect(linked.single.annualDate, '05-04');
+    });
+
+    test('导出/导入往返：计数器类型与次数', () async {
+      final typeId = await db.createEventType(
+        name: '打卡',
+        color: 0xFF4CAF50,
+        counter: true,
+      );
+      await db.incrementCounter(typeId: typeId, date: '2026-09-20');
+      await db.incrementCounter(typeId: typeId, date: '2026-09-20');
+      await db.incrementCounter(typeId: typeId, date: '2026-09-21');
+
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      await db2.importData(data);
+
+      final types = await db2.watchEventTypes().first;
+      expect(types.single.counter, isTrue);
+      final rows = await db2.watchEvents().first;
+      expect(rows, hasLength(2));
+      expect(
+        rows.firstWhere((e) => e.startDate == '2026-09-20').count,
+        2,
+      );
     });
 
     test('清空数据时同时清空类型与事件', () async {

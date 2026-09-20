@@ -29,25 +29,32 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // v5→v6（加列）、v6→v7（日历事件化：flags 迁移为类型+事件）均为无损迁移；
-        // 其余历史版本升级仍清空重建，由 UI 引导用户清理异常数据
+        // v5→v8 均为无损迁移（加列/建表/数据搬迁）；
+        // 更早历史版本升级仍清空重建，由 UI 引导用户清理异常数据
         onUpgrade: (m, from, to) async {
-          if (from >= 5) {
-            if (from <= 5) await m.addColumn(thoughts, thoughts.annualDate);
-            await m.createTable(eventTypes);
-            await m.createTable(calendarEvents);
-            if (from == 6) {
-              await _migrateFlagsToEvents();
-              await m.deleteTable('calendar_flags');
-            }
+          if (from < 5) {
+            await _wipeRebuild(m, from, to);
             return;
           }
-          await _wipeRebuild(m, from, to);
+          if (from <= 5) await m.addColumn(thoughts, thoughts.annualDate);
+          if (from == 5 || from == 6) {
+            // 这两个表 v7 才引入；v8 的新列已含在当前建表语句中
+            await m.createTable(eventTypes);
+            await m.createTable(calendarEvents);
+          }
+          if (from == 6) {
+            await _migrateFlagsToEvents();
+            await m.deleteTable('calendar_flags');
+          }
+          if (from == 7) {
+            await m.addColumn(eventTypes, eventTypes.counter);
+            await m.addColumn(calendarEvents, calendarEvents.count);
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -287,6 +294,7 @@ class AppDatabase extends _$AppDatabase {
             'glyph': typeRows[i].glyph,
             'mark': typeRows[i].mark.value,
             'sortOrder': typeRows[i].sortOrder,
+            'counter': typeRows[i].counter,
           },
       ],
       'calendarEvents': [
@@ -298,6 +306,7 @@ class AppDatabase extends _$AppDatabase {
               'startDate': e.startDate,
               'endDate': e.endDate,
               'annual': e.annual,
+              'count': e.count,
               // 以思绪的"记录日"表达联动，导入时按日匹配重建
               'thoughtDay': e.thoughtId == null
                   ? null
@@ -448,6 +457,7 @@ class AppDatabase extends _$AppDatabase {
             mark: Value(
                 CalendarMark.fromValue((m['mark'] as num?)?.toInt() ?? 0)),
             sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
+            counter: Value((m['counter'] as bool?) ?? false),
           ),
         );
         v7TypeIds[typesIn.indexOf(raw)] = id;
@@ -477,6 +487,7 @@ class AppDatabase extends _$AppDatabase {
             startDate: start,
             endDate: Value(m['endDate'] as String?),
             annual: Value((m['annual'] as bool?) ?? false),
+            count: Value((m['count'] as num?)?.toInt() ?? 1),
             thoughtId: Value(thoughtId),
           ),
         );
@@ -639,6 +650,7 @@ class AppDatabase extends _$AppDatabase {
     required int color,
     String? glyph,
     CalendarMark mark = CalendarMark.none,
+    bool counter = false,
   }) {
     return into(eventTypes).insert(
       EventTypesCompanion.insert(
@@ -646,6 +658,7 @@ class AppDatabase extends _$AppDatabase {
         color: color,
         glyph: Value(glyph),
         mark: Value(mark),
+        counter: Value(counter),
       ),
     );
   }
@@ -656,6 +669,7 @@ class AppDatabase extends _$AppDatabase {
     required int color,
     String? glyph,
     required CalendarMark mark,
+    bool counter = false,
   }) {
     return (update(eventTypes)..where((t) => t.id.equals(id))).write(
       EventTypesCompanion(
@@ -663,6 +677,7 @@ class AppDatabase extends _$AppDatabase {
         color: Value(color),
         glyph: Value(glyph),
         mark: Value(mark),
+        counter: Value(counter),
       ),
     );
   }
@@ -711,6 +726,51 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteEvent(int id) {
     return (delete(calendarEvents)..where((e) => e.id.equals(id))).go();
+  }
+
+  /// 计数器 +1：当日已有计数行则 count+1，否则插入一行（count=1）
+  Future<void> incrementCounter({
+    required int typeId,
+    required String date,
+  }) async {
+    final existing = await (select(calendarEvents)..where(
+            (e) =>
+                e.typeId.equals(typeId) &
+                e.startDate.equals(date) &
+                e.endDate.isNull()))
+        .getSingleOrNull();
+    if (existing == null) {
+      await into(calendarEvents).insert(
+        CalendarEventsCompanion.insert(
+          typeId: typeId,
+          startDate: date,
+          count: const Value(1),
+        ),
+      );
+    } else {
+      await (update(calendarEvents)..where((e) => e.id.equals(existing.id)))
+          .write(CalendarEventsCompanion(count: Value(existing.count + 1)));
+    }
+  }
+
+  /// 计数器 -1：count 减到 0 时删除该行；无行时忽略
+  Future<void> decrementCounter({
+    required int typeId,
+    required String date,
+  }) async {
+    final existing = await (select(calendarEvents)..where(
+            (e) =>
+                e.typeId.equals(typeId) &
+                e.startDate.equals(date) &
+                e.endDate.isNull()))
+        .getSingleOrNull();
+    if (existing == null) return;
+    if (existing.count <= 1) {
+      await deleteEvent(existing.id);
+    } else {
+      await (update(calendarEvents)..where((e) => e.id.equals(existing.id)))
+          .write(CalendarEventsCompanion(count: Value(existing.count - 1)));
+    }
   }
 
   /// 事件在某年覆盖的日期（yyyy-MM-dd 升序）。

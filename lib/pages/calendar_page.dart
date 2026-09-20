@@ -149,9 +149,25 @@ class _CalendarPageState extends State<CalendarPage> {
                   final selectedEntries = _selectedDay == null
                       ? null
                       : entries.where((e) => e.day == _selectedDay).toList();
+                  final counterTypes = (typeSnap.data ?? const <EventType>[])
+                      .where((t) => t.counter)
+                      .toList();
+                  // 选中日各计数器的当日次数
+                  final counterCounts = <int, int>{};
+                  if (_selectedDay != null) {
+                    for (final e in eventsByDay[_selectedDay!] ??
+                        const <CalendarEvent>[]) {
+                      if (typeById[e.typeId]?.counter ?? false) {
+                        counterCounts[e.typeId] =
+                            (counterCounts[e.typeId] ?? 0) + e.count;
+                      }
+                    }
+                  }
                   final dayEvents = _selectedDay == null
                       ? const <CalendarEvent>[]
-                      : (eventsByDay[_selectedDay!] ?? const <CalendarEvent>[]);
+                      : (eventsByDay[_selectedDay!] ?? const <CalendarEvent>[])
+                          .where((e) => !(typeById[e.typeId]?.counter ?? false))
+                          .toList();
                   return StreamBuilder<List<ThoughtEntry>>(
                     stream: appDb.watchAnnualEvents(),
                     builder: (context, thSnap) {
@@ -214,6 +230,88 @@ class _CalendarPageState extends State<CalendarPage> {
                                       .titleMedium,
                                 ),
                                 const SizedBox(height: 8),
+                                // 当日计数器：+1/−1 计次
+                                if (counterTypes.isNotEmpty) ...[
+                                  Text(
+                                    l.counterLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  for (final t in counterTypes)
+                                    Card(
+                                      child: ListTile(
+                                        leading: t.glyph == null ||
+                                                t.glyph!.isEmpty
+                                            ? Container(
+                                                width: 24,
+                                                height: 24,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(t.color),
+                                                ),
+                                              )
+                                            : Container(
+                                                width: 24,
+                                                height: 24,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(t.color)
+                                                      .withValues(alpha: 0.15),
+                                                ),
+                                                child: Text(
+                                                  t.glyph!,
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Color(t.color)),
+                                                ),
+                                              ),
+                                        title: Text(t.name),
+                                        subtitle: (counterCounts[t.id] ?? 0) > 0
+                                            ? Text(
+                                                '×${counterCounts[t.id]}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelSmall,
+                                              )
+                                            : null,
+                                        trailing: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if ((counterCounts[t.id] ?? 0) > 0)
+                                              IconButton(
+                                                icon: const Icon(
+                                                    Icons
+                                                        .remove_circle_outline,
+                                                    size: 20),
+                                                onPressed: () => appDb
+                                                    .decrementCounter(
+                                                  typeId: t.id,
+                                                  date: _selectedDay!,
+                                                ),
+                                              ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                  Icons.add_circle_outline,
+                                                  size: 22),
+                                              onPressed: () => appDb
+                                                  .incrementCounter(
+                                                typeId: t.id,
+                                                date: _selectedDay!,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                ],
                                 // 当日日历事件（类型分组承载）
                                 if (dayEvents.isNotEmpty) ...[
                                   Text(

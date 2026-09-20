@@ -528,4 +528,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get presetTravel => '旅行';
+
+  @override
+  String get counterType => '计数器';
+
+  @override
+  String get counterHint => '每天可 +1 计次（打卡、次数统计），不涉及日期区间';
+
+  @override
+  String get counterLabel => '计数器';
+
+  @override
+  String get addOne => '+1';
+
+  @override
+  String totalCount(int count) {
+    return '累计 $count 次';
+  }
+
+  @override
+  String get presetCheckIn => '打卡';
 }

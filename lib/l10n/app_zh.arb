@@ -165,5 +165,12 @@
   "presetMakeup": "调休补班",
   "presetBirthday": "生日",
   "presetPeriod": "月经周期",
-  "presetTravel": "旅行"
+  "presetTravel": "旅行",
+  "counterType": "计数器",
+  "counterHint": "每天可 +1 计次（打卡、次数统计），不涉及日期区间",
+  "counterLabel": "计数器",
+  "addOne": "+1",
+  "totalCount": "累计 {count} 次",
+  "@totalCount": { "placeholders": { "count": { "type": "int" } } },
+  "presetCheckIn": "打卡"
 }

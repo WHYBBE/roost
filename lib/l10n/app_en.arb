@@ -172,5 +172,12 @@
   "presetMakeup": "Makeup workdays",
   "presetBirthday": "Birthdays",
   "presetPeriod": "Cycle",
-  "presetTravel": "Travel"
+  "presetTravel": "Travel",
+  "counterType": "Counter",
+  "counterHint": "Tap +1 daily (habit tallies); no date ranges",
+  "counterLabel": "Counters",
+  "addOne": "+1",
+  "totalCount": "{count} in total",
+  "@totalCount": { "placeholders": { "count": { "type": "int" } } },
+  "presetCheckIn": "Check-in"
 }

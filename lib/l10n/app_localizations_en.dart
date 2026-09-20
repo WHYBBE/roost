@@ -545,4 +545,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetTravel => 'Travel';
+
+  @override
+  String get counterType => 'Counter';
+
+  @override
+  String get counterHint => 'Tap +1 daily (habit tallies); no date ranges';
+
+  @override
+  String get counterLabel => 'Counters';
+
+  @override
+  String get addOne => '+1';
+
+  @override
+  String totalCount(int count) {
+    return '$count in total';
+  }
+
+  @override
+  String get presetCheckIn => 'Check-in';
 }

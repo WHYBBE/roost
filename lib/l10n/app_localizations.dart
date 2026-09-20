@@ -1063,6 +1063,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Travel'**
   String get presetTravel;
+
+  /// No description provided for @counterType.
+  ///
+  /// In en, this message translates to:
+  /// **'Counter'**
+  String get counterType;
+
+  /// No description provided for @counterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap +1 daily (habit tallies); no date ranges'**
+  String get counterHint;
+
+  /// No description provided for @counterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Counters'**
+  String get counterLabel;
+
+  /// No description provided for @addOne.
+  ///
+  /// In en, this message translates to:
+  /// **'+1'**
+  String get addOne;
+
+  /// No description provided for @totalCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} in total'**
+  String totalCount(int count);
+
+  /// No description provided for @presetCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in'**
+  String get presetCheckIn;
 }
 
 class _AppLocalizationsDelegate
