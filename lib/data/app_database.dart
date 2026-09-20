@@ -34,34 +34,8 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // v5→v10 均为无损迁移（加列/建表/数据搬迁）；
-        // 更早历史版本升级仍清空重建，由 UI 引导用户清理异常数据
-        onUpgrade: (m, from, to) async {
-          if (from < 5) {
-            await _wipeRebuild(m, from, to);
-            return;
-          }
-          if (from <= 5) await m.addColumn(thoughts, thoughts.annualDate);
-          if (from == 5 || from == 6) {
-            // 这两个表 v7 才引入；v8+ 的新列已含在当前建表语句中
-            await m.createTable(eventTypes);
-            await m.createTable(calendarEvents);
-          }
-          if (from == 6) {
-            await _migrateFlagsToEvents();
-            await m.deleteTable('calendar_flags');
-          }
-          if (from == 7) {
-            await m.addColumn(eventTypes, eventTypes.counter);
-            await m.addColumn(calendarEvents, calendarEvents.count);
-          }
-          if (from == 8) {
-            await m.addColumn(eventTypes, eventTypes.kind);
-          }
-          if (from == 9) {
-            await m.addColumn(calendarEvents, calendarEvents.mark);
-          }
-        },
+        // 不做兼容迁移：版本不一致直接清空重建，由 UI 引导用户清理异常数据
+        onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
           // 仅新建或升级（清空重建）后播种；用户删除的预设不会被重新种回
@@ -78,46 +52,9 @@ class AppDatabase extends _$AppDatabase {
     await m.deleteTable('thought_tags');
     await m.deleteTable('calendar_events');
     await m.deleteTable('event_types');
-    await m.deleteTable('calendar_flags');
     await m.deleteTable('tags');
     await m.deleteTable('thoughts');
     await m.createAll();
-  }
-
-  /// v6→v7：把旧 calendar_flags（date→休/班）迁移为"按年分组的事件类型 + 单日事件"。
-  /// 同一年的休/班各建一个类型（如"2026 法定节假日"与"2026 调休补班"）
-  Future<void> _migrateFlagsToEvents() async {
-    final rows =
-        await customSelect('SELECT date, flag FROM calendar_flags').get();
-    // (year, flagValue) → 日期列表
-    final grouped = <String, List<String>>{};
-    for (final row in rows) {
-      final date = row.read<String>('date');
-      final flag = row.read<int>('flag');
-      grouped
-          .putIfAbsent('${date.substring(0, 4)}-$flag', () => [])
-          .add(date);
-    }
-    for (final entry in grouped.entries) {
-      final year = entry.key.split('-').first;
-      final isWork = entry.key.endsWith('-1');
-      final typeId = await into(eventTypes).insert(
-        EventTypesCompanion.insert(
-          name: isWork ? '$year 调休补班' : '$year 法定节假日',
-          color: isWork ? 0xFF4A7DC4 : 0xFFCF4B3F,
-          glyph: Value(isWork ? '班' : '休'),
-          mark: Value(isWork ? CalendarMark.work : CalendarMark.rest),
-          kind: Value(isWork ? EventTypeKind.makeup : EventTypeKind.holiday),
-        ),
-      );
-      for (final date in entry.value) {
-        await into(calendarEvents)
-            .insert(CalendarEventsCompanion.insert(
-          typeId: typeId,
-          startDate: date,
-        ));
-      }
-    }
   }
 
   Future<void> _seedMoodPresets() async {
@@ -424,34 +361,6 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
-      final flagsIn = (data['calendarFlags'] as List?) ?? const [];
-      for (final raw in flagsIn) {
-        // 旧版导出（v6）：休/班标记 → 按年归组为类型+事件
-        final m = raw as Map;
-        final date = m['date'] as String?;
-        final idx = (m['flag'] as num?)?.toInt() ?? -1;
-        if (date == null || idx < 0 || idx > 1) continue;
-        final year = date.substring(0, 4);
-        final isWork = idx == 1;
-        final legacy = await (select(eventTypes)
-              ..where((t) => t.name.equals(
-                  isWork ? '$year 调休补班' : '$year 法定节假日')))
-            .getSingleOrNull();
-        final typeId = legacy?.id ??
-            await into(eventTypes).insert(
-              EventTypesCompanion.insert(
-                name: isWork ? '$year 调休补班' : '$year 法定节假日',
-                color: isWork ? 0xFF4A7DC4 : 0xFFCF4B3F,
-                glyph: Value(isWork ? '班' : '休'),
-                mark: Value(isWork ? CalendarMark.work : CalendarMark.rest),
-              ),
-            );
-        await into(calendarEvents)
-            .insert(CalendarEventsCompanion.insert(
-          typeId: typeId,
-          startDate: date,
-        ));
-      }
       final typesIn = (data['eventTypes'] as List?) ?? const [];
       final v7TypeIds = <int, int>{};
       for (final raw in typesIn) {
@@ -753,6 +662,12 @@ class AppDatabase extends _$AppDatabase {
     return (update(calendarEvents)
             ..where((e) => e.thoughtId.equals(thoughtId)))
         .write(const CalendarEventsCompanion(thoughtId: Value(null)));
+  }
+
+  /// 把事件关联到思绪（覆盖该事件原有的关联）
+  Future<void> linkEventToThought(int eventId, int thoughtId) {
+    return (update(calendarEvents)..where((e) => e.id.equals(eventId)))
+        .write(CalendarEventsCompanion(thoughtId: Value(thoughtId)));
   }
 
   Future<void> deleteEvent(int id) {

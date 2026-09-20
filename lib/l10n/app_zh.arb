@@ -183,5 +183,7 @@
   "noEventTypes": "请先在下方创建类型",
   "calendarLink": "关联到日历",
   "addToCalendar": "添加到日历",
-  "unlinkEvent": "取消关联"
+  "unlinkEvent": "取消关联",
+  "newEvent": "新建事件",
+  "linkExistingHint": "当天已有事件（可直接关联）"
 }

@@ -600,4 +600,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unlinkEvent => 'Unlink';
+
+  @override
+  String get newEvent => 'New event';
+
+  @override
+  String get linkExistingHint => 'Existing events on that day (link directly)';
 }

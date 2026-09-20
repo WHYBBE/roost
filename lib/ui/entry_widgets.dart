@@ -211,14 +211,155 @@ Future<void> showEntryEditor(
         .firstOrNull;
     if (!context.mounted) return;
   }
-  // 新建思绪保存后待创建的关联
+  // 保存后待创建的关联（新事件）
   int? pendingTypeId;
   bool pendingAnnual = false;
+  // 保存后待关联的已有事件（仅限思绪当天的事件）
+  int? pendingEventId;
+  String? pendingEventTitle;
 
   await showDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) {
+      /// 选类型 → 新建事件 或 关联当天已有事件
+      Future<void> pickLink() async {
+        if (calTypes.isEmpty) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.noEventTypes)));
+          return;
+        }
+        final type = await showModalBottomSheet<EventType>(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l.pickTypeTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ),
+                for (final t in calTypes)
+                  ListTile(
+                    leading: t.glyph == null || t.glyph!.isEmpty
+                        ? Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(t.color),
+                            ),
+                          )
+                        : Container(
+                            width: 24,
+                            height: 24,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color:
+                                  Color(t.color).withValues(alpha: 0.15),
+                            ),
+                            child: Text(
+                              t.glyph!,
+                              style: TextStyle(
+                                  fontSize: 13, color: Color(t.color)),
+                            ),
+                          ),
+                    title: Text(t.name),
+                    onTap: () => Navigator.pop(context, t),
+                  ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+        if (type == null || !context.mounted) return;
+        // 思绪当天（新建思绪即今天）
+        final day = existing?.day ?? AppDatabase.today();
+        // 当天已被该类型事件覆盖的（含每年循环与区间），仅这些可直接关联
+        final year = DateTime.parse(day).year;
+        final dayEvents = (await appDb.watchEvents().first)
+            .where((e) =>
+                e.typeId == type.id &&
+                AppDatabase.eventDaysInYear(e, year).contains(day))
+            .toList();
+        if (!context.mounted) return;
+        final picked = await showModalBottomSheet<Object>(
+          context: context,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l.pickTypeTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ),
+                // 新建事件
+                ListTile(
+                  leading: const Icon(Icons.add),
+                  title: Text(l.newEvent),
+                  onTap: () => Navigator.pop(context, 'new'),
+                ),
+                // 当天已有事件
+                if (dayEvents.isEmpty)
+                  ListTile(
+                    dense: true,
+                    enabled: false,
+                    title: Text(l.linkExistingHint),
+                  ),
+                for (final e in dayEvents)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.event_outlined),
+                    title: Text(e.title ?? type.name),
+                    subtitle: e.endDate == null
+                        ? null
+                        : Text('${e.startDate} ~ ${e.endDate}'),
+                    onTap: () => Navigator.pop(context, e),
+                  ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+        if (picked == null || !context.mounted) return;
+        if (picked is CalendarEvent) {
+          // 关联已有事件
+          if (existing != null) {
+            await appDb.linkEventToThought(picked.id, existing.id);
+            linkedEvent = (await appDb.watchEvents().first)
+                .firstWhere((e) => e.id == picked.id);
+            setState(() {});
+          } else {
+            pendingEventId = picked.id;
+            pendingEventTitle = picked.title ?? type.name;
+            setState(() {});
+          }
+          return;
+        }
+        // 新建事件：生日类型默认每年循环
+        final annual = await _promptAnnual(
+          context,
+          initial: type.kind == EventTypeKind.birthday,
+        );
+        if (annual == null || !context.mounted) return;
+        pendingTypeId = type.id;
+        pendingAnnual = annual;
+        setState(() {});
+      }
+
       var mood = allTags
           .where((t) => t.tagKind == TagKind.mood)
           .fold<Tag?>(null, (prev, t) => prev ?? t);
@@ -346,89 +487,14 @@ Future<void> showEntryEditor(
                     Text(l.calendarLink,
                         style: Theme.of(context).textTheme.labelLarge),
                     const Spacer(),
-                    if (linkedEvent == null && pendingTypeId == null)
+                    if (linkedEvent == null &&
+                        pendingTypeId == null &&
+                        pendingEventId == null)
                       Tooltip(
                         message: l.addToCalendar,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(8),
-                          onTap: () async {
-                            if (calTypes.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(l.noEventTypes)),
-                              );
-                              return;
-                            }
-                            final picked =
-                                await showModalBottomSheet<EventType>(
-                              context: context,
-                              builder: (context) => SafeArea(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 16, 16, 4),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          l.pickTypeTitle,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium,
-                                        ),
-                                      ),
-                                    ),
-                                    for (final t in calTypes)
-                                      ListTile(
-                                        leading: t.glyph == null ||
-                                                t.glyph!.isEmpty
-                                            ? Container(
-                                                width: 24,
-                                                height: 24,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: Color(t.color),
-                                                ),
-                                              )
-                                            : Container(
-                                                width: 24,
-                                                height: 24,
-                                                alignment: Alignment.center,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: Color(t.color)
-                                                      .withValues(
-                                                          alpha: 0.15),
-                                                ),
-                                                child: Text(
-                                                  t.glyph!,
-                                                  style: TextStyle(
-                                                      fontSize: 13,
-                                                      color:
-                                                          Color(t.color)),
-                                                ),
-                                              ),
-                                        title: Text(t.name),
-                                        onTap: () =>
-                                            Navigator.pop(context, t),
-                                      ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                ),
-                              ),
-                            );
-                            if (picked == null || !context.mounted) return;
-                            // 生日类型默认每年循环
-                            final annual = await _promptAnnual(
-                              context,
-                              initial: picked.kind ==
-                                  EventTypeKind.birthday,
-                            );
-                            if (annual == null || !context.mounted) return;
-                            pendingTypeId = picked.id;
-                            pendingAnnual = annual;
-                            setState(() {});
-                          },
+                          onTap: pickLink,
                           child: const Icon(Icons.add_link, size: 20),
                         ),
                       ),
@@ -453,6 +519,17 @@ Future<void> showEntryEditor(
                         linkedEvent = null;
                         setState(() {});
                       },
+                    ),
+                  )
+                else if (pendingEventId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: InputChip(
+                      avatar: const Icon(Icons.link, size: 16),
+                      label: Text(pendingEventTitle ?? l.dayEventsLabel),
+                      visualDensity: VisualDensity.compact,
+                      onDeleted: () =>
+                          setState(() => pendingEventId = null),
                     ),
                   )
                 else if (pendingTypeId != null)
@@ -584,7 +661,7 @@ Future<void> showEntryEditor(
                     durationMs: p.durationMs,
                   );
                 }
-                // 新建的日历关联：事件以该思绪为载体
+                // 新建的日历关联：新建事件 或 关联当天已有事件
                 if (pendingTypeId != null) {
                   await appDb.insertEvent(
                     typeId: pendingTypeId!,
@@ -593,6 +670,8 @@ Future<void> showEntryEditor(
                     title: text,
                     thoughtId: thoughtId,
                   );
+                } else if (pendingEventId != null) {
+                  await appDb.linkEventToThought(pendingEventId!, thoughtId);
                 }
                 saved = true;
                 if (context.mounted) Navigator.pop(context, true);

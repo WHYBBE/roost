@@ -708,6 +708,18 @@ void main() {
       final kept = (await db.watchEvents().first)
           .firstWhere((e) => e.startDate == '2026-10-01' && e.endDate == null);
       expect(kept.thoughtId, isNull);
+
+      // 关联已有事件（覆盖原关联）
+      final thought2 = await db.insertThought(
+        content: '另一条',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      await db.linkEventToThought(restId, thought2);
+      expect(
+        (await db.watchEvents().first).firstWhere((e) => e.id == restId).thoughtId,
+        thought2,
+      );
     });
 
     test('导出/导入往返：类型、事件与联动', () async {

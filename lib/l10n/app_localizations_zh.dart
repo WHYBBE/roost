@@ -581,4 +581,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unlinkEvent => '取消关联';
+
+  @override
+  String get newEvent => '新建事件';
+
+  @override
+  String get linkExistingHint => '当天已有事件（可直接关联）';
 }

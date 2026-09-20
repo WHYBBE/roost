@@ -1165,6 +1165,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlink'**
   String get unlinkEvent;
+
+  /// No description provided for @newEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'New event'**
+  String get newEvent;
+
+  /// No description provided for @linkExistingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing events on that day (link directly)'**
+  String get linkExistingHint;
 }
 
 class _AppLocalizationsDelegate

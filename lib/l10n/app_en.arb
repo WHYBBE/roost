@@ -190,5 +190,7 @@
   "noEventTypes": "Create a type below first",
   "calendarLink": "Link to calendar",
   "addToCalendar": "Add to calendar",
-  "unlinkEvent": "Unlink"
+  "unlinkEvent": "Unlink",
+  "newEvent": "New event",
+  "linkExistingHint": "Existing events on that day (link directly)"
 }

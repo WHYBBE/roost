@@ -261,71 +261,6 @@ class CalendarManagePage extends StatelessWidget {
 
   // ---------- 事件（实例） ----------
 
-  /// 从类型列表中选一个，再进入事件对话框
-  Future<void> _pickTypeAndAddEvent(
-    BuildContext context,
-    List<EventType> types,
-  ) async {
-    final l = AppLocalizations.of(context)!;
-    final candidates = types.where((t) => !t.counter).toList();
-    if (candidates.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.noEventTypes)));
-      return;
-    }
-    final picked = await showModalBottomSheet<EventType>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  l.pickTypeTitle,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-            for (final t in candidates)
-              ListTile(
-                leading: t.glyph == null || t.glyph!.isEmpty
-                    ? Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(t.color),
-                        ),
-                      )
-                    : Container(
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(t.color).withValues(alpha: 0.15),
-                        ),
-                        child: Text(
-                          t.glyph!,
-                          style:
-                              TextStyle(fontSize: 13, color: Color(t.color)),
-                        ),
-                      ),
-                title: Text(t.name),
-                onTap: () => Navigator.pop(context, t),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (picked == null || !context.mounted) return;
-    await _showEventDialog(context, type: picked);
-  }
-
   /// 新建/编辑事件实例（existing 为 null 即新建）。
   /// 节假日类型下可选休/班（班即调休日），其余类型继承类型标记
   Future<void> _showEventDialog(
@@ -539,7 +474,6 @@ class CalendarManagePage extends StatelessWidget {
         stream: appDb.watchEventTypes(),
         builder: (context, typeSnap) {
           final types = typeSnap.data ?? const <EventType>[];
-          final typeById = {for (final t in types) t.id: t};
           return StreamBuilder<List<CalendarEvent>>(
             stream: appDb.watchEvents(),
             builder: (context, evSnap) {
@@ -553,101 +487,161 @@ class CalendarManagePage extends StatelessWidget {
               for (final e in events) {
                 totals[e.typeId] = (totals[e.typeId] ?? 0) + e.count;
               }
-              // 实例列表：按开始日期升序，排除计数器类型（计数在类型卡片内）
-              final instances = [
-                for (final e in events)
-                  if (!(typeById[e.typeId]?.counter ?? false)) e,
-              ]..sort((a, b) => a.startDate.compareTo(b.startDate));
+
+              /// 类型卡片展开区：普通类型展示全部事件（可编辑），计数器展示计次
+              List<Widget> typeChildren(EventType type) {
+                if (type.counter) {
+                  return [
+                    // 计数器：今天 +1
+                    ListTile(
+                      dense: true,
+                      leading:
+                          Icon(Icons.add_circle_outline, color: scheme.primary),
+                      title: Text(l.addOne),
+                      onTap: () => appDb.incrementCounter(
+                        typeId: type.id,
+                        date: AppDatabase.today(),
+                      ),
+                    ),
+                    // 按日计次列表（新日期在前）
+                    for (final e in (byType[type.id] ?? const <CalendarEvent>[])
+                        .reversed)
+                      ListTile(
+                        dense: true,
+                        leading: typeIcon(type, size: 24),
+                        title: Text(
+                          '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))}'
+                          '${e.count > 1 ? ' ×${e.count}' : ''}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline,
+                                  size: 20),
+                              onPressed: () => appDb.decrementCounter(
+                                typeId: type.id,
+                                date: e.startDate,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline,
+                                  size: 20),
+                              onPressed: () => appDb.incrementCounter(
+                                typeId: type.id,
+                                date: e.startDate,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ];
+                }
+                return [
+                  // 该类型的全部事件（点按编辑）
+                  for (final e in byType[type.id] ?? const <CalendarEvent>[])
+                    ListTile(
+                      dense: true,
+                      leading: typeIcon(type, size: 24),
+                      title: Text(e.title ?? type.name),
+                      subtitle: Text(
+                        type.kind == EventTypeKind.holiday &&
+                                e.mark == CalendarMark.work
+                            ? '${_eventRange(e, locale)} · ${l.workLabel}'
+                            : _eventRange(e, locale),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (e.thoughtId != null)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(
+                                Icons.link,
+                                size: 16,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          if (e.annual)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(
+                                Icons.repeat,
+                                size: 16,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          IconButton(
+                            icon:
+                                const Icon(Icons.delete_outline, size: 20),
+                            onPressed: () => appDb.deleteEvent(e.id),
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showEventDialog(
+                        context,
+                        type: type,
+                        existing: e,
+                      ),
+                    ),
+                  if ((byType[type.id] ?? const []).isEmpty)
+                    ListTile(
+                      dense: true,
+                      enabled: false,
+                      title: Text(l.emptyEvents),
+                    ),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.add),
+                    title: Text(l.addEvent),
+                    onTap: () => _showEventDialog(context, type: type),
+                  ),
+                ];
+              }
+
+              Widget typeCard(EventType type) {
+                return Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    leading: typeIcon(type),
+                    title: Text(type.name),
+                    subtitle: Text(
+                      typeSubtitle(type, byType[type.id]?.length ?? 0,
+                          totals[type.id] ?? 0),
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (action) => switch (action) {
+                        'edit' => _showTypeDialog(context, existing: type),
+                        'delete' => _deleteType(context, type),
+                        _ => null,
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Text(l.editType),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            l.deleteType,
+                            style: TextStyle(color: scheme.error),
+                          ),
+                        ),
+                      ],
+                    ),
+                    children: typeChildren(type),
+                  ),
+                );
+              }
 
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // ---------- 实例 ----------
-                  Text(
-                    l.dayEventsLabel,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l.instancesHint,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: [
-                        if (instances.isEmpty)
-                          ListTile(
-                            enabled: false,
-                            title: Text(l.emptyEvents),
-                          ),
-                        for (final e in instances)
-                          Builder(builder: (context) {
-                            final type = typeById[e.typeId];
-                            if (type == null) {
-                              return const SizedBox.shrink();
-                            }
-                            final subtitle = _eventRange(e, locale);
-                            return ListTile(
-                              dense: true,
-                              leading: typeIcon(type, size: 24),
-                              title: Text(e.title ?? type.name),
-                              subtitle: Text(
-                                type.kind == EventTypeKind.holiday &&
-                                        e.mark == CalendarMark.work
-                                    ? '$subtitle · ${l.workLabel}'
-                                    : subtitle,
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (e.thoughtId != null)
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 4),
-                                      child: Icon(
-                                        Icons.link,
-                                        size: 16,
-                                        color: scheme.primary,
-                                      ),
-                                    ),
-                                  if (e.annual)
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 4),
-                                      child: Icon(
-                                        Icons.repeat,
-                                        size: 16,
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  IconButton(
-                                    icon: const Icon(
-                                        Icons.delete_outline,
-                                        size: 20),
-                                    onPressed: () =>
-                                        appDb.deleteEvent(e.id),
-                                  ),
-                                ],
-                              ),
-                              onTap: () => _showEventDialog(
-                                context,
-                                type: type,
-                                existing: e,
-                              ),
-                            );
-                          }),
-                        ListTile(
-                          leading: const Icon(Icons.add),
-                          title: Text(l.addEvent),
-                          onTap: () =>
-                              _pickTypeAndAddEvent(context, types),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // ---------- 类型定义 ----------
+                  // ---------- 类型定义：点开即该类型的全部事件 ----------
                   Row(
                     children: [
                       Text(
@@ -669,132 +663,7 @@ class CalendarManagePage extends StatelessWidget {
                         title: Text(l.emptyTypes),
                       ),
                     ),
-                  for (final type in types)
-                    if (type.counter)
-                      // 计数器：定义与计次都收在类型卡片内
-                      Card(
-                        child: ExpansionTile(
-                          leading: typeIcon(type),
-                          title: Text(type.name),
-                          subtitle: Text(
-                            typeSubtitle(
-                                type, byType[type.id]?.length ?? 0,
-                                totals[type.id] ?? 0),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (action) => switch (action) {
-                              'edit' =>
-                                _showTypeDialog(context, existing: type),
-                              'delete' => _deleteType(context, type),
-                              _ => null,
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Text(l.editType),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text(
-                                  l.deleteType,
-                                  style: TextStyle(color: scheme.error),
-                                ),
-                              ),
-                            ],
-                          ),
-                          children: [
-                            // 计数器：今天 +1
-                            ListTile(
-                              dense: true,
-                              leading: Icon(Icons.add_circle_outline,
-                                  color: scheme.primary),
-                              title: Text(l.addOne),
-                              onTap: () => appDb.incrementCounter(
-                                typeId: type.id,
-                                date: AppDatabase.today(),
-                              ),
-                            ),
-                            // 按日计次列表（新日期在前）
-                            for (final e in (byType[type.id] ??
-                                    const <CalendarEvent>[])
-                                .reversed)
-                              ListTile(
-                                dense: true,
-                                leading: typeIcon(type, size: 24),
-                                title: Text(
-                                  '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))}'
-                                  '${e.count > 1 ? ' ×${e.count}' : ''}',
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.remove_circle_outline,
-                                          size: 20),
-                                      onPressed: () =>
-                                          appDb.decrementCounter(
-                                        typeId: type.id,
-                                        date: e.startDate,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.add_circle_outline,
-                                          size: 20),
-                                      onPressed: () =>
-                                          appDb.incrementCounter(
-                                        typeId: type.id,
-                                        date: e.startDate,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      )
-                    else
-                      // 普通类型：仅定义，实例在上方
-                      Card(
-                        child: ListTile(
-                          leading: typeIcon(type),
-                          title: Text(type.name),
-                          subtitle: Text(
-                            typeSubtitle(type, byType[type.id]?.length ?? 0,
-                                totals[type.id] ?? 0),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (action) => switch (action) {
-                              'edit' =>
-                                _showTypeDialog(context, existing: type),
-                              'delete' => _deleteType(context, type),
-                              _ => null,
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Text(l.editType),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text(
-                                  l.deleteType,
-                                  style: TextStyle(color: scheme.error),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                  for (final type in types) typeCard(type),
                 ],
               );
             },
