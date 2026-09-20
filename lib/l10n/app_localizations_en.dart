@@ -463,4 +463,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weekStartMonday => 'Monday';
+
+  @override
+  String get calendarManageTitle => 'Calendar manager';
+
+  @override
+  String get dayEventsLabel => 'Events';
+
+  @override
+  String get eventTypesSection => 'Event types';
+
+  @override
+  String get specialThoughtsSection => 'Special days (thoughts)';
+
+  @override
+  String get addEventType => 'New type';
+
+  @override
+  String get editType => 'Edit type';
+
+  @override
+  String get typeNameHint => 'Name, e.g. 2026 holidays';
+
+  @override
+  String get markNone => 'None';
+
+  @override
+  String get cornerGlyphHint => 'Corner glyph (optional)';
+
+  @override
+  String get addEvent => 'Add event';
+
+  @override
+  String get editEvent => 'Edit event';
+
+  @override
+  String get deleteEvent => 'Delete event';
+
+  @override
+  String get eventTitleHint => 'Title (optional, defaults to type name)';
+
+  @override
+  String get startDateLabel => 'Start date';
+
+  @override
+  String get endDateLabel => 'End date (optional, long-press to clear)';
+
+  @override
+  String get annualRecur => 'Repeat yearly';
+
+  @override
+  String get recordAsThought => 'Also save as thought';
+
+  @override
+  String get deleteType => 'Delete type';
+
+  @override
+  String deleteTypeBody(String name) {
+    return 'Deletes \"$name\" and all its events.';
+  }
+
+  @override
+  String get emptyTypes => 'No types yet — tap + to create';
+
+  @override
+  String eventsCount(int count) {
+    return '$count events';
+  }
+
+  @override
+  String get presetHoliday => 'Holidays';
+
+  @override
+  String get presetMakeup => 'Makeup workdays';
+
+  @override
+  String get presetBirthday => 'Birthdays';
+
+  @override
+  String get presetPeriod => 'Cycle';
+
+  @override
+  String get presetTravel => 'Travel';
 }

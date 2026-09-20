@@ -87,21 +87,50 @@ class AttachmentBlobs extends Table {
   Set<Column> get primaryKey => {attachmentId};
 }
 
-/// 放假标记：休 / 班（周六日默认休由 UI 层计算，显式记录用于法定假日与调休）
-enum DayFlag {
-  rest(0),
-  work(1);
+/// 日历事件在格子上的标记形式：无 / 休（红）/ 班（主题色）
+enum CalendarMark {
+  none(0),
+  rest(1),
+  work(2);
 
   final int value;
-  const DayFlag(this.value);
+  const CalendarMark(this.value);
+
+  static CalendarMark fromValue(int v) => (v >= 0 && v < CalendarMark.values.length)
+      ? CalendarMark.values[v]
+      : CalendarMark.none;
 }
 
-/// 放假安排：按日期（yyyy-MM-dd）一行
-@DataClassName('CalendarFlag')
-class CalendarFlags extends Table {
-  TextColumn get date => text()();
-  IntColumn get flag => intEnum<DayFlag>()();
+/// 日历事件类型：完全自定义（颜色/字符/标记）。
+/// 国家节假日（mark=rest）、调休补班（mark=work）、生日、月经周期、
+/// 旅行计划等都是它的特例；年份归属写进名称（如"2026 法定节假日"）
+@DataClassName('EventType')
+class EventTypes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  // ARGB32
+  IntColumn get color => integer()();
+  // 字符角标（如 休/班/🩸），null = 无
+  TextColumn get glyph => text().nullable()();
+  IntColumn get mark =>
+      intEnum<CalendarMark>().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+}
 
-  @override
-  Set<Column> get primaryKey => {date};
+/// 日历事件：单日或日期区间，可每年循环（生日），可选联动一条思绪
+@DataClassName('CalendarEvent')
+class CalendarEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get typeId =>
+      integer().references(EventTypes, #id, onDelete: KeyAction.cascade)();
+  // null = 直接显示类型名
+  TextColumn get title => text().nullable()();
+  TextColumn get startDate => text()();
+  // null = 单日
+  TextColumn get endDate => text().nullable()();
+  // 每年循环（按 startDate 的月-日）
+  BoolColumn get annual => boolean().withDefault(const Constant(false))();
+  // 联动思绪（万物皆思绪）；思绪被删时置空，事件保留
+  IntColumn get thoughtId =>
+      integer().nullable().references(Thoughts, #id, onDelete: KeyAction.setNull)();
 }

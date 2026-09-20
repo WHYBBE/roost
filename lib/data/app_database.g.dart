@@ -1721,216 +1721,847 @@ class AttachmentBlobsCompanion extends UpdateCompanion<AttachmentBlob> {
   }
 }
 
-class $CalendarFlagsTable extends CalendarFlags
-    with TableInfo<$CalendarFlagsTable, CalendarFlag> {
+class $EventTypesTable extends EventTypes
+    with TableInfo<$EventTypesTable, EventType> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $CalendarFlagsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  $EventTypesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
-  late final GeneratedColumn<String> date = GeneratedColumn<String>(
-    'date',
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
-  late final GeneratedColumnWithTypeConverter<DayFlag, int> flag =
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _glyphMeta = const VerificationMeta('glyph');
+  @override
+  late final GeneratedColumn<String> glyph = GeneratedColumn<String>(
+    'glyph',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<CalendarMark, int> mark =
       GeneratedColumn<int>(
-        'flag',
+        'mark',
         aliasedName,
         false,
         type: DriftSqlType.int,
-        requiredDuringInsert: true,
-      ).withConverter<DayFlag>($CalendarFlagsTable.$converterflag);
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      ).withConverter<CalendarMark>($EventTypesTable.$convertermark);
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
   @override
-  List<GeneratedColumn> get $columns => [date, flag];
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    glyph,
+    mark,
+    sortOrder,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'calendar_flags';
+  static const String $name = 'event_types';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CalendarFlag> instance, {
+    Insertable<EventType> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('date')) {
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
       context.handle(
-        _dateMeta,
-        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
       );
     } else if (isInserting) {
-      context.missing(_dateMeta);
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('glyph')) {
+      context.handle(
+        _glyphMeta,
+        glyph.isAcceptableOrUnknown(data['glyph']!, _glyphMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {date};
+  Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  CalendarFlag map(Map<String, dynamic> data, {String? tablePrefix}) {
+  EventType map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CalendarFlag(
-      date: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}date'],
+    return EventType(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
       )!,
-      flag: $CalendarFlagsTable.$converterflag.fromSql(
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      glyph: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}glyph'],
+      ),
+      mark: $EventTypesTable.$convertermark.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.int,
-          data['${effectivePrefix}flag'],
+          data['${effectivePrefix}mark'],
         )!,
       ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
     );
   }
 
   @override
-  $CalendarFlagsTable createAlias(String alias) {
-    return $CalendarFlagsTable(attachedDatabase, alias);
+  $EventTypesTable createAlias(String alias) {
+    return $EventTypesTable(attachedDatabase, alias);
   }
 
-  static JsonTypeConverter2<DayFlag, int, int> $converterflag =
-      const EnumIndexConverter<DayFlag>(DayFlag.values);
+  static JsonTypeConverter2<CalendarMark, int, int> $convertermark =
+      const EnumIndexConverter<CalendarMark>(CalendarMark.values);
 }
 
-class CalendarFlag extends DataClass implements Insertable<CalendarFlag> {
-  final String date;
-  final DayFlag flag;
-  const CalendarFlag({required this.date, required this.flag});
+class EventType extends DataClass implements Insertable<EventType> {
+  final int id;
+  final String name;
+  final int color;
+  final String? glyph;
+  final CalendarMark mark;
+  final int sortOrder;
+  const EventType({
+    required this.id,
+    required this.name,
+    required this.color,
+    this.glyph,
+    required this.mark,
+    required this.sortOrder,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['date'] = Variable<String>(date);
-    {
-      map['flag'] = Variable<int>(
-        $CalendarFlagsTable.$converterflag.toSql(flag),
-      );
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<int>(color);
+    if (!nullToAbsent || glyph != null) {
+      map['glyph'] = Variable<String>(glyph);
     }
+    {
+      map['mark'] = Variable<int>($EventTypesTable.$convertermark.toSql(mark));
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
     return map;
   }
 
-  CalendarFlagsCompanion toCompanion(bool nullToAbsent) {
-    return CalendarFlagsCompanion(date: Value(date), flag: Value(flag));
+  EventTypesCompanion toCompanion(bool nullToAbsent) {
+    return EventTypesCompanion(
+      id: Value(id),
+      name: Value(name),
+      color: Value(color),
+      glyph: glyph == null && nullToAbsent
+          ? const Value.absent()
+          : Value(glyph),
+      mark: Value(mark),
+      sortOrder: Value(sortOrder),
+    );
   }
 
-  factory CalendarFlag.fromJson(
+  factory EventType.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CalendarFlag(
-      date: serializer.fromJson<String>(json['date']),
-      flag: $CalendarFlagsTable.$converterflag.fromJson(
-        serializer.fromJson<int>(json['flag']),
+    return EventType(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<int>(json['color']),
+      glyph: serializer.fromJson<String?>(json['glyph']),
+      mark: $EventTypesTable.$convertermark.fromJson(
+        serializer.fromJson<int>(json['mark']),
       ),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'date': serializer.toJson<String>(date),
-      'flag': serializer.toJson<int>(
-        $CalendarFlagsTable.$converterflag.toJson(flag),
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<int>(color),
+      'glyph': serializer.toJson<String?>(glyph),
+      'mark': serializer.toJson<int>(
+        $EventTypesTable.$convertermark.toJson(mark),
       ),
+      'sortOrder': serializer.toJson<int>(sortOrder),
     };
   }
 
-  CalendarFlag copyWith({String? date, DayFlag? flag}) =>
-      CalendarFlag(date: date ?? this.date, flag: flag ?? this.flag);
-  CalendarFlag copyWithCompanion(CalendarFlagsCompanion data) {
-    return CalendarFlag(
-      date: data.date.present ? data.date.value : this.date,
-      flag: data.flag.present ? data.flag.value : this.flag,
+  EventType copyWith({
+    int? id,
+    String? name,
+    int? color,
+    Value<String?> glyph = const Value.absent(),
+    CalendarMark? mark,
+    int? sortOrder,
+  }) => EventType(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    color: color ?? this.color,
+    glyph: glyph.present ? glyph.value : this.glyph,
+    mark: mark ?? this.mark,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  EventType copyWithCompanion(EventTypesCompanion data) {
+    return EventType(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+      glyph: data.glyph.present ? data.glyph.value : this.glyph,
+      mark: data.mark.present ? data.mark.value : this.mark,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('CalendarFlag(')
-          ..write('date: $date, ')
-          ..write('flag: $flag')
+    return (StringBuffer('EventType(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('glyph: $glyph, ')
+          ..write('mark: $mark, ')
+          ..write('sortOrder: $sortOrder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(date, flag);
+  int get hashCode => Object.hash(id, name, color, glyph, mark, sortOrder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CalendarFlag &&
-          other.date == this.date &&
-          other.flag == this.flag);
+      (other is EventType &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.color == this.color &&
+          other.glyph == this.glyph &&
+          other.mark == this.mark &&
+          other.sortOrder == this.sortOrder);
 }
 
-class CalendarFlagsCompanion extends UpdateCompanion<CalendarFlag> {
-  final Value<String> date;
-  final Value<DayFlag> flag;
-  final Value<int> rowid;
-  const CalendarFlagsCompanion({
-    this.date = const Value.absent(),
-    this.flag = const Value.absent(),
-    this.rowid = const Value.absent(),
+class EventTypesCompanion extends UpdateCompanion<EventType> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int> color;
+  final Value<String?> glyph;
+  final Value<CalendarMark> mark;
+  final Value<int> sortOrder;
+  const EventTypesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.glyph = const Value.absent(),
+    this.mark = const Value.absent(),
+    this.sortOrder = const Value.absent(),
   });
-  CalendarFlagsCompanion.insert({
-    required String date,
-    required DayFlag flag,
-    this.rowid = const Value.absent(),
-  }) : date = Value(date),
-       flag = Value(flag);
-  static Insertable<CalendarFlag> custom({
-    Expression<String>? date,
-    Expression<int>? flag,
-    Expression<int>? rowid,
+  EventTypesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required int color,
+    this.glyph = const Value.absent(),
+    this.mark = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  }) : name = Value(name),
+       color = Value(color);
+  static Insertable<EventType> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? color,
+    Expression<String>? glyph,
+    Expression<int>? mark,
+    Expression<int>? sortOrder,
   }) {
     return RawValuesInsertable({
-      if (date != null) 'date': date,
-      if (flag != null) 'flag': flag,
-      if (rowid != null) 'rowid': rowid,
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (glyph != null) 'glyph': glyph,
+      if (mark != null) 'mark': mark,
+      if (sortOrder != null) 'sort_order': sortOrder,
     });
   }
 
-  CalendarFlagsCompanion copyWith({
-    Value<String>? date,
-    Value<DayFlag>? flag,
-    Value<int>? rowid,
+  EventTypesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int>? color,
+    Value<String?>? glyph,
+    Value<CalendarMark>? mark,
+    Value<int>? sortOrder,
   }) {
-    return CalendarFlagsCompanion(
-      date: date ?? this.date,
-      flag: flag ?? this.flag,
-      rowid: rowid ?? this.rowid,
+    return EventTypesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      glyph: glyph ?? this.glyph,
+      mark: mark ?? this.mark,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (date.present) {
-      map['date'] = Variable<String>(date.value);
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
     }
-    if (flag.present) {
-      map['flag'] = Variable<int>(
-        $CalendarFlagsTable.$converterflag.toSql(flag.value),
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (glyph.present) {
+      map['glyph'] = Variable<String>(glyph.value);
+    }
+    if (mark.present) {
+      map['mark'] = Variable<int>(
+        $EventTypesTable.$convertermark.toSql(mark.value),
       );
     }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('CalendarFlagsCompanion(')
-          ..write('date: $date, ')
-          ..write('flag: $flag, ')
-          ..write('rowid: $rowid')
+    return (StringBuffer('EventTypesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('glyph: $glyph, ')
+          ..write('mark: $mark, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CalendarEventsTable extends CalendarEvents
+    with TableInfo<$CalendarEventsTable, CalendarEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _typeIdMeta = const VerificationMeta('typeId');
+  @override
+  late final GeneratedColumn<int> typeId = GeneratedColumn<int>(
+    'type_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES event_types (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<String> startDate = GeneratedColumn<String>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<String> endDate = GeneratedColumn<String>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _annualMeta = const VerificationMeta('annual');
+  @override
+  late final GeneratedColumn<bool> annual = GeneratedColumn<bool>(
+    'annual',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("annual" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
+    'thoughtId',
+  );
+  @override
+  late final GeneratedColumn<int> thoughtId = GeneratedColumn<int>(
+    'thought_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE SET NULL',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    typeId,
+    title,
+    startDate,
+    endDate,
+    annual,
+    thoughtId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendar_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('type_id')) {
+      context.handle(
+        _typeIdMeta,
+        typeId.isAcceptableOrUnknown(data['type_id']!, _typeIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('annual')) {
+      context.handle(
+        _annualMeta,
+        annual.isAcceptableOrUnknown(data['annual']!, _annualMeta),
+      );
+    }
+    if (data.containsKey('thought_id')) {
+      context.handle(
+        _thoughtIdMeta,
+        thoughtId.isAcceptableOrUnknown(data['thought_id']!, _thoughtIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CalendarEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      typeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}type_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      ),
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}end_date'],
+      ),
+      annual: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}annual'],
+      )!,
+      thoughtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}thought_id'],
+      ),
+    );
+  }
+
+  @override
+  $CalendarEventsTable createAlias(String alias) {
+    return $CalendarEventsTable(attachedDatabase, alias);
+  }
+}
+
+class CalendarEvent extends DataClass implements Insertable<CalendarEvent> {
+  final int id;
+  final int typeId;
+  final String? title;
+  final String startDate;
+  final String? endDate;
+  final bool annual;
+  final int? thoughtId;
+  const CalendarEvent({
+    required this.id,
+    required this.typeId,
+    this.title,
+    required this.startDate,
+    this.endDate,
+    required this.annual,
+    this.thoughtId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['type_id'] = Variable<int>(typeId);
+    if (!nullToAbsent || title != null) {
+      map['title'] = Variable<String>(title);
+    }
+    map['start_date'] = Variable<String>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<String>(endDate);
+    }
+    map['annual'] = Variable<bool>(annual);
+    if (!nullToAbsent || thoughtId != null) {
+      map['thought_id'] = Variable<int>(thoughtId);
+    }
+    return map;
+  }
+
+  CalendarEventsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarEventsCompanion(
+      id: Value(id),
+      typeId: Value(typeId),
+      title: title == null && nullToAbsent
+          ? const Value.absent()
+          : Value(title),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      annual: Value(annual),
+      thoughtId: thoughtId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thoughtId),
+    );
+  }
+
+  factory CalendarEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarEvent(
+      id: serializer.fromJson<int>(json['id']),
+      typeId: serializer.fromJson<int>(json['typeId']),
+      title: serializer.fromJson<String?>(json['title']),
+      startDate: serializer.fromJson<String>(json['startDate']),
+      endDate: serializer.fromJson<String?>(json['endDate']),
+      annual: serializer.fromJson<bool>(json['annual']),
+      thoughtId: serializer.fromJson<int?>(json['thoughtId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'typeId': serializer.toJson<int>(typeId),
+      'title': serializer.toJson<String?>(title),
+      'startDate': serializer.toJson<String>(startDate),
+      'endDate': serializer.toJson<String?>(endDate),
+      'annual': serializer.toJson<bool>(annual),
+      'thoughtId': serializer.toJson<int?>(thoughtId),
+    };
+  }
+
+  CalendarEvent copyWith({
+    int? id,
+    int? typeId,
+    Value<String?> title = const Value.absent(),
+    String? startDate,
+    Value<String?> endDate = const Value.absent(),
+    bool? annual,
+    Value<int?> thoughtId = const Value.absent(),
+  }) => CalendarEvent(
+    id: id ?? this.id,
+    typeId: typeId ?? this.typeId,
+    title: title.present ? title.value : this.title,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    annual: annual ?? this.annual,
+    thoughtId: thoughtId.present ? thoughtId.value : this.thoughtId,
+  );
+  CalendarEvent copyWithCompanion(CalendarEventsCompanion data) {
+    return CalendarEvent(
+      id: data.id.present ? data.id.value : this.id,
+      typeId: data.typeId.present ? data.typeId.value : this.typeId,
+      title: data.title.present ? data.title.value : this.title,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      annual: data.annual.present ? data.annual.value : this.annual,
+      thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEvent(')
+          ..write('id: $id, ')
+          ..write('typeId: $typeId, ')
+          ..write('title: $title, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('annual: $annual, ')
+          ..write('thoughtId: $thoughtId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, typeId, title, startDate, endDate, annual, thoughtId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarEvent &&
+          other.id == this.id &&
+          other.typeId == this.typeId &&
+          other.title == this.title &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.annual == this.annual &&
+          other.thoughtId == this.thoughtId);
+}
+
+class CalendarEventsCompanion extends UpdateCompanion<CalendarEvent> {
+  final Value<int> id;
+  final Value<int> typeId;
+  final Value<String?> title;
+  final Value<String> startDate;
+  final Value<String?> endDate;
+  final Value<bool> annual;
+  final Value<int?> thoughtId;
+  const CalendarEventsCompanion({
+    this.id = const Value.absent(),
+    this.typeId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.annual = const Value.absent(),
+    this.thoughtId = const Value.absent(),
+  });
+  CalendarEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required int typeId,
+    this.title = const Value.absent(),
+    required String startDate,
+    this.endDate = const Value.absent(),
+    this.annual = const Value.absent(),
+    this.thoughtId = const Value.absent(),
+  }) : typeId = Value(typeId),
+       startDate = Value(startDate);
+  static Insertable<CalendarEvent> custom({
+    Expression<int>? id,
+    Expression<int>? typeId,
+    Expression<String>? title,
+    Expression<String>? startDate,
+    Expression<String>? endDate,
+    Expression<bool>? annual,
+    Expression<int>? thoughtId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (typeId != null) 'type_id': typeId,
+      if (title != null) 'title': title,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (annual != null) 'annual': annual,
+      if (thoughtId != null) 'thought_id': thoughtId,
+    });
+  }
+
+  CalendarEventsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? typeId,
+    Value<String?>? title,
+    Value<String>? startDate,
+    Value<String?>? endDate,
+    Value<bool>? annual,
+    Value<int?>? thoughtId,
+  }) {
+    return CalendarEventsCompanion(
+      id: id ?? this.id,
+      typeId: typeId ?? this.typeId,
+      title: title ?? this.title,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      annual: annual ?? this.annual,
+      thoughtId: thoughtId ?? this.thoughtId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (typeId.present) {
+      map['type_id'] = Variable<int>(typeId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<String>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<String>(endDate.value);
+    }
+    if (annual.present) {
+      map['annual'] = Variable<bool>(annual.value);
+    }
+    if (thoughtId.present) {
+      map['thought_id'] = Variable<int>(thoughtId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('typeId: $typeId, ')
+          ..write('title: $title, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('annual: $annual, ')
+          ..write('thoughtId: $thoughtId')
           ..write(')'))
         .toString();
   }
@@ -1946,7 +2577,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AttachmentBlobsTable attachmentBlobs = $AttachmentBlobsTable(
     this,
   );
-  late final $CalendarFlagsTable calendarFlags = $CalendarFlagsTable(this);
+  late final $EventTypesTable eventTypes = $EventTypesTable(this);
+  late final $CalendarEventsTable calendarEvents = $CalendarEventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1957,7 +2589,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     thoughtTags,
     attachments,
     attachmentBlobs,
-    calendarFlags,
+    eventTypes,
+    calendarEvents,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1988,6 +2621,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('attachment_blobs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'event_types',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('calendar_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('calendar_events', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -2046,6 +2693,24 @@ final class $$ThoughtsTableReferences
     ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$CalendarEventsTable, List<CalendarEvent>>
+  _calendarEventsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.calendarEvents,
+    aliasName: 'thoughts__id__calendar_events__thought_id',
+  );
+
+  $$CalendarEventsTableProcessedTableManager get calendarEventsRefs {
+    final manager = $$CalendarEventsTableTableManager(
+      $_db,
+      $_db.calendarEvents,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_calendarEventsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2132,6 +2797,31 @@ class $$ThoughtsTableFilterComposer
           }) => $$AttachmentsTableFilterComposer(
             $db: $db,
             $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> calendarEventsRefs(
+    Expression<bool> Function($$CalendarEventsTableFilterComposer f) f,
+  ) {
+    final $$CalendarEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2260,6 +2950,31 @@ class $$ThoughtsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> calendarEventsRefs<T extends Object>(
+    Expression<T> Function($$CalendarEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CalendarEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ThoughtsTableTableManager
@@ -2275,7 +2990,11 @@ class $$ThoughtsTableTableManager
           $$ThoughtsTableUpdateCompanionBuilder,
           (ThoughtEntry, $$ThoughtsTableReferences),
           ThoughtEntry,
-          PrefetchHooks Function({bool thoughtTagsRefs, bool attachmentsRefs})
+          PrefetchHooks Function({
+            bool thoughtTagsRefs,
+            bool attachmentsRefs,
+            bool calendarEventsRefs,
+          })
         > {
   $$ThoughtsTableTableManager(_$AppDatabase db, $ThoughtsTable table)
     : super(
@@ -2329,12 +3048,17 @@ class $$ThoughtsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({thoughtTagsRefs = false, attachmentsRefs = false}) {
+              ({
+                thoughtTagsRefs = false,
+                attachmentsRefs = false,
+                calendarEventsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (thoughtTagsRefs) db.thoughtTags,
                     if (attachmentsRefs) db.attachments,
+                    if (calendarEventsRefs) db.calendarEvents,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2381,6 +3105,27 @@ class $$ThoughtsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (calendarEventsRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          CalendarEvent
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._calendarEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).calendarEventsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2401,7 +3146,11 @@ typedef $$ThoughtsTableProcessedTableManager =
       $$ThoughtsTableUpdateCompanionBuilder,
       (ThoughtEntry, $$ThoughtsTableReferences),
       ThoughtEntry,
-      PrefetchHooks Function({bool thoughtTagsRefs, bool attachmentsRefs})
+      PrefetchHooks Function({
+        bool thoughtTagsRefs,
+        bool attachmentsRefs,
+        bool calendarEventsRefs,
+      })
     >;
 typedef $$TagsTableCreateCompanionBuilder =
     TagsCompanion Function({
@@ -3783,146 +4532,765 @@ typedef $$AttachmentBlobsTableProcessedTableManager =
       AttachmentBlob,
       PrefetchHooks Function({bool attachmentId})
     >;
-typedef $$CalendarFlagsTableCreateCompanionBuilder =
-    CalendarFlagsCompanion Function({
-      required String date,
-      required DayFlag flag,
-      Value<int> rowid,
+typedef $$EventTypesTableCreateCompanionBuilder =
+    EventTypesCompanion Function({
+      Value<int> id,
+      required String name,
+      required int color,
+      Value<String?> glyph,
+      Value<CalendarMark> mark,
+      Value<int> sortOrder,
     });
-typedef $$CalendarFlagsTableUpdateCompanionBuilder =
-    CalendarFlagsCompanion Function({
-      Value<String> date,
-      Value<DayFlag> flag,
-      Value<int> rowid,
+typedef $$EventTypesTableUpdateCompanionBuilder =
+    EventTypesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int> color,
+      Value<String?> glyph,
+      Value<CalendarMark> mark,
+      Value<int> sortOrder,
     });
 
-class $$CalendarFlagsTableFilterComposer
-    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
-  $$CalendarFlagsTableFilterComposer({
+final class $$EventTypesTableReferences
+    extends BaseReferences<_$AppDatabase, $EventTypesTable, EventType> {
+  $$EventTypesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$CalendarEventsTable, List<CalendarEvent>>
+  _calendarEventsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.calendarEvents,
+    aliasName: 'event_types__id__calendar_events__type_id',
+  );
+
+  $$CalendarEventsTableProcessedTableManager get calendarEventsRefs {
+    final manager = $$CalendarEventsTableTableManager(
+      $_db,
+      $_db.calendarEvents,
+    ).filter((f) => f.typeId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_calendarEventsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$EventTypesTableFilterComposer
+    extends Composer<_$AppDatabase, $EventTypesTable> {
+  $$EventTypesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get date => $composableBuilder(
-    column: $table.date,
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<DayFlag, DayFlag, int> get flag =>
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get glyph => $composableBuilder(
+    column: $table.glyph,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<CalendarMark, CalendarMark, int> get mark =>
       $composableBuilder(
-        column: $table.flag,
+        column: $table.mark,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> calendarEventsRefs(
+    Expression<bool> Function($$CalendarEventsTableFilterComposer f) f,
+  ) {
+    final $$CalendarEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.typeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
-class $$CalendarFlagsTableOrderingComposer
-    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
-  $$CalendarFlagsTableOrderingComposer({
+class $$EventTypesTableOrderingComposer
+    extends Composer<_$AppDatabase, $EventTypesTable> {
+  $$EventTypesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get date => $composableBuilder(
-    column: $table.date,
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get flag => $composableBuilder(
-    column: $table.flag,
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get glyph => $composableBuilder(
+    column: $table.glyph,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get mark => $composableBuilder(
+    column: $table.mark,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$CalendarFlagsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
-  $$CalendarFlagsTableAnnotationComposer({
+class $$EventTypesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EventTypesTable> {
+  $$EventTypesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<DayFlag, int> get flag =>
-      $composableBuilder(column: $table.flag, builder: (column) => column);
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get glyph =>
+      $composableBuilder(column: $table.glyph, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<CalendarMark, int> get mark =>
+      $composableBuilder(column: $table.mark, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  Expression<T> calendarEventsRefs<T extends Object>(
+    Expression<T> Function($$CalendarEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CalendarEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.calendarEvents,
+      getReferencedColumn: (t) => t.typeId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CalendarEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calendarEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
-class $$CalendarFlagsTableTableManager
+class $$EventTypesTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $CalendarFlagsTable,
-          CalendarFlag,
-          $$CalendarFlagsTableFilterComposer,
-          $$CalendarFlagsTableOrderingComposer,
-          $$CalendarFlagsTableAnnotationComposer,
-          $$CalendarFlagsTableCreateCompanionBuilder,
-          $$CalendarFlagsTableUpdateCompanionBuilder,
-          (
-            CalendarFlag,
-            BaseReferences<_$AppDatabase, $CalendarFlagsTable, CalendarFlag>,
-          ),
-          CalendarFlag,
-          PrefetchHooks Function()
+          $EventTypesTable,
+          EventType,
+          $$EventTypesTableFilterComposer,
+          $$EventTypesTableOrderingComposer,
+          $$EventTypesTableAnnotationComposer,
+          $$EventTypesTableCreateCompanionBuilder,
+          $$EventTypesTableUpdateCompanionBuilder,
+          (EventType, $$EventTypesTableReferences),
+          EventType,
+          PrefetchHooks Function({bool calendarEventsRefs})
         > {
-  $$CalendarFlagsTableTableManager(_$AppDatabase db, $CalendarFlagsTable table)
+  $$EventTypesTableTableManager(_$AppDatabase db, $EventTypesTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$CalendarFlagsTableFilterComposer($db: db, $table: table),
+              $$EventTypesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$CalendarFlagsTableOrderingComposer($db: db, $table: table),
+              $$EventTypesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$CalendarFlagsTableAnnotationComposer($db: db, $table: table),
+              $$EventTypesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<String> date = const Value.absent(),
-                Value<DayFlag> flag = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) =>
-                  CalendarFlagsCompanion(date: date, flag: flag, rowid: rowid),
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<String?> glyph = const Value.absent(),
+                Value<CalendarMark> mark = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+              }) => EventTypesCompanion(
+                id: id,
+                name: name,
+                color: color,
+                glyph: glyph,
+                mark: mark,
+                sortOrder: sortOrder,
+              ),
           createCompanionCallback:
               ({
-                required String date,
-                required DayFlag flag,
-                Value<int> rowid = const Value.absent(),
-              }) => CalendarFlagsCompanion.insert(
-                date: date,
-                flag: flag,
-                rowid: rowid,
+                Value<int> id = const Value.absent(),
+                required String name,
+                required int color,
+                Value<String?> glyph = const Value.absent(),
+                Value<CalendarMark> mark = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+              }) => EventTypesCompanion.insert(
+                id: id,
+                name: name,
+                color: color,
+                glyph: glyph,
+                mark: mark,
+                sortOrder: sortOrder,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EventTypesTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({calendarEventsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (calendarEventsRefs) db.calendarEvents,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (calendarEventsRefs)
+                    await $_getPrefetchedData<
+                      EventType,
+                      $EventTypesTable,
+                      CalendarEvent
+                    >(
+                      currentTable: table,
+                      referencedTable: $$EventTypesTableReferences
+                          ._calendarEventsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$EventTypesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).calendarEventsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.typeId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
 
-typedef $$CalendarFlagsTableProcessedTableManager =
+typedef $$EventTypesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $CalendarFlagsTable,
-      CalendarFlag,
-      $$CalendarFlagsTableFilterComposer,
-      $$CalendarFlagsTableOrderingComposer,
-      $$CalendarFlagsTableAnnotationComposer,
-      $$CalendarFlagsTableCreateCompanionBuilder,
-      $$CalendarFlagsTableUpdateCompanionBuilder,
-      (
-        CalendarFlag,
-        BaseReferences<_$AppDatabase, $CalendarFlagsTable, CalendarFlag>,
-      ),
-      CalendarFlag,
-      PrefetchHooks Function()
+      $EventTypesTable,
+      EventType,
+      $$EventTypesTableFilterComposer,
+      $$EventTypesTableOrderingComposer,
+      $$EventTypesTableAnnotationComposer,
+      $$EventTypesTableCreateCompanionBuilder,
+      $$EventTypesTableUpdateCompanionBuilder,
+      (EventType, $$EventTypesTableReferences),
+      EventType,
+      PrefetchHooks Function({bool calendarEventsRefs})
+    >;
+typedef $$CalendarEventsTableCreateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      Value<int> id,
+      required int typeId,
+      Value<String?> title,
+      required String startDate,
+      Value<String?> endDate,
+      Value<bool> annual,
+      Value<int?> thoughtId,
+    });
+typedef $$CalendarEventsTableUpdateCompanionBuilder =
+    CalendarEventsCompanion Function({
+      Value<int> id,
+      Value<int> typeId,
+      Value<String?> title,
+      Value<String> startDate,
+      Value<String?> endDate,
+      Value<bool> annual,
+      Value<int?> thoughtId,
+    });
+
+final class $$CalendarEventsTableReferences
+    extends BaseReferences<_$AppDatabase, $CalendarEventsTable, CalendarEvent> {
+  $$CalendarEventsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $EventTypesTable _typeIdTable(_$AppDatabase db) =>
+      db.eventTypes.createAlias('calendar_events__type_id__event_types__id');
+
+  $$EventTypesTableProcessedTableManager get typeId {
+    final $_column = $_itemColumn<int>('type_id')!;
+
+    final manager = $$EventTypesTableTableManager(
+      $_db,
+      $_db.eventTypes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_typeIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('calendar_events__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager? get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id');
+    if ($_column == null) return null;
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CalendarEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get annual => $composableBuilder(
+    column: $table.annual,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$EventTypesTableFilterComposer get typeId {
+    final $$EventTypesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.typeId,
+      referencedTable: $db.eventTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EventTypesTableFilterComposer(
+            $db: $db,
+            $table: $db.eventTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get annual => $composableBuilder(
+    column: $table.annual,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$EventTypesTableOrderingComposer get typeId {
+    final $$EventTypesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.typeId,
+      referencedTable: $db.eventTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EventTypesTableOrderingComposer(
+            $db: $db,
+            $table: $db.eventTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CalendarEventsTable> {
+  $$CalendarEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<String> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get annual =>
+      $composableBuilder(column: $table.annual, builder: (column) => column);
+
+  $$EventTypesTableAnnotationComposer get typeId {
+    final $$EventTypesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.typeId,
+      referencedTable: $db.eventTypes,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EventTypesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eventTypes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CalendarEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CalendarEventsTable,
+          CalendarEvent,
+          $$CalendarEventsTableFilterComposer,
+          $$CalendarEventsTableOrderingComposer,
+          $$CalendarEventsTableAnnotationComposer,
+          $$CalendarEventsTableCreateCompanionBuilder,
+          $$CalendarEventsTableUpdateCompanionBuilder,
+          (CalendarEvent, $$CalendarEventsTableReferences),
+          CalendarEvent,
+          PrefetchHooks Function({bool typeId, bool thoughtId})
+        > {
+  $$CalendarEventsTableTableManager(
+    _$AppDatabase db,
+    $CalendarEventsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> typeId = const Value.absent(),
+                Value<String?> title = const Value.absent(),
+                Value<String> startDate = const Value.absent(),
+                Value<String?> endDate = const Value.absent(),
+                Value<bool> annual = const Value.absent(),
+                Value<int?> thoughtId = const Value.absent(),
+              }) => CalendarEventsCompanion(
+                id: id,
+                typeId: typeId,
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                annual: annual,
+                thoughtId: thoughtId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int typeId,
+                Value<String?> title = const Value.absent(),
+                required String startDate,
+                Value<String?> endDate = const Value.absent(),
+                Value<bool> annual = const Value.absent(),
+                Value<int?> thoughtId = const Value.absent(),
+              }) => CalendarEventsCompanion.insert(
+                id: id,
+                typeId: typeId,
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                annual: annual,
+                thoughtId: thoughtId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CalendarEventsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({typeId = false, thoughtId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (typeId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.typeId,
+                                referencedTable: $$CalendarEventsTableReferences
+                                    ._typeIdTable(db),
+                                referencedColumn:
+                                    $$CalendarEventsTableReferences
+                                        ._typeIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (thoughtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.thoughtId,
+                                referencedTable: $$CalendarEventsTableReferences
+                                    ._thoughtIdTable(db),
+                                referencedColumn:
+                                    $$CalendarEventsTableReferences
+                                        ._thoughtIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CalendarEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CalendarEventsTable,
+      CalendarEvent,
+      $$CalendarEventsTableFilterComposer,
+      $$CalendarEventsTableOrderingComposer,
+      $$CalendarEventsTableAnnotationComposer,
+      $$CalendarEventsTableCreateCompanionBuilder,
+      $$CalendarEventsTableUpdateCompanionBuilder,
+      (CalendarEvent, $$CalendarEventsTableReferences),
+      CalendarEvent,
+      PrefetchHooks Function({bool typeId, bool thoughtId})
     >;
 
 class $AppDatabaseManager {
@@ -3937,6 +5305,8 @@ class $AppDatabaseManager {
       $$AttachmentsTableTableManager(_db, _db.attachments);
   $$AttachmentBlobsTableTableManager get attachmentBlobs =>
       $$AttachmentBlobsTableTableManager(_db, _db.attachmentBlobs);
-  $$CalendarFlagsTableTableManager get calendarFlags =>
-      $$CalendarFlagsTableTableManager(_db, _db.calendarFlags);
+  $$EventTypesTableTableManager get eventTypes =>
+      $$EventTypesTableTableManager(_db, _db.eventTypes);
+  $$CalendarEventsTableTableManager get calendarEvents =>
+      $$CalendarEventsTableTableManager(_db, _db.calendarEvents);
 }

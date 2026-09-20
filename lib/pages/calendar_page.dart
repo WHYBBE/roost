@@ -12,8 +12,7 @@ import '../ui/entry_widgets.dart';
 import '../ui/heatmap.dart';
 import '../ui/mood.dart';
 import '../ui/vault_switcher.dart';
-import 'holiday_plan_page.dart';
-import 'special_days_page.dart';
+import 'calendar_manage_page.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -33,11 +32,13 @@ class _CalendarPageState extends State<CalendarPage> {
   /// 窄屏（手机竖屏）使用按月分页视图，宽屏使用 GitHub 年度热力图
   static const _narrowBreakpoint = 720.0;
 
-  /// 当天生效的休/班：显式标记优先，周六日默认休
-  DayFlag? _effectiveFlag(DateTime date, Map<String, DayFlag> flags) {
-    final explicit = flags[AppDatabase.formatDay(date)];
+  /// 当天生效的休/班：事件标记优先，周六日默认休（月历角标用）
+  CalendarMark _effectiveMark(DateTime date, Map<String, CalendarMark> marks) {
+    final explicit = marks[AppDatabase.formatDay(date)];
     if (explicit != null) return explicit;
-    return date.weekday >= DateTime.saturday ? DayFlag.rest : null;
+    return date.weekday >= DateTime.saturday
+        ? CalendarMark.rest
+        : CalendarMark.none;
   }
 
   /// 每周起始日（设置可调，默认周日）
@@ -76,40 +77,12 @@ class _CalendarPageState extends State<CalendarPage> {
               _selectedDay = null;
             }),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.event_note_outlined),
-            tooltip: '${l.specialDaysTitle} / ${l.holidayPlanTitle}',
-            onSelected: (key) => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => key == 'events'
-                    ? const SpecialDaysPage()
-                    : const HolidayPlanPage(),
-              ),
+          IconButton(
+            icon: const Icon(Icons.edit_calendar_outlined),
+            tooltip: l.calendarManageTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CalendarManagePage()),
             ),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'events',
-                child: Row(
-                  children: [
-                    Icon(Icons.celebration_outlined,
-                        size: 20, color: Theme.of(context).colorScheme.tertiary),
-                    const SizedBox(width: 10),
-                    Text(l.specialDaysTitle),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'plan',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_calendar_outlined,
-                        size: 20, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 10),
-                    Text(l.holidayPlanTitle),
-                  ],
-                ),
-              ),
-            ],
           ),
           const SizedBox(width: 4),
         ],
@@ -121,18 +94,49 @@ class _CalendarPageState extends State<CalendarPage> {
             return const Center(child: CircularProgressIndicator());
           }
           final entries = snap.data ?? const <ThoughtEntry>[];
-          return StreamBuilder<List<ThoughtEntry>>(
-            stream: appDb.watchAnnualEvents(),
-            builder: (context, evSnap) {
-              // MM-DD → 特殊日子思绪
-              final eventsByMd = <String, List<ThoughtEntry>>{};
-              for (final e in evSnap.data ?? const <ThoughtEntry>[]) {
-                eventsByMd.putIfAbsent(e.annualDate!, () => []).add(e);
-              }
-              return StreamBuilder<Map<String, DayFlag>>(
-                stream: appDb.watchCalendarFlags(),
-                builder: (context, flagSnap) {
-                  final flags = flagSnap.data ?? const <String, DayFlag>{};
+          return StreamBuilder<List<EventType>>(
+            stream: appDb.watchEventTypes(),
+            builder: (context, typeSnap) {
+              final typeById = {
+                for (final t in typeSnap.data ?? const <EventType>[]) t.id: t,
+              };
+              return StreamBuilder<List<CalendarEvent>>(
+                stream: appDb.watchEvents(),
+                builder: (context, evSnap) {
+                  // 事件按年展开：day → 事件；并汇总标记与彩点
+                  final eventsByDay = <String, List<CalendarEvent>>{};
+                  for (final e in evSnap.data ?? const <CalendarEvent>[]) {
+                    for (final d in AppDatabase.eventDaysInYear(e, _year)) {
+                      eventsByDay.putIfAbsent(d, () => []).add(e);
+                    }
+                  }
+                  final marksByDay = <String, CalendarMark>{};
+                  final dotsByDay = <String, List<Color>>{};
+                  for (final entry in eventsByDay.entries) {
+                    var mark = CalendarMark.none;
+                    final colors = <int>[];
+                    for (final e in entry.value) {
+                      final t = typeById[e.typeId];
+                      if (t == null) continue;
+                      if (t.mark == CalendarMark.work) {
+                        mark = CalendarMark.work;
+                      } else if (t.mark == CalendarMark.rest &&
+                          mark != CalendarMark.work) {
+                        mark = CalendarMark.rest;
+                      }
+                      // 休/班已有角标语义，彩点只承载无标记类型
+                      if (t.mark == CalendarMark.none &&
+                          !colors.contains(t.color)) {
+                        colors.add(t.color);
+                      }
+                    }
+                    if (mark != CalendarMark.none) {
+                      marksByDay[entry.key] = mark;
+                    }
+                    dotsByDay[entry.key] = [
+                      for (final c in colors.take(3)) Color(c),
+                    ];
+                  }
                   final counts = <String, int>{};
                   for (final e in entries) {
                     counts[e.day] = (counts[e.day] ?? 0) + 1;
@@ -146,92 +150,202 @@ class _CalendarPageState extends State<CalendarPage> {
                       ? null
                       : entries.where((e) => e.day == _selectedDay).toList();
                   final dayEvents = _selectedDay == null
-                      ? const <ThoughtEntry>[]
-                      : (eventsByMd[_selectedDay!.substring(5)] ??
-                          const <ThoughtEntry>[]);
+                      ? const <CalendarEvent>[]
+                      : (eventsByDay[_selectedDay!] ?? const <CalendarEvent>[]);
+                  return StreamBuilder<List<ThoughtEntry>>(
+                    stream: appDb.watchAnnualEvents(),
+                    builder: (context, thSnap) {
+                      // MM-DD → 特殊日子思绪
+                      final eventsByMd = <String, List<ThoughtEntry>>{};
+                      for (final e in thSnap.data ?? const <ThoughtEntry>[]) {
+                        eventsByMd.putIfAbsent(
+                            e.annualDate!, () => []).add(e);
+                      }
+                      final dayThoughts = _selectedDay == null
+                          ? const <ThoughtEntry>[]
+                          : (eventsByMd[_selectedDay!.substring(5)] ??
+                              const <ThoughtEntry>[]);
 
-                  return Center(
-                    child: SizedBox(
-                      width: 900,
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                      return Center(
+                        child: SizedBox(
+                          width: 900,
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
                             children: [
-                              Text(l.yearTotal(_year, yearCount),
-                                  style: Theme.of(context).textTheme.titleMedium),
-                              Text(l.streak(streak),
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: Theme.of(context).colorScheme.primary,
-                                      )),
-                              Text(l.longestStreak(longest),
-                                  style: Theme.of(context).textTheme.bodySmall),
-                              _legend(context, l),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          narrow
-                              ? _monthCard(context, counts, eventsByMd, flags, locale)
-                              : _heatmap(context, counts, eventsByMd, flags, locale),
-                          const SizedBox(height: 24),
-                          if (_selectedDay != null) ...[
-                            Text(
-                              DateFormat.yMMMMd(locale)
-                                  .format(DateTime.parse(_selectedDay!)),
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            // 当日特殊日子（每年循环），展示为特殊思绪
-                            if (dayEvents.isNotEmpty) ...[
-                              Text(
-                                l.specialDaysTitle,
-                                style: Theme.of(context).textTheme.labelLarge
-                                    ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .tertiary),
+                              Wrap(
+                                spacing: 16,
+                                runSpacing: 8,
+                                crossAxisAlignment:
+                                    WrapCrossAlignment.center,
+                                children: [
+                                  Text(l.yearTotal(_year, yearCount),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium),
+                                  Text(l.streak(streak),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          )),
+                                  Text(l.longestStreak(longest),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall),
+                                  _legend(context, l),
+                                ],
                               ),
-                              const SizedBox(height: 4),
-                              for (final e in dayEvents)
-                                Card(
-                                  child: ListTile(
-                                    leading: Icon(Icons.celebration_outlined,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .tertiary),
-                                    title: Text(e.content),
-                                    onTap: () => showEntryEditor(context, existing: e),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () => confirmDelete(context, e),
+                              const SizedBox(height: 12),
+                              narrow
+                                  ? _monthCard(context, counts, eventsByMd,
+                                      marksByDay, dotsByDay, locale)
+                                  : _heatmap(context, counts, eventsByMd,
+                                      marksByDay, dotsByDay, locale),
+                              const SizedBox(height: 24),
+                              if (_selectedDay != null) ...[
+                                Text(
+                                  DateFormat.yMMMMd(locale)
+                                      .format(DateTime.parse(_selectedDay!)),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium,
+                                ),
+                                const SizedBox(height: 8),
+                                // 当日日历事件（类型分组承载）
+                                if (dayEvents.isNotEmpty) ...[
+                                  Text(
+                                    l.dayEventsLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  for (final e in dayEvents)
+                                    _dayEventCard(
+                                        context, e, typeById[e.typeId]),
+                                  const SizedBox(height: 12),
+                                ],
+                                // 当日特殊日子（每年循环的思绪）
+                                if (dayThoughts.isNotEmpty) ...[
+                                  Text(
+                                    l.specialDaysTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .tertiary),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  for (final t in dayThoughts)
+                                    Card(
+                                      child: ListTile(
+                                        leading: Icon(
+                                            Icons.celebration_outlined,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .tertiary),
+                                        title: Text(t.content),
+                                        onTap: () => showEntryEditor(
+                                            context,
+                                            existing: t),
+                                        trailing: IconButton(
+                                          icon: const Icon(
+                                              Icons.delete_outline),
+                                          onPressed: () =>
+                                              confirmDelete(context, t),
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                ],
+                                if (selectedEntries!.isEmpty)
+                                  Text(l.emptyDay)
+                                else
+                                  ...selectedEntries.map(
+                                    (e) => EntryCard(
+                                      entry: e,
+                                      onTap: () => showEntryEditor(
+                                          context,
+                                          existing: e),
+                                      onLongPress: () =>
+                                          confirmDelete(context, e),
                                     ),
                                   ),
-                                ),
-                              const SizedBox(height: 12),
+                              ],
                             ],
-                            if (selectedEntries!.isEmpty)
-                              Text(l.emptyDay)
-                            else
-                              ...selectedEntries.map(
-                                (e) => EntryCard(
-                                  entry: e,
-                                  onTap: () => showEntryEditor(context, existing: e),
-                                  onLongPress: () => confirmDelete(context, e),
-                                ),
-                              ),
-                          ],
-                        ],
-                      ),
-                    ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  /// 选中日面板里的一条事件：字符/彩点 + 标题（或类型名）+ 区间
+  Widget _dayEventCard(
+      BuildContext context, CalendarEvent e, EventType? type) {
+    if (type == null) return const SizedBox.shrink();
+    final l = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
+    final color = Color(type.color);
+    final title = e.title ?? type.name;
+    final range = e.endDate == null
+        ? null
+        : '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))} ~ ${DateFormat.MMMd(locale).format(DateTime.parse(e.endDate!))}';
+    return Card(
+      child: ListTile(
+        leading: type.glyph == null || type.glyph!.isEmpty
+            ? Container(
+                width: 24,
+                height: 24,
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: color),
+              )
+            : Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.15),
+                ),
+                child: Text(
+                  type.glyph!,
+                  style: TextStyle(fontSize: 13, color: color),
+                ),
+              ),
+        title: Text(title),
+        subtitle: range == null
+            ? null
+            : Text(range, style: Theme.of(context).textTheme.labelSmall),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (e.annual)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(Icons.repeat,
+                  size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: l.deleteEvent,
+            onPressed: () => appDb.deleteEvent(e.id),
+          ),
+        ]),
       ),
     );
   }
@@ -255,7 +369,8 @@ class _CalendarPageState extends State<CalendarPage> {
     BuildContext context,
     Map<String, int> counts,
     Map<String, List<ThoughtEntry>> eventsByMd,
-    Map<String, DayFlag> flags,
+    Map<String, CalendarMark> marksByDay,
+    Map<String, List<Color>> dotsByDay,
     String locale,
   ) {
     final scheme = Theme.of(context).colorScheme;
@@ -273,9 +388,10 @@ class _CalendarPageState extends State<CalendarPage> {
       final isSelected = _selectedDay == dayStr;
       final isToday = dayStr == today;
       final color = _heatColor(context, level, date.isAfter(DateTime.now()));
-      final flag = _effectiveFlag(date, flags);
-      final isExplicit = flags[dayStr] != null;
+      final mark = _effectiveMark(date, marksByDay);
+      final isExplicit = marksByDay[dayStr] != null;
       final hasEvent = eventsByMd.containsKey(dayStr.substring(5));
+      final dots = dotsByDay[dayStr] ?? const <Color>[];
 
       Border? border;
       if (isSelected) {
@@ -285,7 +401,7 @@ class _CalendarPageState extends State<CalendarPage> {
       }
 
       final filled = !date.isAfter(DateTime.now()) && level >= 4;
-      final weekendRest = flag == DayFlag.rest && !isExplicit;
+      final weekendRest = mark == CalendarMark.rest && !isExplicit;
       // 满档用反色；周末默认休的日期数字用弱红（纸质日历习惯）
       final fg = filled
           ? scheme.onPrimary
@@ -325,33 +441,59 @@ class _CalendarPageState extends State<CalendarPage> {
                               ?.copyWith(color: fg),
                         ),
                       ),
-                      // 特殊日子：右下角小圆点
-                      if (hasEvent)
+                      // 事件彩点（最多 3）+ 特殊日子圆点：底部居中一排
+                      if (dots.isNotEmpty || hasEvent)
                         Positioned(
-                          bottom: 4,
+                          bottom: 3,
+                          left: 4,
                           right: 4,
-                          child: Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: scheme.tertiary,
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (final c in dots)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 1),
+                                  child: Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: c,
+                                    ),
+                                  ),
+                                ),
+                              if (hasEvent)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 1),
+                                  child: Container(
+                                    width: 4,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: scheme.tertiary,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       // 休/班 角标：颜色与图例及热力图圆点一致
                       // （休=红，周末默认休为弱化红；班=主题色）
-                      if (flag != null)
+                      if (mark != CalendarMark.none)
                         Positioned(
                           top: 2,
                           right: 3,
                           child: Text(
-                            flag == DayFlag.work ? l.glyphWork : l.glyphRest,
+                            mark == CalendarMark.work
+                                ? l.glyphWork
+                                : l.glyphRest,
                             style: TextStyle(
                               fontSize: 9,
                               height: 1.1,
                               fontWeight: FontWeight.w700,
-                              color: flag == DayFlag.work
+                              color: mark == CalendarMark.work
                                   ? scheme.primary
                                   : isExplicit
                                       ? scheme.error
@@ -452,7 +594,8 @@ class _CalendarPageState extends State<CalendarPage> {
   /// 宽屏：GitHub 年度热力图。格子尺寸按视口宽度自适应缩放，
   /// 保证整年（含 12 月）完整显示、无需滚动。
   Widget _heatmap(BuildContext context, Map<String, int> counts,
-      Map<String, List<ThoughtEntry>> eventsByMd, Map<String, DayFlag> flags,
+      Map<String, List<ThoughtEntry>> eventsByMd,
+      Map<String, CalendarMark> marksByDay, Map<String, List<Color>> dotsByDay,
       String locale) {
     final now = DateTime.now();
     final today = AppDatabase.today();
@@ -516,7 +659,10 @@ class _CalendarPageState extends State<CalendarPage> {
                         isToday: AppDatabase.formatDay(date) == today,
                         // 仅显式标记（法定假日/调休补班）；周末默认休不上点，
                         // 靠列位置已可辨识
-                        flag: flags[AppDatabase.formatDay(date)],
+                        mark: marksByDay[AppDatabase.formatDay(date)],
+                        dotColor: (dotsByDay[AppDatabase.formatDay(date)] ??
+                                const <Color>[])
+                            .firstOrNull,
                         hasEvent: eventsByMd
                             .containsKey(AppDatabase.formatDay(date).substring(5)),
                         locale: locale,
@@ -572,7 +718,8 @@ class _CalendarPageState extends State<CalendarPage> {
     required int count,
     required bool isFuture,
     required bool isToday,
-    required DayFlag? flag,
+    required CalendarMark? mark,
+    required Color? dotColor,
     required bool hasEvent,
     required String locale,
     required double cellSize,
@@ -585,17 +732,15 @@ class _CalendarPageState extends State<CalendarPage> {
     final isSelected = _selectedDay == dayStr;
     final level = heatLevel(count);
     final color = _heatColor(context, level, isFuture);
-    // 小点颜色：班 > 显式休 > 特殊日子
-    final Color? dotColor = flag == DayFlag.work
+    // 小点颜色优先级：班 > 显式休 > 类型彩点 > 特殊日子
+    final Color? dot = mark == CalendarMark.work
         ? scheme.primary
-        : flag == DayFlag.rest
+        : mark == CalendarMark.rest
             ? scheme.error
-            : hasEvent
-                ? scheme.tertiary
-                : null;
-    final flagLabel = flag == null
-        ? (hasEvent ? ' · ${l.specialDaysTitle}' : '')
-        : flag == DayFlag.work
+            : dotColor ?? (hasEvent ? scheme.tertiary : null);
+    final flagLabel = mark == null
+        ? (hasEvent || dotColor != null ? ' · ${l.dayEventsLabel}' : '')
+        : mark == CalendarMark.work
             ? ' · ${l.workLabel}'
             : ' · ${l.restLabel}';
 
@@ -625,9 +770,8 @@ class _CalendarPageState extends State<CalendarPage> {
               borderRadius: BorderRadius.circular(3),
               border: border,
             ),
-            // 带颜色小点：休（红）/ 班（主题色）/ 特殊日子（tertiary）；
-            // 描边保证与热力底色同色系时仍可辨识
-            child: dotColor == null
+            // 带颜色小点；描边保证与热力底色同色系时仍可辨识
+            child: dot == null
                 ? null
                 : Center(
                     child: Container(
@@ -635,7 +779,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       height: cellSize * 0.42,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: dotColor,
+                        color: dot,
                         border: Border.all(color: scheme.surface, width: 1),
                       ),
                     ),

@@ -907,6 +907,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monday'**
   String get weekStartMonday;
+
+  /// No description provided for @calendarManageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar manager'**
+  String get calendarManageTitle;
+
+  /// No description provided for @dayEventsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get dayEventsLabel;
+
+  /// No description provided for @eventTypesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Event types'**
+  String get eventTypesSection;
+
+  /// No description provided for @specialThoughtsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Special days (thoughts)'**
+  String get specialThoughtsSection;
+
+  /// No description provided for @addEventType.
+  ///
+  /// In en, this message translates to:
+  /// **'New type'**
+  String get addEventType;
+
+  /// No description provided for @editType.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit type'**
+  String get editType;
+
+  /// No description provided for @typeNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, e.g. 2026 holidays'**
+  String get typeNameHint;
+
+  /// No description provided for @markNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get markNone;
+
+  /// No description provided for @cornerGlyphHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Corner glyph (optional)'**
+  String get cornerGlyphHint;
+
+  /// No description provided for @addEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Add event'**
+  String get addEvent;
+
+  /// No description provided for @editEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit event'**
+  String get editEvent;
+
+  /// No description provided for @deleteEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete event'**
+  String get deleteEvent;
+
+  /// No description provided for @eventTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (optional, defaults to type name)'**
+  String get eventTitleHint;
+
+  /// No description provided for @startDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get startDateLabel;
+
+  /// No description provided for @endDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'End date (optional, long-press to clear)'**
+  String get endDateLabel;
+
+  /// No description provided for @annualRecur.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat yearly'**
+  String get annualRecur;
+
+  /// No description provided for @recordAsThought.
+  ///
+  /// In en, this message translates to:
+  /// **'Also save as thought'**
+  String get recordAsThought;
+
+  /// No description provided for @deleteType.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete type'**
+  String get deleteType;
+
+  /// No description provided for @deleteTypeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes \"{name}\" and all its events.'**
+  String deleteTypeBody(String name);
+
+  /// No description provided for @emptyTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'No types yet — tap + to create'**
+  String get emptyTypes;
+
+  /// No description provided for @eventsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} events'**
+  String eventsCount(int count);
+
+  /// No description provided for @presetHoliday.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays'**
+  String get presetHoliday;
+
+  /// No description provided for @presetMakeup.
+  ///
+  /// In en, this message translates to:
+  /// **'Makeup workdays'**
+  String get presetMakeup;
+
+  /// No description provided for @presetBirthday.
+  ///
+  /// In en, this message translates to:
+  /// **'Birthdays'**
+  String get presetBirthday;
+
+  /// No description provided for @presetPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle'**
+  String get presetPeriod;
+
+  /// No description provided for @presetTravel.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get presetTravel;
 }
 
 class _AppLocalizationsDelegate

@@ -483,39 +483,125 @@ void main() {
       expect(all, hasLength(2));
     });
 
-    test('放假标记：upsert 覆盖与清除', () async {
-      expect(await db.watchCalendarFlags().first, isEmpty);
+    test('事件模型：区间与每年循环的日期展开', () async {
+      final holidayType = await db.createEventType(
+        name: '2026 法定节假日',
+        color: 0xFFCF4B3F,
+        glyph: '休',
+        mark: CalendarMark.rest,
+      );
+      await db.insertEvent(
+        typeId: holidayType,
+        startDate: '2026-10-01',
+        endDate: '2026-10-03',
+        title: '国庆',
+      );
+      final events = await db.watchEvents().first;
+      expect(events, hasLength(1));
+      expect(
+        AppDatabase.eventDaysInYear(events.single, 2026),
+        ['2026-10-01', '2026-10-02', '2026-10-03'],
+      );
 
-      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
-      await db.setCalendarFlag('2026-10-03', DayFlag.rest);
-      expect((await db.watchCalendarFlags().first)['2026-10-01'], DayFlag.rest);
+      // 跨年区间：按年裁剪
+      final travelType = await db.createEventType(
+        name: '旅行',
+        color: 0xFF4A7DC4,
+      );
+      final tripId = await db.insertEvent(
+        typeId: travelType,
+        startDate: '2026-12-30',
+        endDate: '2027-01-02',
+      );
+      final trip = (await db.watchEvents().first).firstWhere((e) => e.id == tripId);
+      expect(
+        AppDatabase.eventDaysInYear(trip, 2026),
+        ['2026-12-30', '2026-12-31'],
+      );
+      expect(
+        AppDatabase.eventDaysInYear(trip, 2027),
+        ['2027-01-01', '2027-01-02'],
+      );
 
-      // 同日重设为班（调休补班）
-      await db.setCalendarFlag('2026-10-01', DayFlag.work);
-      final updated = await db.watchCalendarFlags().first;
-      expect(updated['2026-10-01'], DayFlag.work);
-      expect(updated, hasLength(2));
-
-      // 清除
-      await db.setCalendarFlag('2026-10-01', null);
-      expect(await db.watchCalendarFlags().first, hasLength(1));
+      // 每年循环：按 startDate 的月-日展开到目标年
+      final annualId = await db.insertEvent(
+        typeId: travelType,
+        startDate: '2015-05-04',
+        annual: true,
+      );
+      final annual =
+          (await db.watchEvents().first).firstWhere((e) => e.id == annualId);
+      expect(annual.annual, isTrue);
+      expect(AppDatabase.eventDaysInYear(annual, 2026), ['2026-05-04']);
     });
 
-    test('清空数据时同时清除放假标记', () async {
-      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
-      await db.resetAllData();
-      expect(await db.watchCalendarFlags().first, isEmpty);
+    test('事件的编辑与删除', () async {
+      final typeId = await db.createEventType(name: '周期', color: 0xFFCF9F3F);
+      final id = await db.insertEvent(typeId: typeId, startDate: '2026-09-01');
+      await db.updateEvent(
+        id,
+        startDate: '2026-09-05',
+        endDate: '2026-09-07',
+        title: '记录',
+        annual: false,
+      );
+      final e = (await db.watchEvents().first).single;
+      expect(e.startDate, '2026-09-05');
+      expect(e.endDate, '2026-09-07');
+      expect(e.title, '记录');
+      await db.deleteEvent(id);
+      expect(await db.watchEvents().first, isEmpty);
     });
 
-    test('导出/导入往返：特殊日子与放假标记', () async {
-      await db.insertThought(
+    test('删除类型级联删除其下事件', () async {
+      final typeId = await db.createEventType(name: '类型', color: 0xFF112233);
+      await db.insertEvent(typeId: typeId, startDate: '2026-01-01');
+      await db.insertEvent(typeId: typeId, startDate: '2026-02-01');
+      await db.deleteEventType(typeId);
+      expect(await db.watchEventTypes().first, isEmpty);
+      expect(await db.watchEvents().first, isEmpty);
+    });
+
+    test('事件联动思绪（万物皆思绪）', () async {
+      final typeId = await db.createEventType(name: '生日', color: 0xFFCF9F3F);
+      final thoughtId = await db.insertThought(
+        content: '妈妈的生日',
+        day: '2026-03-08',
+        createdAt: DateTime(2026, 3, 8, 9),
+      );
+      await db.insertEvent(
+        typeId: typeId,
+        startDate: '2026-03-08',
+        annual: true,
+        thoughtId: thoughtId,
+      );
+      final e = (await db.watchEvents().first).single;
+      expect(e.thoughtId, thoughtId);
+      // 删除思绪：事件保留，联动置空
+      await db.deleteThought(thoughtId);
+      final kept = (await db.watchEvents().first).single;
+      expect(kept.thoughtId, isNull);
+    });
+
+    test('导出/导入往返：类型、事件与联动', () async {
+      final typeId = await db.createEventType(
+        name: '生日',
+        color: 0xFFCF9F3F,
+        glyph: '🎂',
+      );
+      final thoughtId = await db.insertThought(
         content: '我的生日',
         day: '2026-09-20',
         createdAt: DateTime(2026, 9, 20, 9),
         annualDate: '05-04',
       );
-      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
-      await db.setCalendarFlag('2026-09-27', DayFlag.work);
+      await db.insertEvent(
+        typeId: typeId,
+        startDate: '2026-05-04',
+        annual: true,
+        title: '我的生日',
+        thoughtId: thoughtId,
+      );
 
       final data = await db.exportData();
       final db2 = AppDatabase.connect(NativeDatabase.memory());
@@ -524,13 +610,25 @@ void main() {
       final count = await db2.importData(data);
       expect(count, 1);
 
-      final events = await db2.watchAnnualEvents().first;
-      expect(events.single.annualDate, '05-04');
-      expect(events.single.content, '我的生日');
+      final types = await db2.watchEventTypes().first;
+      expect(types.single.name, '生日');
+      expect(types.single.glyph, '🎂');
 
-      final flags = await db2.watchCalendarFlags().first;
-      expect(flags['2026-10-01'], DayFlag.rest);
-      expect(flags['2026-09-27'], DayFlag.work);
+      final events = await db2.watchEvents().first;
+      expect(events.single.annual, isTrue);
+      expect(events.single.startDate, '2026-05-04');
+      expect(events.single.thoughtId, isNotNull);
+      // 联动的思绪也一并导入
+      final linked = await db2.watchAnnualEvents().first;
+      expect(linked.single.annualDate, '05-04');
+    });
+
+    test('清空数据时同时清空类型与事件', () async {
+      final typeId = await db.createEventType(name: '类型', color: 0xFF112233);
+      await db.insertEvent(typeId: typeId, startDate: '2026-01-01');
+      await db.resetAllData();
+      expect(await db.watchEventTypes().first, isEmpty);
+      expect(await db.watchEvents().first, isEmpty);
     });
   });
 }

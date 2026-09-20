@@ -446,4 +446,86 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get weekStartMonday => '周一';
+
+  @override
+  String get calendarManageTitle => '日历管理';
+
+  @override
+  String get dayEventsLabel => '事件';
+
+  @override
+  String get eventTypesSection => '事件类型';
+
+  @override
+  String get specialThoughtsSection => '特殊日子（思绪）';
+
+  @override
+  String get addEventType => '新建类型';
+
+  @override
+  String get editType => '编辑类型';
+
+  @override
+  String get typeNameHint => '名称，如：2026 法定节假日';
+
+  @override
+  String get markNone => '无';
+
+  @override
+  String get cornerGlyphHint => '字符角标（可选）';
+
+  @override
+  String get addEvent => '添加事件';
+
+  @override
+  String get editEvent => '编辑事件';
+
+  @override
+  String get deleteEvent => '删除事件';
+
+  @override
+  String get eventTitleHint => '标题（可选，默认用类型名）';
+
+  @override
+  String get startDateLabel => '开始日期';
+
+  @override
+  String get endDateLabel => '结束日期（可选，长按清除）';
+
+  @override
+  String get annualRecur => '每年循环';
+
+  @override
+  String get recordAsThought => '同时记录为思绪';
+
+  @override
+  String get deleteType => '删除类型';
+
+  @override
+  String deleteTypeBody(String name) {
+    return '将删除\"$name\"及其下全部事件。';
+  }
+
+  @override
+  String get emptyTypes => '还没有类型，点右下角新建';
+
+  @override
+  String eventsCount(int count) {
+    return '$count 个事件';
+  }
+
+  @override
+  String get presetHoliday => '法定节假日';
+
+  @override
+  String get presetMakeup => '调休补班';
+
+  @override
+  String get presetBirthday => '生日';
+
+  @override
+  String get presetPeriod => '月经周期';
+
+  @override
+  String get presetTravel => '旅行';
 }
