@@ -457,4 +457,80 @@ void main() {
       expect(normal.single.count, 0);
     });
   });
+
+  group('calendar', () {
+    test('特殊日子：annualDate 思绪可查询，同时也是普通思绪', () async {
+      final now = DateTime(2026, 9, 20, 10, 30);
+      await db.insertThought(
+        content: '妈妈的生日',
+        day: '2026-09-20',
+        createdAt: now,
+        annualDate: '03-08',
+      );
+      await db.insertThought(
+        content: '普通思绪',
+        day: '2026-09-20',
+        createdAt: now.add(const Duration(minutes: 5)),
+      );
+
+      final events = await db.watchAnnualEvents().first;
+      expect(events, hasLength(1));
+      expect(events.single.annualDate, '03-08');
+      expect(events.single.content, '妈妈的生日');
+
+      // 万物皆思绪：特殊日子也在全部思绪流里
+      final all = await db.watchAllEntries().first;
+      expect(all, hasLength(2));
+    });
+
+    test('放假标记：upsert 覆盖与清除', () async {
+      expect(await db.watchCalendarFlags().first, isEmpty);
+
+      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
+      await db.setCalendarFlag('2026-10-03', DayFlag.rest);
+      expect((await db.watchCalendarFlags().first)['2026-10-01'], DayFlag.rest);
+
+      // 同日重设为班（调休补班）
+      await db.setCalendarFlag('2026-10-01', DayFlag.work);
+      final updated = await db.watchCalendarFlags().first;
+      expect(updated['2026-10-01'], DayFlag.work);
+      expect(updated, hasLength(2));
+
+      // 清除
+      await db.setCalendarFlag('2026-10-01', null);
+      expect(await db.watchCalendarFlags().first, hasLength(1));
+    });
+
+    test('清空数据时同时清除放假标记', () async {
+      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
+      await db.resetAllData();
+      expect(await db.watchCalendarFlags().first, isEmpty);
+    });
+
+    test('导出/导入往返：特殊日子与放假标记', () async {
+      await db.insertThought(
+        content: '我的生日',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 9),
+        annualDate: '05-04',
+      );
+      await db.setCalendarFlag('2026-10-01', DayFlag.rest);
+      await db.setCalendarFlag('2026-09-27', DayFlag.work);
+
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+
+      final count = await db2.importData(data);
+      expect(count, 1);
+
+      final events = await db2.watchAnnualEvents().first;
+      expect(events.single.annualDate, '05-04');
+      expect(events.single.content, '我的生日');
+
+      final flags = await db2.watchCalendarFlags().first;
+      expect(flags['2026-10-01'], DayFlag.rest);
+      expect(flags['2026-09-27'], DayFlag.work);
+    });
+  });
 }

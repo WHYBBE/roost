@@ -395,4 +395,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get micPermissionDenied => '未获得麦克风权限';
+
+  @override
+  String get specialDaysTitle => '特殊日子';
+
+  @override
+  String get specialDaysHint => '以特殊思绪记录（万物皆思绪），每年同日循环出现。';
+
+  @override
+  String get specialDayEmpty => '还没有特殊日子';
+
+  @override
+  String get addSpecialDay => '添加特殊日子';
+
+  @override
+  String get specialDayNameHint => '名称，如：妈妈的生日';
+
+  @override
+  String get specialDayDate => '日期';
+
+  @override
+  String get holidayPlanTitle => '放假安排';
+
+  @override
+  String get holidayPlanHint => '周六日默认休息；点按日期可设为休/班，国家法定假日与调休手动录入。';
+
+  @override
+  String get restLabel => '休';
+
+  @override
+  String get workLabel => '班';
+
+  @override
+  String get clearFlag => '清除标记';
+
+  @override
+  String get defaultRestLabel => '默认休';
+
+  @override
+  String get glyphRest => '休';
+
+  @override
+  String get glyphWork => '班';
 }

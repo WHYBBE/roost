@@ -805,6 +805,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Microphone permission denied'**
   String get micPermissionDenied;
+
+  /// No description provided for @specialDaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Special days'**
+  String get specialDaysTitle;
+
+  /// No description provided for @specialDaysHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored as special thoughts (everything is a thought), recurring on the same date each year.'**
+  String get specialDaysHint;
+
+  /// No description provided for @specialDayEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No special days yet'**
+  String get specialDayEmpty;
+
+  /// No description provided for @addSpecialDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Add special day'**
+  String get addSpecialDay;
+
+  /// No description provided for @specialDayNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, e.g. Mom\'s birthday'**
+  String get specialDayNameHint;
+
+  /// No description provided for @specialDayDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get specialDayDate;
+
+  /// No description provided for @holidayPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Holiday schedule'**
+  String get holidayPlanTitle;
+
+  /// No description provided for @holidayPlanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekends are off by default; tap a date to mark rest/work. Enter national holidays and makeup workdays manually.'**
+  String get holidayPlanHint;
+
+  /// No description provided for @restLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get restLabel;
+
+  /// No description provided for @workLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get workLabel;
+
+  /// No description provided for @clearFlag.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear mark'**
+  String get clearFlag;
+
+  /// No description provided for @defaultRestLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default off'**
+  String get defaultRestLabel;
+
+  /// No description provided for @glyphRest.
+  ///
+  /// In en, this message translates to:
+  /// **'O'**
+  String get glyphRest;
+
+  /// No description provided for @glyphWork.
+  ///
+  /// In en, this message translates to:
+  /// **'W'**
+  String get glyphWork;
 }
 
 class _AppLocalizationsDelegate

@@ -127,5 +127,19 @@
   "play": "Play",
   "pause": "Pause",
   "attachmentTooLarge": "File too large (max 20 MB each)",
-  "micPermissionDenied": "Microphone permission denied"
+  "micPermissionDenied": "Microphone permission denied",
+  "specialDaysTitle": "Special days",
+  "specialDaysHint": "Stored as special thoughts (everything is a thought), recurring on the same date each year.",
+  "specialDayEmpty": "No special days yet",
+  "addSpecialDay": "Add special day",
+  "specialDayNameHint": "Name, e.g. Mom's birthday",
+  "specialDayDate": "Date",
+  "holidayPlanTitle": "Holiday schedule",
+  "holidayPlanHint": "Weekends are off by default; tap a date to mark rest/work. Enter national holidays and makeup workdays manually.",
+  "restLabel": "Off",
+  "workLabel": "Work",
+  "clearFlag": "Clear mark",
+  "defaultRestLabel": "Default off",
+  "glyphRest": "O",
+  "glyphWork": "W"
 }

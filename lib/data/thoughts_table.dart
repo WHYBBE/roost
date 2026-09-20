@@ -22,6 +22,8 @@ class Thoughts extends Table {
   IntColumn get createdAt => integer()();
   // 最后修改时间（UTC 时间戳毫秒）
   IntColumn get updatedAt => integer()();
+  // 年度循环日期（MM-DD，如 03-08）；非空即"特殊日子"思绪，日历每年该日展示
+  TextColumn get annualDate => text().nullable()();
 }
 
 @DataClassName('Tag')
@@ -83,4 +85,23 @@ class AttachmentBlobs extends Table {
 
   @override
   Set<Column> get primaryKey => {attachmentId};
+}
+
+/// 放假标记：休 / 班（周六日默认休由 UI 层计算，显式记录用于法定假日与调休）
+enum DayFlag {
+  rest(0),
+  work(1);
+
+  final int value;
+  const DayFlag(this.value);
+}
+
+/// 放假安排：按日期（yyyy-MM-dd）一行
+@DataClassName('CalendarFlag')
+class CalendarFlags extends Table {
+  TextColumn get date => text()();
+  IntColumn get flag => intEnum<DayFlag>()();
+
+  @override
+  Set<Column> get primaryKey => {date};
 }

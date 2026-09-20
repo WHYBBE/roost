@@ -410,4 +410,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get micPermissionDenied => 'Microphone permission denied';
+
+  @override
+  String get specialDaysTitle => 'Special days';
+
+  @override
+  String get specialDaysHint =>
+      'Stored as special thoughts (everything is a thought), recurring on the same date each year.';
+
+  @override
+  String get specialDayEmpty => 'No special days yet';
+
+  @override
+  String get addSpecialDay => 'Add special day';
+
+  @override
+  String get specialDayNameHint => 'Name, e.g. Mom\'s birthday';
+
+  @override
+  String get specialDayDate => 'Date';
+
+  @override
+  String get holidayPlanTitle => 'Holiday schedule';
+
+  @override
+  String get holidayPlanHint =>
+      'Weekends are off by default; tap a date to mark rest/work. Enter national holidays and makeup workdays manually.';
+
+  @override
+  String get restLabel => 'Off';
+
+  @override
+  String get workLabel => 'Work';
+
+  @override
+  String get clearFlag => 'Clear mark';
+
+  @override
+  String get defaultRestLabel => 'Default off';
+
+  @override
+  String get glyphRest => 'O';
+
+  @override
+  String get glyphWork => 'W';
 }

@@ -64,6 +64,17 @@ class $ThoughtsTable extends Thoughts
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _annualDateMeta = const VerificationMeta(
+    'annualDate',
+  );
+  @override
+  late final GeneratedColumn<String> annualDate = GeneratedColumn<String>(
+    'annual_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -71,6 +82,7 @@ class $ThoughtsTable extends Thoughts
     day,
     createdAt,
     updatedAt,
+    annualDate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -119,6 +131,12 @@ class $ThoughtsTable extends Thoughts
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('annual_date')) {
+      context.handle(
+        _annualDateMeta,
+        annualDate.isAcceptableOrUnknown(data['annual_date']!, _annualDateMeta),
+      );
+    }
     return context;
   }
 
@@ -148,6 +166,10 @@ class $ThoughtsTable extends Thoughts
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      annualDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}annual_date'],
+      ),
     );
   }
 
@@ -163,12 +185,14 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   final String day;
   final int createdAt;
   final int updatedAt;
+  final String? annualDate;
   const ThoughtEntry({
     required this.id,
     required this.content,
     required this.day,
     required this.createdAt,
     required this.updatedAt,
+    this.annualDate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -178,6 +202,9 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     map['day'] = Variable<String>(day);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || annualDate != null) {
+      map['annual_date'] = Variable<String>(annualDate);
+    }
     return map;
   }
 
@@ -188,6 +215,9 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       day: Value(day),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      annualDate: annualDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(annualDate),
     );
   }
 
@@ -202,6 +232,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       day: serializer.fromJson<String>(json['day']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      annualDate: serializer.fromJson<String?>(json['annualDate']),
     );
   }
   @override
@@ -213,6 +244,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       'day': serializer.toJson<String>(day),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'annualDate': serializer.toJson<String?>(annualDate),
     };
   }
 
@@ -222,12 +254,14 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     String? day,
     int? createdAt,
     int? updatedAt,
+    Value<String?> annualDate = const Value.absent(),
   }) => ThoughtEntry(
     id: id ?? this.id,
     content: content ?? this.content,
     day: day ?? this.day,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    annualDate: annualDate.present ? annualDate.value : this.annualDate,
   );
   ThoughtEntry copyWithCompanion(ThoughtsCompanion data) {
     return ThoughtEntry(
@@ -236,6 +270,9 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       day: data.day.present ? data.day.value : this.day,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      annualDate: data.annualDate.present
+          ? data.annualDate.value
+          : this.annualDate,
     );
   }
 
@@ -246,13 +283,15 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           ..write('content: $content, ')
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('annualDate: $annualDate')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, content, day, createdAt, updatedAt);
+  int get hashCode =>
+      Object.hash(id, content, day, createdAt, updatedAt, annualDate);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -261,7 +300,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           other.content == this.content &&
           other.day == this.day &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.annualDate == this.annualDate);
 }
 
 class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
@@ -270,12 +310,14 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   final Value<String> day;
   final Value<int> createdAt;
   final Value<int> updatedAt;
+  final Value<String?> annualDate;
   const ThoughtsCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
     this.day = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.annualDate = const Value.absent(),
   });
   ThoughtsCompanion.insert({
     this.id = const Value.absent(),
@@ -283,6 +325,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     required String day,
     required int createdAt,
     required int updatedAt,
+    this.annualDate = const Value.absent(),
   }) : content = Value(content),
        day = Value(day),
        createdAt = Value(createdAt),
@@ -293,6 +336,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Expression<String>? day,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? annualDate,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -300,6 +344,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       if (day != null) 'day': day,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (annualDate != null) 'annual_date': annualDate,
     });
   }
 
@@ -309,6 +354,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Value<String>? day,
     Value<int>? createdAt,
     Value<int>? updatedAt,
+    Value<String?>? annualDate,
   }) {
     return ThoughtsCompanion(
       id: id ?? this.id,
@@ -316,6 +362,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       day: day ?? this.day,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      annualDate: annualDate ?? this.annualDate,
     );
   }
 
@@ -337,6 +384,9 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (annualDate.present) {
+      map['annual_date'] = Variable<String>(annualDate.value);
+    }
     return map;
   }
 
@@ -347,7 +397,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
           ..write('content: $content, ')
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('annualDate: $annualDate')
           ..write(')'))
         .toString();
   }
@@ -1670,6 +1721,221 @@ class AttachmentBlobsCompanion extends UpdateCompanion<AttachmentBlob> {
   }
 }
 
+class $CalendarFlagsTable extends CalendarFlags
+    with TableInfo<$CalendarFlagsTable, CalendarFlag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CalendarFlagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DayFlag, int> flag =
+      GeneratedColumn<int>(
+        'flag',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DayFlag>($CalendarFlagsTable.$converterflag);
+  @override
+  List<GeneratedColumn> get $columns => [date, flag];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'calendar_flags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CalendarFlag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  CalendarFlag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CalendarFlag(
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      flag: $CalendarFlagsTable.$converterflag.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}flag'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $CalendarFlagsTable createAlias(String alias) {
+    return $CalendarFlagsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DayFlag, int, int> $converterflag =
+      const EnumIndexConverter<DayFlag>(DayFlag.values);
+}
+
+class CalendarFlag extends DataClass implements Insertable<CalendarFlag> {
+  final String date;
+  final DayFlag flag;
+  const CalendarFlag({required this.date, required this.flag});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    {
+      map['flag'] = Variable<int>(
+        $CalendarFlagsTable.$converterflag.toSql(flag),
+      );
+    }
+    return map;
+  }
+
+  CalendarFlagsCompanion toCompanion(bool nullToAbsent) {
+    return CalendarFlagsCompanion(date: Value(date), flag: Value(flag));
+  }
+
+  factory CalendarFlag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CalendarFlag(
+      date: serializer.fromJson<String>(json['date']),
+      flag: $CalendarFlagsTable.$converterflag.fromJson(
+        serializer.fromJson<int>(json['flag']),
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'flag': serializer.toJson<int>(
+        $CalendarFlagsTable.$converterflag.toJson(flag),
+      ),
+    };
+  }
+
+  CalendarFlag copyWith({String? date, DayFlag? flag}) =>
+      CalendarFlag(date: date ?? this.date, flag: flag ?? this.flag);
+  CalendarFlag copyWithCompanion(CalendarFlagsCompanion data) {
+    return CalendarFlag(
+      date: data.date.present ? data.date.value : this.date,
+      flag: data.flag.present ? data.flag.value : this.flag,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarFlag(')
+          ..write('date: $date, ')
+          ..write('flag: $flag')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, flag);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CalendarFlag &&
+          other.date == this.date &&
+          other.flag == this.flag);
+}
+
+class CalendarFlagsCompanion extends UpdateCompanion<CalendarFlag> {
+  final Value<String> date;
+  final Value<DayFlag> flag;
+  final Value<int> rowid;
+  const CalendarFlagsCompanion({
+    this.date = const Value.absent(),
+    this.flag = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CalendarFlagsCompanion.insert({
+    required String date,
+    required DayFlag flag,
+    this.rowid = const Value.absent(),
+  }) : date = Value(date),
+       flag = Value(flag);
+  static Insertable<CalendarFlag> custom({
+    Expression<String>? date,
+    Expression<int>? flag,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (flag != null) 'flag': flag,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CalendarFlagsCompanion copyWith({
+    Value<String>? date,
+    Value<DayFlag>? flag,
+    Value<int>? rowid,
+  }) {
+    return CalendarFlagsCompanion(
+      date: date ?? this.date,
+      flag: flag ?? this.flag,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (flag.present) {
+      map['flag'] = Variable<int>(
+        $CalendarFlagsTable.$converterflag.toSql(flag.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CalendarFlagsCompanion(')
+          ..write('date: $date, ')
+          ..write('flag: $flag, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1680,6 +1946,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AttachmentBlobsTable attachmentBlobs = $AttachmentBlobsTable(
     this,
   );
+  late final $CalendarFlagsTable calendarFlags = $CalendarFlagsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1690,6 +1957,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     thoughtTags,
     attachments,
     attachmentBlobs,
+    calendarFlags,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1731,6 +1999,7 @@ typedef $$ThoughtsTableCreateCompanionBuilder =
       required String day,
       required int createdAt,
       required int updatedAt,
+      Value<String?> annualDate,
     });
 typedef $$ThoughtsTableUpdateCompanionBuilder =
     ThoughtsCompanion Function({
@@ -1739,6 +2008,7 @@ typedef $$ThoughtsTableUpdateCompanionBuilder =
       Value<String> day,
       Value<int> createdAt,
       Value<int> updatedAt,
+      Value<String?> annualDate,
     });
 
 final class $$ThoughtsTableReferences
@@ -1813,6 +2083,11 @@ class $$ThoughtsTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get annualDate => $composableBuilder(
+    column: $table.annualDate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1900,6 +2175,11 @@ class $$ThoughtsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get annualDate => $composableBuilder(
+    column: $table.annualDate,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ThoughtsTableAnnotationComposer
@@ -1925,6 +2205,11 @@ class $$ThoughtsTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get annualDate => $composableBuilder(
+    column: $table.annualDate,
+    builder: (column) => column,
+  );
 
   Expression<T> thoughtTagsRefs<T extends Object>(
     Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
@@ -2010,12 +2295,14 @@ class $$ThoughtsTableTableManager
                 Value<String> day = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<String?> annualDate = const Value.absent(),
               }) => ThoughtsCompanion(
                 id: id,
                 content: content,
                 day: day,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                annualDate: annualDate,
               ),
           createCompanionCallback:
               ({
@@ -2024,12 +2311,14 @@ class $$ThoughtsTableTableManager
                 required String day,
                 required int createdAt,
                 required int updatedAt,
+                Value<String?> annualDate = const Value.absent(),
               }) => ThoughtsCompanion.insert(
                 id: id,
                 content: content,
                 day: day,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                annualDate: annualDate,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3494,6 +3783,147 @@ typedef $$AttachmentBlobsTableProcessedTableManager =
       AttachmentBlob,
       PrefetchHooks Function({bool attachmentId})
     >;
+typedef $$CalendarFlagsTableCreateCompanionBuilder =
+    CalendarFlagsCompanion Function({
+      required String date,
+      required DayFlag flag,
+      Value<int> rowid,
+    });
+typedef $$CalendarFlagsTableUpdateCompanionBuilder =
+    CalendarFlagsCompanion Function({
+      Value<String> date,
+      Value<DayFlag> flag,
+      Value<int> rowid,
+    });
+
+class $$CalendarFlagsTableFilterComposer
+    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
+  $$CalendarFlagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DayFlag, DayFlag, int> get flag =>
+      $composableBuilder(
+        column: $table.flag,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$CalendarFlagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
+  $$CalendarFlagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get flag => $composableBuilder(
+    column: $table.flag,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CalendarFlagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CalendarFlagsTable> {
+  $$CalendarFlagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DayFlag, int> get flag =>
+      $composableBuilder(column: $table.flag, builder: (column) => column);
+}
+
+class $$CalendarFlagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CalendarFlagsTable,
+          CalendarFlag,
+          $$CalendarFlagsTableFilterComposer,
+          $$CalendarFlagsTableOrderingComposer,
+          $$CalendarFlagsTableAnnotationComposer,
+          $$CalendarFlagsTableCreateCompanionBuilder,
+          $$CalendarFlagsTableUpdateCompanionBuilder,
+          (
+            CalendarFlag,
+            BaseReferences<_$AppDatabase, $CalendarFlagsTable, CalendarFlag>,
+          ),
+          CalendarFlag,
+          PrefetchHooks Function()
+        > {
+  $$CalendarFlagsTableTableManager(_$AppDatabase db, $CalendarFlagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CalendarFlagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CalendarFlagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CalendarFlagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> date = const Value.absent(),
+                Value<DayFlag> flag = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  CalendarFlagsCompanion(date: date, flag: flag, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String date,
+                required DayFlag flag,
+                Value<int> rowid = const Value.absent(),
+              }) => CalendarFlagsCompanion.insert(
+                date: date,
+                flag: flag,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CalendarFlagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CalendarFlagsTable,
+      CalendarFlag,
+      $$CalendarFlagsTableFilterComposer,
+      $$CalendarFlagsTableOrderingComposer,
+      $$CalendarFlagsTableAnnotationComposer,
+      $$CalendarFlagsTableCreateCompanionBuilder,
+      $$CalendarFlagsTableUpdateCompanionBuilder,
+      (
+        CalendarFlag,
+        BaseReferences<_$AppDatabase, $CalendarFlagsTable, CalendarFlag>,
+      ),
+      CalendarFlag,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3507,4 +3937,6 @@ class $AppDatabaseManager {
       $$AttachmentsTableTableManager(_db, _db.attachments);
   $$AttachmentBlobsTableTableManager get attachmentBlobs =>
       $$AttachmentBlobsTableTableManager(_db, _db.attachmentBlobs);
+  $$CalendarFlagsTableTableManager get calendarFlags =>
+      $$CalendarFlagsTableTableManager(_db, _db.calendarFlags);
 }

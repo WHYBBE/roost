@@ -12,7 +12,7 @@ part 'app_database.g.dart';
 bool isEmojiCodepoint(int codePoint) =>
     codePoint < 0xE000 || codePoint > 0xF8FF;
 
-@DriftDatabase(tables: [Thoughts, Tags, ThoughtTags, Attachments, AttachmentBlobs])
+@DriftDatabase(tables: [Thoughts, Tags, ThoughtTags, Attachments, AttachmentBlobs, CalendarFlags])
 class AppDatabase extends _$AppDatabase {
   /// [name] 同时用作原生库文件名与 Web 端 IndexedDB 库名；
   /// 不同 name 即不同 vault，数据完全隔离
@@ -21,13 +21,21 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // 不做兼容迁移：版本不一致直接清空重建，由 UI 引导用户清理异常数据
-        onUpgrade: _wipeRebuild,
+        // v5→v6 为无损迁移（加列 + 建表），保留用户数据；
+        // 其余历史版本升级仍清空重建，由 UI 引导用户清理异常数据
+        onUpgrade: (m, from, to) async {
+          if (from == 5) {
+            await m.addColumn(thoughts, thoughts.annualDate);
+            await m.createTable(calendarFlags);
+            return;
+          }
+          await _wipeRebuild(m, from, to);
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
           // 仅新建或升级（清空重建）后播种；用户删除的预设不会被重新种回
@@ -42,6 +50,7 @@ class AppDatabase extends _$AppDatabase {
     await m.deleteTable('attachment_blobs');
     await m.deleteTable('attachments');
     await m.deleteTable('thought_tags');
+    await m.deleteTable('calendar_flags');
     await m.deleteTable('tags');
     await m.deleteTable('thoughts');
     await m.createAll();
@@ -73,6 +82,7 @@ class AppDatabase extends _$AppDatabase {
       if (!ok) return false;
       await select(tags).get();
       await select(thoughts).get();
+      await select(calendarFlags).get();
       return true;
     } catch (_) {
       return false;
@@ -145,6 +155,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM attachment_blobs');
       await customStatement('DELETE FROM attachments');
       await customStatement('DELETE FROM thought_tags');
+      await customStatement('DELETE FROM calendar_flags');
       await customStatement('DELETE FROM thoughts');
       await customStatement('DELETE FROM tags');
     });
@@ -166,6 +177,7 @@ class AppDatabase extends _$AppDatabase {
     final linkRows = await select(thoughtTags).get();
     final attachmentRows = await select(attachments).get();
     final blobRows = await select(attachmentBlobs).get();
+    final flagRows = await select(calendarFlags).get();
     final tagNameById = {for (final t in tagRows) t.id: t.name};
     final blobById = {for (final b in blobRows) b.attachmentId: b.data};
     return {
@@ -179,6 +191,7 @@ class AppDatabase extends _$AppDatabase {
             'day': t.day,
             'createdAt': t.createdAt,
             'updatedAt': t.updatedAt,
+            'annualDate': t.annualDate,
           },
       ],
       'tags': [
@@ -209,6 +222,10 @@ class AppDatabase extends _$AppDatabase {
               'durationMs': a.durationMs,
               'data': base64Encode(blobById[a.id]!),
             },
+      ],
+      'calendarFlags': [
+        for (final f in flagRows)
+          {'date': f.date, 'flag': f.flag.value},
       ],
     };
   }
@@ -248,6 +265,7 @@ class AppDatabase extends _$AppDatabase {
             day: day,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            annualDate: Value(m['annualDate'] as String?),
           ),
         );
         thoughtIdByIndex[i] = id;
@@ -308,6 +326,16 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      final flagsIn = (data['calendarFlags'] as List?) ?? const [];
+      for (final raw in flagsIn) {
+        final m = raw as Map;
+        final date = m['date'] as String?;
+        final idx = (m['flag'] as num?)?.toInt() ?? -1;
+        if (date == null || idx < 0 || idx >= DayFlag.values.length) continue;
+        await into(calendarFlags).insertOnConflictUpdate(
+          CalendarFlagsCompanion.insert(date: date, flag: DayFlag.values[idx]),
+        );
+      }
     });
     return imported;
   }
@@ -328,6 +356,8 @@ class AppDatabase extends _$AppDatabase {
     required String content,
     required String day,
     DateTime? createdAt,
+    // 非空即"特殊日子"思绪（MM-DD，每年循环）
+    String? annualDate,
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
     return into(thoughts).insert(
@@ -336,6 +366,7 @@ class AppDatabase extends _$AppDatabase {
         day: day,
         createdAt: createdAt?.millisecondsSinceEpoch ?? now,
         updatedAt: now,
+        annualDate: Value(annualDate),
       ),
     );
   }
@@ -428,6 +459,34 @@ class AppDatabase extends _$AppDatabase {
             (t) => OrderingTerm.desc(t.createdAt),
           ]))
         .watch();
+  }
+
+  // ---------- 日历：特殊日子与放假安排 ----------
+
+  /// 特殊日子（生日、纪念日等）：annualDate 非空的思绪，按 MM-DD 升序
+  Stream<List<ThoughtEntry>> watchAnnualEvents() {
+    return (select(thoughts)
+          ..where((t) => t.annualDate.isNotNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.annualDate)]))
+        .watch();
+  }
+
+  /// 放假标记（date 'yyyy-MM-dd' → 休/班）
+  Stream<Map<String, DayFlag>> watchCalendarFlags() {
+    return select(calendarFlags)
+        .watch()
+        .map((rows) => {for (final r in rows) r.date: r.flag});
+  }
+
+  /// 设置某天的休/班标记；flag 为 null 即清除
+  Future<void> setCalendarFlag(String date, DayFlag? flag) async {
+    if (flag == null) {
+      await (delete(calendarFlags)..where((f) => f.date.equals(date))).go();
+    } else {
+      await into(calendarFlags).insertOnConflictUpdate(
+        CalendarFlagsCompanion.insert(date: date, flag: flag),
+      );
+    }
   }
 
   // ---------- 标签 ----------
