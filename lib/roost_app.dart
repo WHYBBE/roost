@@ -113,6 +113,9 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final wide = MediaQuery.sizeOf(context).width >= 720;
+    // 移动端底部只有 4 个 tab（设置移到首页右上角，经路由打开）；
+    // 若从桌面端切到窄窗时正停留在设置页，则回落到首页
+    final tab = wide ? _index : (_index >= 4 ? 0 : _index);
 
     final destinations = [
       (icon: Icons.psychology_alt_outlined, selected: Icons.psychology_alt, label: l.navHome),
@@ -164,17 +167,17 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
                    trailingAtBottom: true,
                  ),
               ),
-            Expanded(child: _pages[_index]),
+            Expanded(child: _pages[tab]),
           ],
         ),
       ),
       bottomNavigationBar: wide
           ? null
           : NavigationBar(
-              selectedIndex: _index,
+              selectedIndex: tab,
               onDestinationSelected: (i) => setState(() => _index = i),
               destinations: [
-                for (final d in destinations)
+                for (final d in destinations.take(4))
                   NavigationDestination(
                     icon: Icon(d.icon),
                     selectedIcon: Icon(d.selected),

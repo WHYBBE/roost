@@ -371,7 +371,10 @@ class SettingsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: appBarVaultSwitcher(context),
+        // 桌面端内嵌为根页时展示保险库切换；移动端经路由推入时保留默认返回键
+        leading: (ModalRoute.of(context)?.canPop ?? false)
+            ? null
+            : appBarVaultSwitcher(context),
         title: Text(l.settingsTitle),
       ),
       body: Center(

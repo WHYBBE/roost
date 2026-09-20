@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
 import '../ui/vault_switcher.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +25,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final width = MediaQuery.sizeOf(context).width;
+    // 与导航壳同一断点：窄屏视为移动端，设置入口放 AppBar 右上角
+    final wide = width >= 720;
     final contentWidth = width > 1200
         ? 720.0
         : width > 720
@@ -40,6 +43,15 @@ class _HomePageState extends State<HomePage> {
             tooltip: l.newThought,
             onPressed: () => showEntryEditor(context),
           ),
+          // 移动端：设置不再是底部 tab，改为右上角入口
+          if (!wide)
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: l.navSettings,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
