@@ -565,4 +565,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presetCheckIn => 'Check-in';
+
+  @override
+  String get kindHoliday => 'Holidays (with makeup)';
+
+  @override
+  String get kindCustom => 'Custom';
+
+  @override
+  String get typeNameSimpleHint => 'Name';
+
+  @override
+  String get holidayMakeupHint =>
+      'A \"makeup workdays\" type will be created along (color and off/work marks are set automatically).';
+
+  @override
+  String get instancesHint =>
+      'Instances above appear on the calendar; the section below only defines types (e.g. create \"Mom\'s birthday\" under a Birthday type).';
+
+  @override
+  String get emptyEvents => 'No events yet — tap Add event below';
+
+  @override
+  String get pickTypeTitle => 'Pick a type';
+
+  @override
+  String get noEventTypes => 'Create a type below first';
+
+  @override
+  String get calendarLink => 'Link to calendar';
+
+  @override
+  String get addToCalendar => 'Add to calendar';
+
+  @override
+  String get unlinkEvent => 'Unlink';
 }

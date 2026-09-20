@@ -199,6 +199,22 @@ Future<void> showEntryEditor(
   final kept = List<Attachment>.of(existingAtts);
   final pending = <_PendingAttachment>[];
 
+  // 日历事件关联：类型（计数器除外）+ 已关联事件（编辑模式）
+  final calTypes = (await appDb.watchEventTypes().first)
+      .where((t) => !t.counter)
+      .toList();
+  if (!context.mounted) return;
+  CalendarEvent? linkedEvent;
+  if (existing != null) {
+    linkedEvent = (await appDb.watchEvents().first)
+        .where((e) => e.thoughtId == existing.id)
+        .firstOrNull;
+    if (!context.mounted) return;
+  }
+  // 新建思绪保存后待创建的关联
+  int? pendingTypeId;
+  bool pendingAnnual = false;
+
   await showDialog<bool>(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -324,6 +340,136 @@ Future<void> showEntryEditor(
                       tagController, allTags, () => setState(() {})),
                 ),
                 const SizedBox(height: 12),
+                // 关联到日历：事件以该思绪为载体（万物皆思绪，可选）
+                Row(
+                  children: [
+                    Text(l.calendarLink,
+                        style: Theme.of(context).textTheme.labelLarge),
+                    const Spacer(),
+                    if (linkedEvent == null && pendingTypeId == null)
+                      Tooltip(
+                        message: l.addToCalendar,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () async {
+                            if (calTypes.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l.noEventTypes)),
+                              );
+                              return;
+                            }
+                            final picked =
+                                await showModalBottomSheet<EventType>(
+                              context: context,
+                              builder: (context) => SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 16, 16, 4),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          l.pickTypeTitle,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium,
+                                        ),
+                                      ),
+                                    ),
+                                    for (final t in calTypes)
+                                      ListTile(
+                                        leading: t.glyph == null ||
+                                                t.glyph!.isEmpty
+                                            ? Container(
+                                                width: 24,
+                                                height: 24,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(t.color),
+                                                ),
+                                              )
+                                            : Container(
+                                                width: 24,
+                                                height: 24,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Color(t.color)
+                                                      .withValues(
+                                                          alpha: 0.15),
+                                                ),
+                                                child: Text(
+                                                  t.glyph!,
+                                                  style: TextStyle(
+                                                      fontSize: 13,
+                                                      color:
+                                                          Color(t.color)),
+                                                ),
+                                              ),
+                                        title: Text(t.name),
+                                        onTap: () =>
+                                            Navigator.pop(context, t),
+                                      ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ),
+                              ),
+                            );
+                            if (picked == null || !context.mounted) return;
+                            // 生日类型默认每年循环
+                            final annual = await _promptAnnual(
+                              context,
+                              initial: picked.kind ==
+                                  EventTypeKind.birthday,
+                            );
+                            if (annual == null || !context.mounted) return;
+                            pendingTypeId = picked.id;
+                            pendingAnnual = annual;
+                            setState(() {});
+                          },
+                          child: const Icon(Icons.add_link, size: 20),
+                        ),
+                      ),
+                  ],
+                ),
+                if (linkedEvent != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: InputChip(
+                      avatar: const Icon(Icons.link, size: 16),
+                      label: Text(
+                        linkedEvent!.title ??
+                            (calTypes
+                                    .where((t) => t.id == linkedEvent!.typeId)
+                                    .firstOrNull
+                                    ?.name ??
+                                l.dayEventsLabel),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onDeleted: () async {
+                        await appDb.unlinkEventFromThought(existing!.id);
+                        linkedEvent = null;
+                        setState(() {});
+                      },
+                    ),
+                  )
+                else if (pendingTypeId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: InputChip(
+                      avatar: const Icon(Icons.event_outlined, size: 16),
+                      label: Text(
+                        '${calTypes.where((t) => t.id == pendingTypeId).firstOrNull?.name ?? ''}'
+                        '${pendingAnnual ? ' · ${l.annualRecur}' : ''}',
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onDeleted: () =>
+                          setState(() => pendingTypeId = null),
+                    ),
+                  ),
+                const SizedBox(height: 12),
                 // 附件：图片（选择）+ 音频（录音）
                 Row(
                   children: [
@@ -438,6 +584,16 @@ Future<void> showEntryEditor(
                     durationMs: p.durationMs,
                   );
                 }
+                // 新建的日历关联：事件以该思绪为载体
+                if (pendingTypeId != null) {
+                  await appDb.insertEvent(
+                    typeId: pendingTypeId!,
+                    startDate: existing?.day ?? AppDatabase.today(),
+                    annual: pendingAnnual,
+                    title: text,
+                    thoughtId: thoughtId,
+                  );
+                }
                 saved = true;
                 if (context.mounted) Navigator.pop(context, true);
               },
@@ -455,12 +611,44 @@ Future<void> showEntryEditor(
   }
 }
 
+/// 询问"每年循环"（返回 null = 取消）
+Future<bool?> _promptAnnual(
+  BuildContext context, {
+  required bool initial,
+}) async {
+  final l = AppLocalizations.of(context)!;
+  var annual = initial;
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(l.addToCalendar),
+        content: SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l.annualRecur),
+          value: annual,
+          onChanged: (v) => setState(() => annual = v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.confirm),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 void _addTagsFromField(
   TextEditingController controller,
   List<Tag> tags,
   VoidCallback onChanged,
-) {
-  final parts =
+) {  final parts =
       controller.text.split(RegExp(r'[\s,，]+')).where((p) => p.trim().isNotEmpty);
   for (final part in parts) {
     final name = part.trim();

@@ -118,9 +118,11 @@ class _CalendarPageState extends State<CalendarPage> {
                     for (final e in entry.value) {
                       final t = typeById[e.typeId];
                       if (t == null) continue;
-                      if (t.mark == CalendarMark.work) {
+                      // 实例级 休/班 覆盖（节假日类型下的调休日）优先
+                      final mk = e.mark ?? t.mark;
+                      if (mk == CalendarMark.work) {
                         mark = CalendarMark.work;
-                      } else if (t.mark == CalendarMark.rest &&
+                      } else if (mk == CalendarMark.rest &&
                           mark != CalendarMark.work) {
                         mark = CalendarMark.rest;
                       }

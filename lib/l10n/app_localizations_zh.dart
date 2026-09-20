@@ -548,4 +548,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get presetCheckIn => '打卡';
+
+  @override
+  String get kindHoliday => '法定节假日（含调休）';
+
+  @override
+  String get kindCustom => '自定义';
+
+  @override
+  String get typeNameSimpleHint => '名称';
+
+  @override
+  String get holidayMakeupHint => '将同时创建\"调休补班\"类型（颜色与休/班标记自动设定）。';
+
+  @override
+  String get instancesHint => '上方为显示在日历上的实例；下方仅定义类型（如\"生日\"下建\"妈妈的生日\"实例）。';
+
+  @override
+  String get emptyEvents => '还没有事件，点下方\"添加事件\"';
+
+  @override
+  String get pickTypeTitle => '选择类型';
+
+  @override
+  String get noEventTypes => '请先在下方创建类型';
+
+  @override
+  String get calendarLink => '关联到日历';
+
+  @override
+  String get addToCalendar => '添加到日历';
+
+  @override
+  String get unlinkEvent => '取消关联';
 }

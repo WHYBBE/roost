@@ -1099,6 +1099,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check-in'**
   String get presetCheckIn;
+
+  /// No description provided for @kindHoliday.
+  ///
+  /// In en, this message translates to:
+  /// **'Holidays (with makeup)'**
+  String get kindHoliday;
+
+  /// No description provided for @kindCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get kindCustom;
+
+  /// No description provided for @typeNameSimpleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get typeNameSimpleHint;
+
+  /// No description provided for @holidayMakeupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A \"makeup workdays\" type will be created along (color and off/work marks are set automatically).'**
+  String get holidayMakeupHint;
+
+  /// No description provided for @instancesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Instances above appear on the calendar; the section below only defines types (e.g. create \"Mom\'s birthday\" under a Birthday type).'**
+  String get instancesHint;
+
+  /// No description provided for @emptyEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'No events yet — tap Add event below'**
+  String get emptyEvents;
+
+  /// No description provided for @pickTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a type'**
+  String get pickTypeTitle;
+
+  /// No description provided for @noEventTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a type below first'**
+  String get noEventTypes;
+
+  /// No description provided for @calendarLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to calendar'**
+  String get calendarLink;
+
+  /// No description provided for @addToCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to calendar'**
+  String get addToCalendar;
+
+  /// No description provided for @unlinkEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get unlinkEvent;
 }
 
 class _AppLocalizationsDelegate

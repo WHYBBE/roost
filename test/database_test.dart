@@ -562,6 +562,36 @@ void main() {
       expect(await db.watchEvents().first, isEmpty);
     });
 
+    test('类型种类：节假日/生日特殊类型持久化', () async {
+      await db.createEventType(
+        name: '2026 法定节假日',
+        color: 0xFFCF4B3F,
+        glyph: '休',
+        mark: CalendarMark.rest,
+        kind: EventTypeKind.holiday,
+      );
+      await db.createEventType(
+        name: '生日',
+        color: 0xFFCF9F3F,
+        glyph: '🎂',
+        kind: EventTypeKind.birthday,
+      );
+      final types = await db.watchEventTypes().first;
+      expect(types[0].kind, EventTypeKind.holiday);
+      expect(types[0].mark, CalendarMark.rest);
+      expect(types[1].kind, EventTypeKind.birthday);
+      expect(types[1].mark, CalendarMark.none);
+
+      // 往返保留
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      await db2.importData(data);
+      final imported = await db2.watchEventTypes().first;
+      expect(imported[0].kind, EventTypeKind.holiday);
+      expect(imported[1].kind, EventTypeKind.birthday);
+    });
+
     test('事件联动思绪（万物皆思绪）', () async {
       final typeId = await db.createEventType(name: '生日', color: 0xFFCF9F3F);
       final thoughtId = await db.insertThought(
@@ -620,6 +650,64 @@ void main() {
       // 普通事件的 count 恒为 1
       await db.insertEvent(typeId: normalType, startDate: '2026-01-01');
       expect((await db.watchEvents().first).last.count, 1);
+    });
+
+    test('实例级 休/班 覆盖与解关联', () async {
+      final typeId = await db.createEventType(
+        name: '2026 法定节假日',
+        color: 0xFFCF4B3F,
+        glyph: '休',
+        mark: CalendarMark.rest,
+        kind: EventTypeKind.holiday,
+      );
+      // 放假日（继承类型休）与调休日（实例级班）
+      final restId = await db.insertEvent(
+        typeId: typeId,
+        startDate: '2026-10-01',
+        endDate: '2026-10-08',
+        title: '国庆',
+      );
+      final workId = await db.insertEvent(
+        typeId: typeId,
+        startDate: '2026-09-27',
+        mark: CalendarMark.work,
+      );
+      var rows = await db.watchEvents().first;
+      expect(rows.firstWhere((e) => e.id == restId).mark, isNull);
+      expect(
+        rows.firstWhere((e) => e.id == workId).mark,
+        CalendarMark.work,
+      );
+
+      // 编辑清除覆盖
+      await db.updateEvent(
+        workId,
+        startDate: '2026-09-27',
+        endDate: null,
+        title: null,
+        annual: false,
+        mark: null,
+      );
+      expect(
+        (await db.watchEvents().first).firstWhere((e) => e.id == workId).mark,
+        isNull,
+      );
+
+      // 关联思绪后解关联：事件保留
+      final thoughtId = await db.insertThought(
+        content: '国庆出行计划',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 9),
+      );
+      await db.insertEvent(
+        typeId: typeId,
+        startDate: '2026-10-01',
+        thoughtId: thoughtId,
+      );
+      await db.unlinkEventFromThought(thoughtId);
+      final kept = (await db.watchEvents().first)
+          .firstWhere((e) => e.startDate == '2026-10-01' && e.endDate == null);
+      expect(kept.thoughtId, isNull);
     });
 
     test('导出/导入往返：类型、事件与联动', () async {

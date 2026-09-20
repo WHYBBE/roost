@@ -29,12 +29,12 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // v5→v8 均为无损迁移（加列/建表/数据搬迁）；
+        // v5→v10 均为无损迁移（加列/建表/数据搬迁）；
         // 更早历史版本升级仍清空重建，由 UI 引导用户清理异常数据
         onUpgrade: (m, from, to) async {
           if (from < 5) {
@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from <= 5) await m.addColumn(thoughts, thoughts.annualDate);
           if (from == 5 || from == 6) {
-            // 这两个表 v7 才引入；v8 的新列已含在当前建表语句中
+            // 这两个表 v7 才引入；v8+ 的新列已含在当前建表语句中
             await m.createTable(eventTypes);
             await m.createTable(calendarEvents);
           }
@@ -54,6 +54,12 @@ class AppDatabase extends _$AppDatabase {
           if (from == 7) {
             await m.addColumn(eventTypes, eventTypes.counter);
             await m.addColumn(calendarEvents, calendarEvents.count);
+          }
+          if (from == 8) {
+            await m.addColumn(eventTypes, eventTypes.kind);
+          }
+          if (from == 9) {
+            await m.addColumn(calendarEvents, calendarEvents.mark);
           }
         },
         beforeOpen: (details) async {
@@ -101,6 +107,7 @@ class AppDatabase extends _$AppDatabase {
           color: isWork ? 0xFF4A7DC4 : 0xFFCF4B3F,
           glyph: Value(isWork ? '班' : '休'),
           mark: Value(isWork ? CalendarMark.work : CalendarMark.rest),
+          kind: Value(isWork ? EventTypeKind.makeup : EventTypeKind.holiday),
         ),
       );
       for (final date in entry.value) {
@@ -295,6 +302,7 @@ class AppDatabase extends _$AppDatabase {
             'mark': typeRows[i].mark.value,
             'sortOrder': typeRows[i].sortOrder,
             'counter': typeRows[i].counter,
+            'kind': typeRows[i].kind.value,
           },
       ],
       'calendarEvents': [
@@ -307,6 +315,7 @@ class AppDatabase extends _$AppDatabase {
               'endDate': e.endDate,
               'annual': e.annual,
               'count': e.count,
+              'mark': e.mark?.value,
               // 以思绪的"记录日"表达联动，导入时按日匹配重建
               'thoughtDay': e.thoughtId == null
                   ? null
@@ -458,6 +467,8 @@ class AppDatabase extends _$AppDatabase {
                 CalendarMark.fromValue((m['mark'] as num?)?.toInt() ?? 0)),
             sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
             counter: Value((m['counter'] as bool?) ?? false),
+            kind: Value(EventTypeKind.fromValue(
+                (m['kind'] as num?)?.toInt() ?? 0)),
           ),
         );
         v7TypeIds[typesIn.indexOf(raw)] = id;
@@ -488,6 +499,9 @@ class AppDatabase extends _$AppDatabase {
             endDate: Value(m['endDate'] as String?),
             annual: Value((m['annual'] as bool?) ?? false),
             count: Value((m['count'] as num?)?.toInt() ?? 1),
+            mark: Value(m['mark'] == null
+                ? null
+                : CalendarMark.fromValue((m['mark'] as num).toInt())),
             thoughtId: Value(thoughtId),
           ),
         );
@@ -651,6 +665,7 @@ class AppDatabase extends _$AppDatabase {
     String? glyph,
     CalendarMark mark = CalendarMark.none,
     bool counter = false,
+    EventTypeKind kind = EventTypeKind.custom,
   }) {
     return into(eventTypes).insert(
       EventTypesCompanion.insert(
@@ -659,6 +674,7 @@ class AppDatabase extends _$AppDatabase {
         glyph: Value(glyph),
         mark: Value(mark),
         counter: Value(counter),
+        kind: Value(kind),
       ),
     );
   }
@@ -670,6 +686,7 @@ class AppDatabase extends _$AppDatabase {
     String? glyph,
     required CalendarMark mark,
     bool counter = false,
+    EventTypeKind kind = EventTypeKind.custom,
   }) {
     return (update(eventTypes)..where((t) => t.id.equals(id))).write(
       EventTypesCompanion(
@@ -678,6 +695,7 @@ class AppDatabase extends _$AppDatabase {
         glyph: Value(glyph),
         mark: Value(mark),
         counter: Value(counter),
+        kind: Value(kind),
       ),
     );
   }
@@ -694,6 +712,8 @@ class AppDatabase extends _$AppDatabase {
     String? title,
     bool annual = false,
     int? thoughtId,
+    // 实例级 休/班 覆盖（节假日类型下排调休日用 work）
+    CalendarMark? mark,
   }) {
     return into(calendarEvents).insert(
       CalendarEventsCompanion.insert(
@@ -702,6 +722,8 @@ class AppDatabase extends _$AppDatabase {
         startDate: startDate,
         endDate: Value(endDate),
         annual: Value(annual),
+        count: const Value(1),
+        mark: Value(mark),
         thoughtId: Value(thoughtId),
       ),
     );
@@ -713,6 +735,7 @@ class AppDatabase extends _$AppDatabase {
     String? endDate,
     String? title,
     required bool annual,
+    CalendarMark? mark,
   }) {
     return (update(calendarEvents)..where((e) => e.id.equals(id))).write(
       CalendarEventsCompanion(
@@ -720,8 +743,16 @@ class AppDatabase extends _$AppDatabase {
         startDate: Value(startDate),
         endDate: Value(endDate),
         annual: Value(annual),
+        mark: Value(mark),
       ),
     );
+  }
+
+  /// 取消思绪与事件的关联（事件保留）
+  Future<void> unlinkEventFromThought(int thoughtId) {
+    return (update(calendarEvents)
+            ..where((e) => e.thoughtId.equals(thoughtId)))
+        .write(const CalendarEventsCompanion(thoughtId: Value(null)));
   }
 
   Future<void> deleteEvent(int id) {

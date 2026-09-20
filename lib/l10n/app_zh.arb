@@ -172,5 +172,16 @@
   "addOne": "+1",
   "totalCount": "累计 {count} 次",
   "@totalCount": { "placeholders": { "count": { "type": "int" } } },
-  "presetCheckIn": "打卡"
+  "presetCheckIn": "打卡",
+  "kindHoliday": "法定节假日（含调休）",
+  "kindCustom": "自定义",
+  "typeNameSimpleHint": "名称",
+  "holidayMakeupHint": "将同时创建\"调休补班\"类型（颜色与休/班标记自动设定）。",
+  "instancesHint": "上方为显示在日历上的实例；下方仅定义类型（如\"生日\"下建\"妈妈的生日\"实例）。",
+  "emptyEvents": "还没有事件，点下方\"添加事件\"",
+  "pickTypeTitle": "选择类型",
+  "noEventTypes": "请先在下方创建类型",
+  "calendarLink": "关联到日历",
+  "addToCalendar": "添加到日历",
+  "unlinkEvent": "取消关联"
 }

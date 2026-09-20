@@ -101,6 +101,24 @@ enum CalendarMark {
       : CalendarMark.none;
 }
 
+/// 类型种类：自定义 / 法定节假日 / 调休补班 / 生日。
+/// 节假日与生日是"特殊类型"：创建走专属流程，
+/// 节假日成对（休+班）创建且标记固定，生日下的事件默认每年循环
+enum EventTypeKind {
+  custom(0),
+  holiday(1),
+  makeup(2),
+  birthday(3);
+
+  final int value;
+  const EventTypeKind(this.value);
+
+  static EventTypeKind fromValue(int v) =>
+      (v >= 0 && v < EventTypeKind.values.length)
+          ? EventTypeKind.values[v]
+          : EventTypeKind.custom;
+}
+
 /// 日历事件类型：完全自定义（颜色/字符/标记）。
 /// 国家节假日（mark=rest）、调休补班（mark=work）、生日、月经周期、
 /// 旅行计划等都是它的特例；年份归属写进名称（如"2026 法定节假日"）
@@ -117,6 +135,9 @@ class EventTypes extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   // 计数器类型：每天可 +1 计次（打卡、次数统计），不走日期区间
   BoolColumn get counter => boolean().withDefault(const Constant(false))();
+  // 种类：决定创建流程与事件默认行为（休/班标记仅节假日与自定义使用）
+  IntColumn get kind =>
+      intEnum<EventTypeKind>().withDefault(const Constant(0))();
 }
 
 /// 日历事件：单日或日期区间，可每年循环（生日），可选联动一条思绪
@@ -134,6 +155,8 @@ class CalendarEvents extends Table {
   BoolColumn get annual => boolean().withDefault(const Constant(false))();
   // 计数器当日次数（非计数器事件恒为 1）
   IntColumn get count => integer().withDefault(const Constant(1))();
+  // 实例级 休/班 覆盖（节假日类型下可混合排休与调休日；null = 继承类型标记）
+  IntColumn get mark => intEnum<CalendarMark>().nullable()();
   // 联动思绪（万物皆思绪）；思绪被删时置空，事件保留
   IntColumn get thoughtId =>
       integer().nullable().references(Thoughts, #id, onDelete: KeyAction.setNull)();

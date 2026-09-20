@@ -179,5 +179,16 @@
   "addOne": "+1",
   "totalCount": "{count} in total",
   "@totalCount": { "placeholders": { "count": { "type": "int" } } },
-  "presetCheckIn": "Check-in"
+  "presetCheckIn": "Check-in",
+  "kindHoliday": "Holidays (with makeup)",
+  "kindCustom": "Custom",
+  "typeNameSimpleHint": "Name",
+  "holidayMakeupHint": "A \"makeup workdays\" type will be created along (color and off/work marks are set automatically).",
+  "instancesHint": "Instances above appear on the calendar; the section below only defines types (e.g. create \"Mom's birthday\" under a Birthday type).",
+  "emptyEvents": "No events yet — tap Add event below",
+  "pickTypeTitle": "Pick a type",
+  "noEventTypes": "Create a type below first",
+  "calendarLink": "Link to calendar",
+  "addToCalendar": "Add to calendar",
+  "unlinkEvent": "Unlink"
 }
