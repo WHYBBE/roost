@@ -830,4 +830,112 @@ void main() {
       expect(await db.watchEvents().first, isEmpty);
     });
   });
+
+  group('comments-reactions', () {
+    test('评论：追加/正序/删除，思绪删除级联清理', () async {
+      final thoughtId = await db.insertThought(
+        content: '一条思绪',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      final c1 = await db.addComment(
+          thoughtId: thoughtId, content: '第一条评论');
+      await db.addComment(
+          thoughtId: thoughtId,
+          content: '第二条评论',
+      );
+      // 空白评论被忽略
+      expect(await db.addComment(thoughtId: thoughtId, content: '  '), -1);
+
+      var comments = await db.watchCommentsFor(thoughtId).first;
+      expect(comments, hasLength(2));
+      expect(comments.first.content, '第一条评论');
+      expect(comments.first.id, c1);
+
+      await db.deleteComment(c1);
+      comments = await db.watchCommentsFor(thoughtId).first;
+      expect(comments.single.content, '第二条评论');
+
+      // 删除思绪：评论级联清理
+      await db.deleteThought(thoughtId);
+      final other = await db.insertThought(
+        content: '另一条',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 10),
+      );
+      expect((await db.watchCommentsFor(other).first), isEmpty);
+    });
+
+    test('反应：6 种内置 emoji，可多次追加、可移除，级联清理', () async {
+      final thoughtId = await db.insertThought(
+        content: '一条思绪',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      expect(ReactionKind.values, hasLength(6));
+
+      // 不同时候加不同反应；同种也可多次
+      await db.addReaction(
+          thoughtId: thoughtId, kind: ReactionKind.like);
+      await db.addReaction(
+          thoughtId: thoughtId, kind: ReactionKind.love);
+      await db.addReaction(
+          thoughtId: thoughtId, kind: ReactionKind.like);
+
+      var reactions = await db.watchReactionsFor(thoughtId).first;
+      expect(reactions, hasLength(3));
+      expect(
+        reactions.map((r) => r.kind),
+        [ReactionKind.like, ReactionKind.love, ReactionKind.like],
+      );
+      // emoji 与种类对应
+      expect(reactions.first.kind.emoji, '👍');
+      expect(reactions[1].kind.emoji, '❤️');
+
+      // 移除单条（后加的 like）
+      await db.deleteReaction(reactions.last.id);
+      reactions = await db.watchReactionsFor(thoughtId).first;
+      expect(reactions, hasLength(2));
+
+      // 删除思绪：反应级联清理
+      await db.deleteThought(thoughtId);
+      final other = await db.insertThought(
+        content: '另一条',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 10),
+      );
+      expect((await db.watchReactionsFor(other).first), isEmpty);
+    });
+
+    test('导出/导入往返：评论与反应', () async {
+      final thoughtId = await db.insertThought(
+        content: '我的思绪',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      await db.addComment(thoughtId: thoughtId, content: '好想法');
+      await db.addReaction(thoughtId: thoughtId, kind: ReactionKind.love);
+      await db.addReaction(
+          thoughtId: thoughtId, kind: ReactionKind.celebrate);
+
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      final count = await db2.importData(data);
+      expect(count, 1);
+
+      final imported = await db2.watchAllEntries().first;
+      expect(imported.single.content, '我的思绪');
+      final comments =
+          await db2.watchCommentsFor(imported.single.id).first;
+      expect(comments.single.content, '好想法');
+      final reactions =
+          await db2.watchReactionsFor(imported.single.id).first;
+      expect(
+        reactions.map((r) => r.kind),
+        containsAll(
+            [ReactionKind.love, ReactionKind.celebrate]),
+      );
+    });
+  });
 }

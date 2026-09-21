@@ -385,6 +385,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachments => 'Attachments';
 
   @override
+  String get commentsLabel => 'Comments';
+
+  @override
+  String get commentHint => 'Write a comment…';
+
+  @override
+  String get addComment => 'Add comment';
+
+  @override
+  String get deleteComment => 'Delete comment';
+
+  @override
+  String get reactionsLabel => 'Reactions';
+
+  @override
+  String get addReaction => 'Add reaction';
+
+  @override
+  String get deleteReaction => 'Remove reaction';
+
+  @override
   String get addImage => 'Add image';
 
   @override

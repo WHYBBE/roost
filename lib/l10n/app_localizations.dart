@@ -752,6 +752,48 @@ abstract class AppLocalizations {
   /// **'Attachments'**
   String get attachments;
 
+  /// No description provided for @commentsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get commentsLabel;
+
+  /// No description provided for @commentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a comment…'**
+  String get commentHint;
+
+  /// No description provided for @addComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add comment'**
+  String get addComment;
+
+  /// No description provided for @deleteComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete comment'**
+  String get deleteComment;
+
+  /// No description provided for @reactionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactions'**
+  String get reactionsLabel;
+
+  /// No description provided for @addReaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reaction'**
+  String get addReaction;
+
+  /// No description provided for @deleteReaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove reaction'**
+  String get deleteReaction;
+
   /// No description provided for @addImage.
   ///
   /// In en, this message translates to:

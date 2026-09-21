@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
@@ -88,6 +89,8 @@ class EntryCard extends StatelessWidget {
               ),
               AttachmentStrip(thoughtId: entry.id, thumbSize: 64),
               if (normalTags.isNotEmpty) TagChips(tags: normalTags),
+              // 评论与反应：自动加载，有内容时才显示
+              _CommentReactionPreview(entryId: entry.id),
             ],
           ),
         ),
@@ -144,8 +147,328 @@ class TagChips extends StatelessWidget {
   }
 }
 
-class _TagChipsLoader extends StatefulWidget {
-  const _TagChipsLoader({required this.entryId});
+/// 内置反应 emoji（固定顺序， ReactionKind 同步）
+class ReactionBar extends StatelessWidget {
+  const ReactionBar({super.key, required this.onPick});
+
+  final ValueChanged<ReactionKind> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    // 横排 6 个 emoji
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final kind in ReactionKind.values)
+          InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: () => onPick(kind),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              child: Text(
+                kind.emoji,
+                style: const TextStyle(fontSize: 22),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// 思绪的评论与反应区：StreamBuilder 自动刷新（卡片与编辑器共用）
+class CommentReactionSection extends StatefulWidget {
+  const CommentReactionSection({super.key, required this.thoughtId});
+
+  final int thoughtId;
+
+  @override
+  State<CommentReactionSection> createState() =>
+      _CommentReactionSectionState();
+}
+
+class _CommentReactionSectionState extends State<CommentReactionSection> {
+  final _controller = TextEditingController();
+  // 评论输入框默认不显示（点击入口展开）
+  bool _showInput = false;
+  // 反应选单浮层（悬浮在点击位置）
+  OverlayEntry? _pickerOverlay;
+
+  @override
+  void dispose() {
+    _hideReactionPicker();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 已有反应（点气泡移除）+ 选单中的 6 选 1
+        StreamBuilder<List<Reaction>>(
+          stream: appDb.watchReactionsFor(widget.thoughtId),
+          builder: (context, snap) {
+            final reactions = snap.data ?? const <Reaction>[];
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  for (final r in reactions)
+                    Tooltip(
+                      message: l.deleteReaction,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(999),
+                        onTap: () => appDb.deleteReaction(r.id),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            r.kind.emoji,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+        // 评论列表
+        StreamBuilder<List<Comment>>(
+          stream: appDb.watchCommentsFor(widget.thoughtId),
+          builder: (context, snap) {
+            final comments = snap.data ?? const <Comment>[];
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final c in comments)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.6),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
+                                  bottomLeft: Radius.circular(2),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                c.content,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ),
+                          // 删除藏在点按里：点评论弹删除确认
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: Icon(Icons.close,
+                                size: 14, color: scheme.onSurfaceVariant),
+                            tooltip: l.deleteComment,
+                            onPressed: () => appDb.deleteComment(c.id),
+                          ),
+                        ],
+                      ),
+                    ),
+                  // 评论输入框：点击入口才显示
+                  if (_showInput) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _controller,
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: l.commentHint,
+                              border: const OutlineInputBorder(),
+                            ),
+                            onSubmitted: (_) => _submit(),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.send,
+                              size: 18, color: scheme.primary),
+                          tooltip: l.addComment,
+                          onPressed: _submit,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+        // 弱化的操作行：反应 + / 评论 +（点击展开对应输入）
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Tooltip(
+                message: l.addReaction,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  // 选单悬浮在点击位置
+                  onTapUp: (d) => _showReactionPickerAt(d.globalPosition),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.add_reaction_outlined,
+                        size: 16, color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Tooltip(
+                message: l.addComment,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => setState(() => _showInput = !_showInput),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.chat_bubble_outline,
+                        size: 16, color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 反应选单：悬浮在点击位置的小浮层（点空白处关闭，选中后关闭）
+  void _showReactionPickerAt(Offset globalPosition) {
+    _hideReactionPicker();
+    final size = MediaQuery.sizeOf(context);
+    // 横排 6 个 emoji 的估算尺寸
+    const barWidth = 6 * 34.0 + 20;
+    const barHeight = 46.0;
+    var left = globalPosition.dx - barWidth / 2;
+    left = left.clamp(8.0, size.width - barWidth - 8);
+    var top = globalPosition.dy - barHeight - 8;
+    if (top < 8) top = globalPosition.dy + 24;
+    _pickerOverlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // 点空白处关闭
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _hideReactionPicker,
+            ),
+          ),
+          Positioned(
+            left: left,
+            top: top,
+            child: Material(
+              elevation: 6,
+              borderRadius: BorderRadius.circular(999),
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: ReactionBar(
+                  onPick: (kind) {
+                    appDb.addReaction(
+                        thoughtId: widget.thoughtId, kind: kind);
+                    _hideReactionPicker();
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context).insert(_pickerOverlay!);
+  }
+
+  void _hideReactionPicker() {
+    _pickerOverlay?.remove();
+    _pickerOverlay = null;
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    appDb.addComment(thoughtId: widget.thoughtId, content: text);
+    _controller.clear();
+    setState(() => _showInput = false);
+  }
+}
+
+/// 卡片上的评论/反应预览：为空时整块隐藏，避免无谓占位
+class _CommentReactionPreview extends StatefulWidget {
+  const _CommentReactionPreview({required this.entryId});
+
+  final int entryId;
+
+  @override
+  State<_CommentReactionPreview> createState() =>
+      _CommentReactionPreviewState();
+}
+
+class _CommentReactionPreviewState extends State<_CommentReactionPreview> {
+  StreamSubscription? _subReactions;
+  StreamSubscription? _subComments;
+  bool _hasAny = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 两个流分别监听：任一变化都重新检查是否为空
+    _subReactions = appDb.watchReactionsFor(widget.entryId).listen((r) {
+      appDb.watchCommentsFor(widget.entryId).first.then((c) {
+        if (mounted) setState(() => _hasAny = r.isNotEmpty || c.isNotEmpty);
+      });
+    });
+    _subComments = appDb.watchCommentsFor(widget.entryId).listen((c) {
+      appDb.watchReactionsFor(widget.entryId).first.then((r) {
+        if (mounted) setState(() => _hasAny = r.isNotEmpty || c.isNotEmpty);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _subReactions?.cancel();
+    _subComments?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasAny) return const SizedBox.shrink();
+    return CommentReactionSection(thoughtId: widget.entryId);
+  }
+}
+
+class _TagChipsLoader extends StatefulWidget {  const _TagChipsLoader({required this.entryId});
 
   final int entryId;
 
@@ -647,6 +970,13 @@ Future<void> showEntryEditor(
                           ),
                     ],
                   ),
+                ],
+                // 评论与反应：仅已保存的思绪（新思绪保存后再来）
+                if (existing != null) ...[
+                  const SizedBox(height: 16),
+                  Text(l.commentsLabel,
+                      style: Theme.of(context).textTheme.labelLarge),
+                  CommentReactionSection(thoughtId: existing.id),
                 ],
               ],
             ),

@@ -370,6 +370,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get attachments => '附件';
 
   @override
+  String get commentsLabel => '评论';
+
+  @override
+  String get commentHint => '写下评论…';
+
+  @override
+  String get addComment => '添加评论';
+
+  @override
+  String get deleteComment => '删除评论';
+
+  @override
+  String get reactionsLabel => '反应';
+
+  @override
+  String get addReaction => '添加反应';
+
+  @override
+  String get deleteReaction => '移除反应';
+
+  @override
   String get addImage => '添加图片';
 
   @override

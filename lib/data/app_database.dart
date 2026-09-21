@@ -18,6 +18,8 @@ bool isEmojiCodepoint(int codePoint) =>
   ThoughtTags,
   Attachments,
   AttachmentBlobs,
+  Comments,
+  Reactions,
   EventTypes,
   EventStatuses,
   CalendarEvents,
@@ -30,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +53,8 @@ class AppDatabase extends _$AppDatabase {
     await m.deleteTable('attachment_blobs');
     await m.deleteTable('attachments');
     await m.deleteTable('thought_tags');
+    await m.deleteTable('comments');
+    await m.deleteTable('reactions');
     await m.deleteTable('calendar_events');
     await m.deleteTable('event_statuses');
     await m.deleteTable('event_types');
@@ -88,6 +92,8 @@ class AppDatabase extends _$AppDatabase {
       await select(eventTypes).get();
       await select(eventStatuses).get();
       await select(calendarEvents).get();
+      await select(comments).get();
+      await select(reactions).get();
       return true;
     } catch (_) {
       return false;
@@ -160,6 +166,8 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM attachment_blobs');
       await customStatement('DELETE FROM attachments');
       await customStatement('DELETE FROM thought_tags');
+      await customStatement('DELETE FROM comments');
+      await customStatement('DELETE FROM reactions');
       await customStatement('DELETE FROM calendar_events');
       await customStatement('DELETE FROM event_statuses');
       await customStatement('DELETE FROM event_types');
@@ -184,6 +192,8 @@ class AppDatabase extends _$AppDatabase {
     final linkRows = await select(thoughtTags).get();
     final attachmentRows = await select(attachments).get();
     final blobRows = await select(attachmentBlobs).get();
+    final commentRows = await select(comments).get();
+    final reactionRows = await select(reactions).get();
     final typeRows = await select(eventTypes).get();
     final statusRows = await select(eventStatuses).get();
     final eventRows = await select(calendarEvents).get();
@@ -233,6 +243,24 @@ class AppDatabase extends _$AppDatabase {
               'mime': a.mime,
               'durationMs': a.durationMs,
               'data': base64Encode(blobById[a.id]!),
+            },
+      ],
+      'comments': [
+        for (final c in commentRows)
+          if (thoughtRows.indexWhere((t) => t.id == c.thoughtId) >= 0)
+            {
+              'thought': thoughtRows.indexWhere((t) => t.id == c.thoughtId),
+              'content': c.content,
+              'createdAt': c.createdAt,
+            },
+      ],
+      'reactions': [
+        for (final r in reactionRows)
+          if (thoughtRows.indexWhere((t) => t.id == r.thoughtId) >= 0)
+            {
+              'thought': thoughtRows.indexWhere((t) => t.id == r.thoughtId),
+              'kind': r.kind.value,
+              'createdAt': r.createdAt,
             },
       ],
       'eventTypes': [
@@ -377,6 +405,8 @@ class AppDatabase extends _$AppDatabase {
         );
       }
       final typesIn = (data['eventTypes'] as List?) ?? const [];
+      final commentsIn = (data['comments'] as List?) ?? const [];
+      final reactionsIn = (data['reactions'] as List?) ?? const [];
       final v7TypeIds = <int, int>{};
       // 导出内的原始状态 id → 新库状态 id
       final statusIdMap = <int, int>{};
@@ -443,6 +473,33 @@ class AppDatabase extends _$AppDatabase {
             statusId: Value(
                 rawStatus == null ? null : statusIdMap[rawStatus]),
             thoughtId: Value(thoughtId),
+          ),
+        );
+      }
+      for (final raw in commentsIn) {
+        final m = raw as Map;
+        final tid = thoughtIdByIndex[(m['thought'] as num?)?.toInt() ?? -1];
+        final content = ((m['content'] ?? '') as String).trim();
+        if (tid == null || content.isEmpty) continue;
+        await into(comments).insert(
+          CommentsCompanion.insert(
+            thoughtId: tid,
+            content: content,
+            createdAt: (m['createdAt'] as num?)?.toInt() ?? 0,
+          ),
+        );
+      }
+      for (final raw in reactionsIn) {
+        final m = raw as Map;
+        final tid = thoughtIdByIndex[(m['thought'] as num?)?.toInt() ?? -1];
+        final kind = ReactionKind.fromValue(
+            (m['kind'] as num?)?.toInt() ?? -1);
+        if (tid == null || kind == null) continue;
+        await into(reactions).insert(
+          ReactionsCompanion.insert(
+            thoughtId: tid,
+            kind: kind,
+            createdAt: (m['createdAt'] as num?)?.toInt() ?? 0,
           ),
         );
       }
@@ -569,6 +626,60 @@ class AppDatabase extends _$AppDatabase {
             (t) => OrderingTerm.desc(t.createdAt),
           ]))
         .watch();
+  }
+
+  // ---------- 评论与反应 ----------
+
+  /// 某条思绪的评论（时间正序）
+  Stream<List<Comment>> watchCommentsFor(int thoughtId) {
+    return (select(comments)
+          ..where((c) => c.thoughtId.equals(thoughtId))
+          ..orderBy([(c) => OrderingTerm.asc(c.createdAt), (c) => OrderingTerm.asc(c.id)]))
+        .watch();
+  }
+
+  /// 某条思绪的反应（时间正序）
+  Stream<List<Reaction>> watchReactionsFor(int thoughtId) {
+    return (select(reactions)
+          ..where((r) => r.thoughtId.equals(thoughtId))
+          ..orderBy([(r) => OrderingTerm.asc(r.createdAt), (r) => OrderingTerm.asc(r.id)]))
+        .watch();
+  }
+
+  Future<int> addComment({
+    required int thoughtId,
+    required String content,
+  }) {
+    final c = content.trim();
+    if (c.isEmpty) return Future.value(-1);
+    return into(comments).insert(
+      CommentsCompanion.insert(
+        thoughtId: thoughtId,
+        content: c,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> deleteComment(int id) {
+    return (delete(comments)..where((c) => c.id.equals(id))).go();
+  }
+
+  Future<int> addReaction({
+    required int thoughtId,
+    required ReactionKind kind,
+  }) {
+    return into(reactions).insert(
+      ReactionsCompanion.insert(
+        thoughtId: thoughtId,
+        kind: kind,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> deleteReaction(int id) {
+    return (delete(reactions)..where((r) => r.id.equals(id))).go();
   }
 
   // ---------- 日历：特殊日子（思绪） ----------

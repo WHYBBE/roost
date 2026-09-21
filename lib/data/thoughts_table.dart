@@ -124,6 +124,47 @@ class EventTypes extends Table {
       intEnum<EventTypeKind>().withDefault(const Constant(0))();
 }
 
+/// 反应种类：内置 6 个 emoji，每次反应选其一；
+/// 可随时间追加多条（不同时候可以有不同反应），同种也可多次
+enum ReactionKind {
+  like(0, '👍'),
+  love(1, '❤️'),
+  laugh(2, '😂'),
+  wow(3, '😮'),
+  sad(4, '😢'),
+  celebrate(5, '🎉');
+
+  final int value;
+  final String emoji;
+  const ReactionKind(this.value, this.emoji);
+
+  static ReactionKind? fromValue(int v) =>
+      (v >= 0 && v < ReactionKind.values.length)
+          ? ReactionKind.values[v]
+          : null;
+}
+
+/// 评论：思绪下的自由文字（不做楼层/回复），按时间正序
+@DataClassName('Comment')
+class Comments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get thoughtId =>
+      integer().references(Thoughts, #id, onDelete: KeyAction.cascade)();
+  TextColumn get content => text()();
+  // UTC 时间戳毫秒
+  IntColumn get createdAt => integer()();
+}
+
+/// 反应：一条内置 emoji 记录（同种可多次）
+@DataClassName('Reaction')
+class Reactions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get thoughtId =>
+      integer().references(Thoughts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get kind => intEnum<ReactionKind>()();
+  IntColumn get createdAt => integer()();
+}
+
 /// 事件类型的状态（属于类型）：
 /// 节假日内置 放假（休·红）/ 补班（班·蓝）；自定义类型可任意预设
 /// （如任务：已完成/未完成/放弃）。事件实例选择其中一个（或无状态）

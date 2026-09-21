@@ -1721,6 +1721,614 @@ class AttachmentBlobsCompanion extends UpdateCompanion<AttachmentBlob> {
   }
 }
 
+class $CommentsTable extends Comments with TableInfo<$CommentsTable, Comment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CommentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
+    'thoughtId',
+  );
+  @override
+  late final GeneratedColumn<int> thoughtId = GeneratedColumn<int>(
+    'thought_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, thoughtId, content, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'comments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Comment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('thought_id')) {
+      context.handle(
+        _thoughtIdMeta,
+        thoughtId.isAcceptableOrUnknown(data['thought_id']!, _thoughtIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_thoughtIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Comment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Comment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      thoughtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}thought_id'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CommentsTable createAlias(String alias) {
+    return $CommentsTable(attachedDatabase, alias);
+  }
+}
+
+class Comment extends DataClass implements Insertable<Comment> {
+  final int id;
+  final int thoughtId;
+  final String content;
+  final int createdAt;
+  const Comment({
+    required this.id,
+    required this.thoughtId,
+    required this.content,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['thought_id'] = Variable<int>(thoughtId);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  CommentsCompanion toCompanion(bool nullToAbsent) {
+    return CommentsCompanion(
+      id: Value(id),
+      thoughtId: Value(thoughtId),
+      content: Value(content),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Comment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Comment(
+      id: serializer.fromJson<int>(json['id']),
+      thoughtId: serializer.fromJson<int>(json['thoughtId']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'thoughtId': serializer.toJson<int>(thoughtId),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  Comment copyWith({
+    int? id,
+    int? thoughtId,
+    String? content,
+    int? createdAt,
+  }) => Comment(
+    id: id ?? this.id,
+    thoughtId: thoughtId ?? this.thoughtId,
+    content: content ?? this.content,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Comment copyWithCompanion(CommentsCompanion data) {
+    return Comment(
+      id: data.id.present ? data.id.value : this.id,
+      thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Comment(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, thoughtId, content, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Comment &&
+          other.id == this.id &&
+          other.thoughtId == this.thoughtId &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt);
+}
+
+class CommentsCompanion extends UpdateCompanion<Comment> {
+  final Value<int> id;
+  final Value<int> thoughtId;
+  final Value<String> content;
+  final Value<int> createdAt;
+  const CommentsCompanion({
+    this.id = const Value.absent(),
+    this.thoughtId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  CommentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int thoughtId,
+    required String content,
+    required int createdAt,
+  }) : thoughtId = Value(thoughtId),
+       content = Value(content),
+       createdAt = Value(createdAt);
+  static Insertable<Comment> custom({
+    Expression<int>? id,
+    Expression<int>? thoughtId,
+    Expression<String>? content,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (thoughtId != null) 'thought_id': thoughtId,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  CommentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? thoughtId,
+    Value<String>? content,
+    Value<int>? createdAt,
+  }) {
+    return CommentsCompanion(
+      id: id ?? this.id,
+      thoughtId: thoughtId ?? this.thoughtId,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (thoughtId.present) {
+      map['thought_id'] = Variable<int>(thoughtId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CommentsCompanion(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReactionsTable extends Reactions
+    with TableInfo<$ReactionsTable, Reaction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
+    'thoughtId',
+  );
+  @override
+  late final GeneratedColumn<int> thoughtId = GeneratedColumn<int>(
+    'thought_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ReactionKind, int> kind =
+      GeneratedColumn<int>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<ReactionKind>($ReactionsTable.$converterkind);
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, thoughtId, kind, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Reaction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('thought_id')) {
+      context.handle(
+        _thoughtIdMeta,
+        thoughtId.isAcceptableOrUnknown(data['thought_id']!, _thoughtIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_thoughtIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Reaction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Reaction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      thoughtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}thought_id'],
+      )!,
+      kind: $ReactionsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReactionsTable createAlias(String alias) {
+    return $ReactionsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<ReactionKind, int, int> $converterkind =
+      const EnumIndexConverter<ReactionKind>(ReactionKind.values);
+}
+
+class Reaction extends DataClass implements Insertable<Reaction> {
+  final int id;
+  final int thoughtId;
+  final ReactionKind kind;
+  final int createdAt;
+  const Reaction({
+    required this.id,
+    required this.thoughtId,
+    required this.kind,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['thought_id'] = Variable<int>(thoughtId);
+    {
+      map['kind'] = Variable<int>($ReactionsTable.$converterkind.toSql(kind));
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ReactionsCompanion toCompanion(bool nullToAbsent) {
+    return ReactionsCompanion(
+      id: Value(id),
+      thoughtId: Value(thoughtId),
+      kind: Value(kind),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Reaction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Reaction(
+      id: serializer.fromJson<int>(json['id']),
+      thoughtId: serializer.fromJson<int>(json['thoughtId']),
+      kind: $ReactionsTable.$converterkind.fromJson(
+        serializer.fromJson<int>(json['kind']),
+      ),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'thoughtId': serializer.toJson<int>(thoughtId),
+      'kind': serializer.toJson<int>(
+        $ReactionsTable.$converterkind.toJson(kind),
+      ),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  Reaction copyWith({
+    int? id,
+    int? thoughtId,
+    ReactionKind? kind,
+    int? createdAt,
+  }) => Reaction(
+    id: id ?? this.id,
+    thoughtId: thoughtId ?? this.thoughtId,
+    kind: kind ?? this.kind,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Reaction copyWithCompanion(ReactionsCompanion data) {
+    return Reaction(
+      id: data.id.present ? data.id.value : this.id,
+      thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Reaction(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('kind: $kind, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, thoughtId, kind, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Reaction &&
+          other.id == this.id &&
+          other.thoughtId == this.thoughtId &&
+          other.kind == this.kind &&
+          other.createdAt == this.createdAt);
+}
+
+class ReactionsCompanion extends UpdateCompanion<Reaction> {
+  final Value<int> id;
+  final Value<int> thoughtId;
+  final Value<ReactionKind> kind;
+  final Value<int> createdAt;
+  const ReactionsCompanion({
+    this.id = const Value.absent(),
+    this.thoughtId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReactionsCompanion.insert({
+    this.id = const Value.absent(),
+    required int thoughtId,
+    required ReactionKind kind,
+    required int createdAt,
+  }) : thoughtId = Value(thoughtId),
+       kind = Value(kind),
+       createdAt = Value(createdAt);
+  static Insertable<Reaction> custom({
+    Expression<int>? id,
+    Expression<int>? thoughtId,
+    Expression<int>? kind,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (thoughtId != null) 'thought_id': thoughtId,
+      if (kind != null) 'kind': kind,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReactionsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? thoughtId,
+    Value<ReactionKind>? kind,
+    Value<int>? createdAt,
+  }) {
+    return ReactionsCompanion(
+      id: id ?? this.id,
+      thoughtId: thoughtId ?? this.thoughtId,
+      kind: kind ?? this.kind,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (thoughtId.present) {
+      map['thought_id'] = Variable<int>(thoughtId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<int>(
+        $ReactionsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('kind: $kind, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $EventTypesTable extends EventTypes
     with TableInfo<$EventTypesTable, EventType> {
   @override
@@ -3119,6 +3727,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AttachmentBlobsTable attachmentBlobs = $AttachmentBlobsTable(
     this,
   );
+  late final $CommentsTable comments = $CommentsTable(this);
+  late final $ReactionsTable reactions = $ReactionsTable(this);
   late final $EventTypesTable eventTypes = $EventTypesTable(this);
   late final $EventStatusesTable eventStatuses = $EventStatusesTable(this);
   late final $CalendarEventsTable calendarEvents = $CalendarEventsTable(this);
@@ -3132,6 +3742,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     thoughtTags,
     attachments,
     attachmentBlobs,
+    comments,
+    reactions,
     eventTypes,
     eventStatuses,
     calendarEvents,
@@ -3165,6 +3777,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('attachment_blobs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('comments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reactions', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -3251,6 +3877,43 @@ final class $$ThoughtsTableReferences
     ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_attachmentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$CommentsTable, List<Comment>> _commentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.comments,
+    aliasName: 'thoughts__id__comments__thought_id',
+  );
+
+  $$CommentsTableProcessedTableManager get commentsRefs {
+    final manager = $$CommentsTableTableManager(
+      $_db,
+      $_db.comments,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_commentsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ReactionsTable, List<Reaction>>
+  _reactionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.reactions,
+    aliasName: 'thoughts__id__reactions__thought_id',
+  );
+
+  $$ReactionsTableProcessedTableManager get reactionsRefs {
+    final manager = $$ReactionsTableTableManager(
+      $_db,
+      $_db.reactions,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_reactionsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3355,6 +4018,56 @@ class $$ThoughtsTableFilterComposer
           }) => $$AttachmentsTableFilterComposer(
             $db: $db,
             $table: $db.attachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> commentsRefs(
+    Expression<bool> Function($$CommentsTableFilterComposer f) f,
+  ) {
+    final $$CommentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.comments,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommentsTableFilterComposer(
+            $db: $db,
+            $table: $db.comments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> reactionsRefs(
+    Expression<bool> Function($$ReactionsTableFilterComposer f) f,
+  ) {
+    final $$ReactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reactions,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.reactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3509,6 +4222,56 @@ class $$ThoughtsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> commentsRefs<T extends Object>(
+    Expression<T> Function($$CommentsTableAnnotationComposer a) f,
+  ) {
+    final $$CommentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.comments,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.comments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> reactionsRefs<T extends Object>(
+    Expression<T> Function($$ReactionsTableAnnotationComposer a) f,
+  ) {
+    final $$ReactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reactions,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> calendarEventsRefs<T extends Object>(
     Expression<T> Function($$CalendarEventsTableAnnotationComposer a) f,
   ) {
@@ -3551,6 +4314,8 @@ class $$ThoughtsTableTableManager
           PrefetchHooks Function({
             bool thoughtTagsRefs,
             bool attachmentsRefs,
+            bool commentsRefs,
+            bool reactionsRefs,
             bool calendarEventsRefs,
           })
         > {
@@ -3609,6 +4374,8 @@ class $$ThoughtsTableTableManager
               ({
                 thoughtTagsRefs = false,
                 attachmentsRefs = false,
+                commentsRefs = false,
+                reactionsRefs = false,
                 calendarEventsRefs = false,
               }) {
                 return PrefetchHooks(
@@ -3616,6 +4383,8 @@ class $$ThoughtsTableTableManager
                   explicitlyWatchedTables: [
                     if (thoughtTagsRefs) db.thoughtTags,
                     if (attachmentsRefs) db.attachments,
+                    if (commentsRefs) db.comments,
+                    if (reactionsRefs) db.reactions,
                     if (calendarEventsRefs) db.calendarEvents,
                   ],
                   addJoins: null,
@@ -3657,6 +4426,48 @@ class $$ThoughtsTableTableManager
                                 table,
                                 p0,
                               ).attachmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (commentsRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          Comment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._commentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).commentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (reactionsRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          Reaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._reactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).reactionsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.thoughtId == item.id,
@@ -3707,6 +4518,8 @@ typedef $$ThoughtsTableProcessedTableManager =
       PrefetchHooks Function({
         bool thoughtTagsRefs,
         bool attachmentsRefs,
+        bool commentsRefs,
+        bool reactionsRefs,
         bool calendarEventsRefs,
       })
     >;
@@ -5089,6 +5902,591 @@ typedef $$AttachmentBlobsTableProcessedTableManager =
       (AttachmentBlob, $$AttachmentBlobsTableReferences),
       AttachmentBlob,
       PrefetchHooks Function({bool attachmentId})
+    >;
+typedef $$CommentsTableCreateCompanionBuilder =
+    CommentsCompanion Function({
+      Value<int> id,
+      required int thoughtId,
+      required String content,
+      required int createdAt,
+    });
+typedef $$CommentsTableUpdateCompanionBuilder =
+    CommentsCompanion Function({
+      Value<int> id,
+      Value<int> thoughtId,
+      Value<String> content,
+      Value<int> createdAt,
+    });
+
+final class $$CommentsTableReferences
+    extends BaseReferences<_$AppDatabase, $CommentsTable, Comment> {
+  $$CommentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('comments__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id')!;
+
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CommentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CommentsTable> {
+  $$CommentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CommentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CommentsTable> {
+  $$CommentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CommentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CommentsTable> {
+  $$CommentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CommentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CommentsTable,
+          Comment,
+          $$CommentsTableFilterComposer,
+          $$CommentsTableOrderingComposer,
+          $$CommentsTableAnnotationComposer,
+          $$CommentsTableCreateCompanionBuilder,
+          $$CommentsTableUpdateCompanionBuilder,
+          (Comment, $$CommentsTableReferences),
+          Comment,
+          PrefetchHooks Function({bool thoughtId})
+        > {
+  $$CommentsTableTableManager(_$AppDatabase db, $CommentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CommentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CommentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CommentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> thoughtId = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => CommentsCompanion(
+                id: id,
+                thoughtId: thoughtId,
+                content: content,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int thoughtId,
+                required String content,
+                required int createdAt,
+              }) => CommentsCompanion.insert(
+                id: id,
+                thoughtId: thoughtId,
+                content: content,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CommentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({thoughtId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (thoughtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.thoughtId,
+                                referencedTable: $$CommentsTableReferences
+                                    ._thoughtIdTable(db),
+                                referencedColumn: $$CommentsTableReferences
+                                    ._thoughtIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CommentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CommentsTable,
+      Comment,
+      $$CommentsTableFilterComposer,
+      $$CommentsTableOrderingComposer,
+      $$CommentsTableAnnotationComposer,
+      $$CommentsTableCreateCompanionBuilder,
+      $$CommentsTableUpdateCompanionBuilder,
+      (Comment, $$CommentsTableReferences),
+      Comment,
+      PrefetchHooks Function({bool thoughtId})
+    >;
+typedef $$ReactionsTableCreateCompanionBuilder =
+    ReactionsCompanion Function({
+      Value<int> id,
+      required int thoughtId,
+      required ReactionKind kind,
+      required int createdAt,
+    });
+typedef $$ReactionsTableUpdateCompanionBuilder =
+    ReactionsCompanion Function({
+      Value<int> id,
+      Value<int> thoughtId,
+      Value<ReactionKind> kind,
+      Value<int> createdAt,
+    });
+
+final class $$ReactionsTableReferences
+    extends BaseReferences<_$AppDatabase, $ReactionsTable, Reaction> {
+  $$ReactionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('reactions__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id')!;
+
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ReactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ReactionKind, ReactionKind, int> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReactionsTable> {
+  $$ReactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<ReactionKind, int> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReactionsTable,
+          Reaction,
+          $$ReactionsTableFilterComposer,
+          $$ReactionsTableOrderingComposer,
+          $$ReactionsTableAnnotationComposer,
+          $$ReactionsTableCreateCompanionBuilder,
+          $$ReactionsTableUpdateCompanionBuilder,
+          (Reaction, $$ReactionsTableReferences),
+          Reaction,
+          PrefetchHooks Function({bool thoughtId})
+        > {
+  $$ReactionsTableTableManager(_$AppDatabase db, $ReactionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReactionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> thoughtId = const Value.absent(),
+                Value<ReactionKind> kind = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => ReactionsCompanion(
+                id: id,
+                thoughtId: thoughtId,
+                kind: kind,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int thoughtId,
+                required ReactionKind kind,
+                required int createdAt,
+              }) => ReactionsCompanion.insert(
+                id: id,
+                thoughtId: thoughtId,
+                kind: kind,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ReactionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({thoughtId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (thoughtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.thoughtId,
+                                referencedTable: $$ReactionsTableReferences
+                                    ._thoughtIdTable(db),
+                                referencedColumn: $$ReactionsTableReferences
+                                    ._thoughtIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ReactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReactionsTable,
+      Reaction,
+      $$ReactionsTableFilterComposer,
+      $$ReactionsTableOrderingComposer,
+      $$ReactionsTableAnnotationComposer,
+      $$ReactionsTableCreateCompanionBuilder,
+      $$ReactionsTableUpdateCompanionBuilder,
+      (Reaction, $$ReactionsTableReferences),
+      Reaction,
+      PrefetchHooks Function({bool thoughtId})
     >;
 typedef $$EventTypesTableCreateCompanionBuilder =
     EventTypesCompanion Function({
@@ -6537,6 +7935,10 @@ class $AppDatabaseManager {
       $$AttachmentsTableTableManager(_db, _db.attachments);
   $$AttachmentBlobsTableTableManager get attachmentBlobs =>
       $$AttachmentBlobsTableTableManager(_db, _db.attachmentBlobs);
+  $$CommentsTableTableManager get comments =>
+      $$CommentsTableTableManager(_db, _db.comments);
+  $$ReactionsTableTableManager get reactions =>
+      $$ReactionsTableTableManager(_db, _db.reactions);
   $$EventTypesTableTableManager get eventTypes =>
       $$EventTypesTableTableManager(_db, _db.eventTypes);
   $$EventStatusesTableTableManager get eventStatuses =>
