@@ -87,23 +87,9 @@ class AttachmentBlobs extends Table {
   Set<Column> get primaryKey => {attachmentId};
 }
 
-/// 日历事件在格子上的标记形式：无 / 休（红）/ 班（主题色）
-enum CalendarMark {
-  none(0),
-  rest(1),
-  work(2);
-
-  final int value;
-  const CalendarMark(this.value);
-
-  static CalendarMark fromValue(int v) => (v >= 0 && v < CalendarMark.values.length)
-      ? CalendarMark.values[v]
-      : CalendarMark.none;
-}
-
 /// 类型种类：自定义 / 法定节假日 / 调休补班 / 生日。
 /// 节假日与生日是"特殊类型"：创建走专属流程，
-/// 节假日成对（休+班）创建且标记固定，生日下的事件默认每年循环
+/// 节假日自带 放假/补班 两个内置状态，生日下的事件默认每年循环
 enum EventTypeKind {
   custom(0),
   holiday(1),
@@ -119,9 +105,9 @@ enum EventTypeKind {
           : EventTypeKind.custom;
 }
 
-/// 日历事件类型：完全自定义（颜色/字符/标记）。
-/// 国家节假日（mark=rest）、调休补班（mark=work）、生日、月经周期、
-/// 旅行计划等都是它的特例；年份归属写进名称（如"2026 法定节假日"）
+/// 日历事件类型：完全自定义（颜色/字符/状态）。
+/// 国家节假日（放假/补班状态）、生日、月经周期、旅行计划等都是它的特例；
+/// 年份归属写进名称（如"2026 法定节假日"）
 @DataClassName('EventType')
 class EventTypes extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -130,14 +116,28 @@ class EventTypes extends Table {
   IntColumn get color => integer()();
   // 字符角标（如 休/班/🩸），null = 无
   TextColumn get glyph => text().nullable()();
-  IntColumn get mark =>
-      intEnum<CalendarMark>().withDefault(const Constant(0))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   // 计数器类型：每天可 +1 计次（打卡、次数统计），不走日期区间
   BoolColumn get counter => boolean().withDefault(const Constant(false))();
-  // 种类：决定创建流程与事件默认行为（休/班标记仅节假日与自定义使用）
+  // 种类：决定创建流程与事件默认行为（状态仅节假日与自定义使用）
   IntColumn get kind =>
       intEnum<EventTypeKind>().withDefault(const Constant(0))();
+}
+
+/// 事件类型的状态（属于类型）：
+/// 节假日内置 放假（休·红）/ 补班（班·蓝）；自定义类型可任意预设
+/// （如任务：已完成/未完成/放弃）。事件实例选择其中一个（或无状态）
+@DataClassName('EventStatus')
+class EventStatuses extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get typeId =>
+      integer().references(EventTypes, #id, onDelete: KeyAction.cascade)();
+  TextColumn get name => text()();
+  // ARGB32
+  IntColumn get color => integer()();
+  // 单字符角标（如 休/班/✓），空 = 无角标（不参与格子角标）
+  TextColumn get glyph => text().withDefault(const Constant(''))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 }
 
 /// 日历事件：单日或日期区间，可每年循环（生日），可选联动一条思绪
@@ -155,8 +155,9 @@ class CalendarEvents extends Table {
   BoolColumn get annual => boolean().withDefault(const Constant(false))();
   // 计数器当日次数（非计数器事件恒为 1）
   IntColumn get count => integer().withDefault(const Constant(1))();
-  // 实例级 休/班 覆盖（节假日类型下可混合排休与调休日；null = 继承类型标记）
-  IntColumn get mark => intEnum<CalendarMark>().nullable()();
+  // 选中的状态（所属类型的状态之一）；null = 无状态
+  IntColumn get statusId =>
+      integer().nullable().references(EventStatuses, #id, onDelete: KeyAction.setNull)();
   // 联动思绪（万物皆思绪）；思绪被删时置空，事件保留
   IntColumn get thoughtId =>
       integer().nullable().references(Thoughts, #id, onDelete: KeyAction.setNull)();

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -488,7 +489,6 @@ void main() {
         name: '2026 法定节假日',
         color: 0xFFCF4B3F,
         glyph: '休',
-        mark: CalendarMark.rest,
       );
       await db.insertEvent(
         typeId: holidayType,
@@ -562,13 +562,18 @@ void main() {
       expect(await db.watchEvents().first, isEmpty);
     });
 
-    test('类型种类：节假日/生日特殊类型持久化', () async {
-      await db.createEventType(
+    test('类型种类：节假日/生日特殊类型持久化，状态随类型', () async {
+      final holidayId = await db.createEventType(
         name: '2026 法定节假日',
         color: 0xFFCF4B3F,
         glyph: '休',
-        mark: CalendarMark.rest,
         kind: EventTypeKind.holiday,
+        statuses: [
+          EventStatusesCompanion.insert(
+            typeId: 0, name: '放假', color: 0xFFCF4B3F, glyph: const Value('休')),
+          EventStatusesCompanion.insert(
+            typeId: 0, name: '补班', color: 0xFF3F7DCF, glyph: const Value('班')),
+        ],
       );
       await db.createEventType(
         name: '生日',
@@ -578,11 +583,14 @@ void main() {
       );
       final types = await db.watchEventTypes().first;
       expect(types[0].kind, EventTypeKind.holiday);
-      expect(types[0].mark, CalendarMark.rest);
       expect(types[1].kind, EventTypeKind.birthday);
-      expect(types[1].mark, CalendarMark.none);
+      // 状态随类型种入，按 sortOrder 排序
+      final statuses = await db.statusesFor(holidayId);
+      expect(statuses.map((s) => s.name), ['放假', '补班']);
+      expect(statuses[0].glyph, '休');
+      expect(statuses[0].color, 0xFFCF4B3F);
 
-      // 往返保留
+      // 往返保留（状态含 id 重映射）
       final data = await db.exportData();
       final db2 = AppDatabase.connect(NativeDatabase.memory());
       addTearDown(db2.close);
@@ -590,6 +598,10 @@ void main() {
       final imported = await db2.watchEventTypes().first;
       expect(imported[0].kind, EventTypeKind.holiday);
       expect(imported[1].kind, EventTypeKind.birthday);
+      final importedStatuses =
+          await db2.statusesFor(imported[0].id);
+      expect(importedStatuses.map((s) => s.name), ['放假', '补班']);
+      expect(importedStatuses[0].glyph, '休');
     });
 
     test('事件联动思绪（万物皆思绪）', () async {
@@ -652,46 +664,59 @@ void main() {
       expect((await db.watchEvents().first).last.count, 1);
     });
 
-    test('实例级 休/班 覆盖与解关联', () async {
+    test('事件状态：实例选择/清除，删除状态置空', () async {
       final typeId = await db.createEventType(
         name: '2026 法定节假日',
         color: 0xFFCF4B3F,
         glyph: '休',
-        mark: CalendarMark.rest,
         kind: EventTypeKind.holiday,
+        statuses: [
+          EventStatusesCompanion.insert(
+            typeId: 0, name: '放假', color: 0xFFCF4B3F, glyph: const Value('休')),
+          EventStatusesCompanion.insert(
+            typeId: 0, name: '补班', color: 0xFF3F7DCF, glyph: const Value('班'),
+            sortOrder: const Value(1)),
+        ],
       );
-      // 放假日（继承类型休）与调休日（实例级班）
+      final statuses = await db.statusesFor(typeId);
+      final restSid = statuses[0].id;
+      final workSid = statuses[1].id;
+      // 放假日（选放假）与调休日（选补班）
       final restId = await db.insertEvent(
         typeId: typeId,
         startDate: '2026-10-01',
         endDate: '2026-10-08',
         title: '国庆',
+        statusId: restSid,
       );
       final workId = await db.insertEvent(
         typeId: typeId,
         startDate: '2026-09-27',
-        mark: CalendarMark.work,
+        statusId: workSid,
       );
       var rows = await db.watchEvents().first;
-      expect(rows.firstWhere((e) => e.id == restId).mark, isNull);
-      expect(
-        rows.firstWhere((e) => e.id == workId).mark,
-        CalendarMark.work,
-      );
+      expect(rows.firstWhere((e) => e.id == restId).statusId, restSid);
+      expect(rows.firstWhere((e) => e.id == workId).statusId, workSid);
 
-      // 编辑清除覆盖
+      // 编辑清除状态（无状态）
       await db.updateEvent(
         workId,
         startDate: '2026-09-27',
         endDate: null,
         title: null,
         annual: false,
-        mark: null,
+        statusId: null,
       );
       expect(
-        (await db.watchEvents().first).firstWhere((e) => e.id == workId).mark,
+        (await db.watchEvents().first).firstWhere((e) => e.id == workId).statusId,
         isNull,
       );
+
+      // 删除状态：其上事件实例置空（外键 setNull），事件保留
+      await db.deleteEventStatus(workSid);
+      rows = await db.watchEvents().first;
+      expect(rows, hasLength(2));
+      expect(rows.firstWhere((e) => e.id == workId).statusId, isNull);
 
       // 关联思绪后解关联：事件保留
       final thoughtId = await db.insertThought(
@@ -727,7 +752,12 @@ void main() {
         name: '生日',
         color: 0xFFCF9F3F,
         glyph: '🎂',
+        statuses: [
+          EventStatusesCompanion.insert(
+            typeId: 0, name: '筹备中', color: 0xFF4CAF50, glyph: const Value('备')),
+        ],
       );
+      final sid = (await db.statusesFor(typeId)).single.id;
       final thoughtId = await db.insertThought(
         content: '我的生日',
         day: '2026-09-20',
@@ -739,6 +769,7 @@ void main() {
         startDate: '2026-05-04',
         annual: true,
         title: '我的生日',
+        statusId: sid,
         thoughtId: thoughtId,
       );
 
@@ -753,9 +784,13 @@ void main() {
       expect(types.single.name, '生日');
       expect(types.single.glyph, '🎂');
 
+      // 状态重映射：事件引用导入后的新状态 id
+      final importedStatuses = await db2.statusesFor(types.single.id);
+      expect(importedStatuses.single.name, '筹备中');
       final events = await db2.watchEvents().first;
       expect(events.single.annual, isTrue);
       expect(events.single.startDate, '2026-05-04');
+      expect(events.single.statusId, importedStatuses.single.id);
       expect(events.single.thoughtId, isNotNull);
       // 联动的思绪也一并导入
       final linked = await db2.watchAnnualEvents().first;

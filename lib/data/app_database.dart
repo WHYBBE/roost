@@ -19,6 +19,7 @@ bool isEmojiCodepoint(int codePoint) =>
   Attachments,
   AttachmentBlobs,
   EventTypes,
+  EventStatuses,
   CalendarEvents,
 ])
 class AppDatabase extends _$AppDatabase {
@@ -29,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +52,7 @@ class AppDatabase extends _$AppDatabase {
     await m.deleteTable('attachments');
     await m.deleteTable('thought_tags');
     await m.deleteTable('calendar_events');
+    await m.deleteTable('event_statuses');
     await m.deleteTable('event_types');
     await m.deleteTable('tags');
     await m.deleteTable('thoughts');
@@ -84,6 +86,7 @@ class AppDatabase extends _$AppDatabase {
       await select(tags).get();
       await select(thoughts).get();
       await select(eventTypes).get();
+      await select(eventStatuses).get();
       await select(calendarEvents).get();
       return true;
     } catch (_) {
@@ -158,6 +161,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM attachments');
       await customStatement('DELETE FROM thought_tags');
       await customStatement('DELETE FROM calendar_events');
+      await customStatement('DELETE FROM event_statuses');
       await customStatement('DELETE FROM event_types');
       await customStatement('DELETE FROM thoughts');
       await customStatement('DELETE FROM tags');
@@ -181,6 +185,7 @@ class AppDatabase extends _$AppDatabase {
     final attachmentRows = await select(attachments).get();
     final blobRows = await select(attachmentBlobs).get();
     final typeRows = await select(eventTypes).get();
+    final statusRows = await select(eventStatuses).get();
     final eventRows = await select(calendarEvents).get();
     final tagNameById = {for (final t in tagRows) t.id: t.name};
     final blobById = {for (final b in blobRows) b.attachmentId: b.data};
@@ -236,10 +241,20 @@ class AppDatabase extends _$AppDatabase {
             'name': typeRows[i].name,
             'color': typeRows[i].color,
             'glyph': typeRows[i].glyph,
-            'mark': typeRows[i].mark.value,
             'sortOrder': typeRows[i].sortOrder,
             'counter': typeRows[i].counter,
             'kind': typeRows[i].kind.value,
+            // 状态随类型导出；事件以本表内的原始 id 引用
+            'statuses': [
+              for (final s in statusRows.where((s) => s.typeId == typeRows[i].id))
+                {
+                  'id': s.id,
+                  'name': s.name,
+                  'color': s.color,
+                  'glyph': s.glyph,
+                  'sortOrder': s.sortOrder,
+                },
+            ],
           },
       ],
       'calendarEvents': [
@@ -252,7 +267,7 @@ class AppDatabase extends _$AppDatabase {
               'endDate': e.endDate,
               'annual': e.annual,
               'count': e.count,
-              'mark': e.mark?.value,
+              'status': e.statusId,
               // 以思绪的"记录日"表达联动，导入时按日匹配重建
               'thoughtDay': e.thoughtId == null
                   ? null
@@ -363,6 +378,8 @@ class AppDatabase extends _$AppDatabase {
       }
       final typesIn = (data['eventTypes'] as List?) ?? const [];
       final v7TypeIds = <int, int>{};
+      // 导出内的原始状态 id → 新库状态 id
+      final statusIdMap = <int, int>{};
       for (final raw in typesIn) {
         final m = raw as Map;
         final name = ((m['name'] ?? '') as String).trim();
@@ -372,8 +389,6 @@ class AppDatabase extends _$AppDatabase {
             name: name,
             color: (m['color'] as num?)?.toInt() ?? 0xFF4A7DC4,
             glyph: Value(m['glyph'] as String?),
-            mark: Value(
-                CalendarMark.fromValue((m['mark'] as num?)?.toInt() ?? 0)),
             sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
             counter: Value((m['counter'] as bool?) ?? false),
             kind: Value(EventTypeKind.fromValue(
@@ -381,6 +396,22 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
         v7TypeIds[typesIn.indexOf(raw)] = id;
+        for (final sRaw in (m['statuses'] as List?) ?? const []) {
+          final sm = sRaw as Map;
+          final sName = ((sm['name'] ?? '') as String).trim();
+          if (sName.isEmpty) continue;
+          final oldSid = (sm['id'] as num?)?.toInt();
+          final sid = await into(eventStatuses).insert(
+            EventStatusesCompanion.insert(
+              typeId: id,
+              name: sName,
+              color: (sm['color'] as num?)?.toInt() ?? 0xFF9E9E9E,
+              glyph: Value((sm['glyph'] ?? '') as String),
+              sortOrder: Value((sm['sortOrder'] as num?)?.toInt() ?? 0),
+            ),
+          );
+          if (oldSid != null) statusIdMap[oldSid] = sid;
+        }
       }
       final eventsIn = (data['calendarEvents'] as List?) ?? const [];
       for (final raw in eventsIn) {
@@ -400,6 +431,7 @@ class AppDatabase extends _$AppDatabase {
               .getSingleOrNull();
           thoughtId = row?.id;
         }
+        final rawStatus = (m['status'] as num?)?.toInt();
         await into(calendarEvents).insert(
           CalendarEventsCompanion.insert(
             typeId: typeId,
@@ -408,9 +440,8 @@ class AppDatabase extends _$AppDatabase {
             endDate: Value(m['endDate'] as String?),
             annual: Value((m['annual'] as bool?) ?? false),
             count: Value((m['count'] as num?)?.toInt() ?? 1),
-            mark: Value(m['mark'] == null
-                ? null
-                : CalendarMark.fromValue((m['mark'] as num).toInt())),
+            statusId: Value(
+                rawStatus == null ? null : statusIdMap[rawStatus]),
             thoughtId: Value(thoughtId),
           ),
         );
@@ -568,24 +599,59 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
+  /// 全部事件状态（按类型、sortOrder 排序）
+  Stream<List<EventStatus>> watchEventStatuses() {
+    return (select(eventStatuses)..orderBy([
+          (s) => OrderingTerm.asc(s.typeId),
+          (s) => OrderingTerm.asc(s.sortOrder),
+          (s) => OrderingTerm.asc(s.id),
+        ]))
+        .watch();
+  }
+
+  /// 某类型的全部状态（按 sortOrder、id）
+  Future<List<EventStatus>> statusesFor(int typeId) {
+    return (select(eventStatuses)
+          ..where((s) => s.typeId.equals(typeId))
+          ..orderBy([
+            (s) => OrderingTerm.asc(s.sortOrder),
+            (s) => OrderingTerm.asc(s.id),
+          ]))
+        .get();
+  }
+
   Future<int> createEventType({
     required String name,
     required int color,
     String? glyph,
-    CalendarMark mark = CalendarMark.none,
     bool counter = false,
     EventTypeKind kind = EventTypeKind.custom,
-  }) {
-    return into(eventTypes).insert(
-      EventTypesCompanion.insert(
-        name: name,
-        color: color,
-        glyph: Value(glyph),
-        mark: Value(mark),
-        counter: Value(counter),
-        kind: Value(kind),
-      ),
-    );
+    // 新建时一并种入的状态（如节假日的 放假/补班）
+    List<EventStatusesCompanion> statuses = const [],
+  }) async {
+    return transaction(() async {
+      final typeId = await into(eventTypes).insert(
+        EventTypesCompanion.insert(
+          name: name,
+          color: color,
+          glyph: Value(glyph),
+          counter: Value(counter),
+          kind: Value(kind),
+        ),
+      );
+      for (final s in statuses) {
+        await into(eventStatuses).insert(
+          EventStatusesCompanion.insert(
+            typeId: typeId,
+            name: s.name.value,
+            color: s.color.value,
+            glyph: s.glyph,
+            sortOrder: s.sortOrder,
+          ),
+        );
+      }
+      return typeId;
+    });
   }
 
   Future<void> updateEventType(
@@ -593,7 +659,6 @@ class AppDatabase extends _$AppDatabase {
     required String name,
     required int color,
     String? glyph,
-    required CalendarMark mark,
     bool counter = false,
     EventTypeKind kind = EventTypeKind.custom,
   }) {
@@ -602,11 +667,48 @@ class AppDatabase extends _$AppDatabase {
         name: Value(name),
         color: Value(color),
         glyph: Value(glyph),
-        mark: Value(mark),
         counter: Value(counter),
         kind: Value(kind),
       ),
     );
+  }
+
+  Future<int> createEventStatus({
+    required int typeId,
+    required String name,
+    required int color,
+    String glyph = '',
+    int sortOrder = 0,
+  }) {
+    return into(eventStatuses).insert(
+      EventStatusesCompanion.insert(
+        typeId: typeId,
+        name: name,
+        color: color,
+        glyph: Value(glyph),
+        sortOrder: Value(sortOrder),
+      ),
+    );
+  }
+
+  Future<void> updateEventStatus(
+    int id, {
+    required String name,
+    required int color,
+    String glyph = '',
+  }) {
+    return (update(eventStatuses)..where((s) => s.id.equals(id))).write(
+      EventStatusesCompanion(
+        name: Value(name),
+        color: Value(color),
+        glyph: Value(glyph),
+      ),
+    );
+  }
+
+  /// 删除状态（其上事件实例的 statusId 由外键置空）
+  Future<void> deleteEventStatus(int id) {
+    return (delete(eventStatuses)..where((s) => s.id.equals(id))).go();
   }
 
   /// 删除类型（其下事件由外键级联删除）
@@ -621,8 +723,8 @@ class AppDatabase extends _$AppDatabase {
     String? title,
     bool annual = false,
     int? thoughtId,
-    // 实例级 休/班 覆盖（节假日类型下排调休日用 work）
-    CalendarMark? mark,
+    // 选中的状态（所属类型的状态之一）；null = 无状态
+    int? statusId,
   }) {
     return into(calendarEvents).insert(
       CalendarEventsCompanion.insert(
@@ -632,7 +734,7 @@ class AppDatabase extends _$AppDatabase {
         endDate: Value(endDate),
         annual: Value(annual),
         count: const Value(1),
-        mark: Value(mark),
+        statusId: Value(statusId),
         thoughtId: Value(thoughtId),
       ),
     );
@@ -644,7 +746,7 @@ class AppDatabase extends _$AppDatabase {
     String? endDate,
     String? title,
     required bool annual,
-    CalendarMark? mark,
+    int? statusId,
   }) {
     return (update(calendarEvents)..where((e) => e.id.equals(id))).write(
       CalendarEventsCompanion(
@@ -652,7 +754,7 @@ class AppDatabase extends _$AppDatabase {
         startDate: Value(startDate),
         endDate: Value(endDate),
         annual: Value(annual),
-        mark: Value(mark),
+        statusId: Value(statusId),
       ),
     );
   }

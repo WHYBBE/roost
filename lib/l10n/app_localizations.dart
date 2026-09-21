@@ -962,6 +962,48 @@ abstract class AppLocalizations {
   /// **'Corner glyph (optional)'**
   String get cornerGlyphHint;
 
+  /// No description provided for @statusPresetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Statuses'**
+  String get statusPresetTitle;
+
+  /// No description provided for @statusLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get statusLabel;
+
+  /// No description provided for @statusNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Status name (e.g. Done)'**
+  String get statusNameHint;
+
+  /// No description provided for @statusGlyphHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Glyph'**
+  String get statusGlyphHint;
+
+  /// No description provided for @addStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Add status'**
+  String get addStatus;
+
+  /// No description provided for @statusRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Holiday'**
+  String get statusRest;
+
+  /// No description provided for @statusMakeup.
+  ///
+  /// In en, this message translates to:
+  /// **'Makeup'**
+  String get statusMakeup;
+
   /// No description provided for @addEvent.
   ///
   /// In en, this message translates to:

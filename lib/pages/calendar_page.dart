@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
-import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
 import '../settings/app_settings.dart';
 import '../ui/entry_widgets.dart';
@@ -31,15 +30,6 @@ class _CalendarPageState extends State<CalendarPage> {
 
   /// 窄屏（手机竖屏）使用按月分页视图，宽屏使用 GitHub 年度热力图
   static const _narrowBreakpoint = 720.0;
-
-  /// 当天生效的休/班：事件标记优先，周六日默认休（月历角标用）
-  CalendarMark _effectiveMark(DateTime date, Map<String, CalendarMark> marks) {
-    final explicit = marks[AppDatabase.formatDay(date)];
-    if (explicit != null) return explicit;
-    return date.weekday >= DateTime.saturday
-        ? CalendarMark.rest
-        : CalendarMark.none;
-  }
 
   /// 每周起始日（设置可调，默认周日）
   int get _firstWeekday => AppSettings.instance.weekStart == WeekStart.monday
@@ -100,45 +90,51 @@ class _CalendarPageState extends State<CalendarPage> {
               final typeById = {
                 for (final t in typeSnap.data ?? const <EventType>[]) t.id: t,
               };
-              return StreamBuilder<List<CalendarEvent>>(
-                stream: appDb.watchEvents(),
-                builder: (context, evSnap) {
-                  // 事件按年展开：day → 事件；并汇总标记与彩点
-                  final eventsByDay = <String, List<CalendarEvent>>{};
-                  for (final e in evSnap.data ?? const <CalendarEvent>[]) {
-                    for (final d in AppDatabase.eventDaysInYear(e, _year)) {
-                      eventsByDay.putIfAbsent(d, () => []).add(e);
-                    }
-                  }
-                  final marksByDay = <String, CalendarMark>{};
-                  final dotsByDay = <String, List<Color>>{};
-                  for (final entry in eventsByDay.entries) {
-                    var mark = CalendarMark.none;
-                    final colors = <int>[];
-                    for (final e in entry.value) {
-                      final t = typeById[e.typeId];
-                      if (t == null) continue;
-                      // 实例级 休/班 覆盖（节假日类型下的调休日）优先
-                      final mk = e.mark ?? t.mark;
-                      if (mk == CalendarMark.work) {
-                        mark = CalendarMark.work;
-                      } else if (mk == CalendarMark.rest &&
-                          mark != CalendarMark.work) {
-                        mark = CalendarMark.rest;
+              return StreamBuilder<List<EventStatus>>(
+                stream: appDb.watchEventStatuses(),
+                builder: (context, stSnap) {
+                  final statusById = {
+                    for (final s in stSnap.data ?? const <EventStatus>[])
+                      s.id: s,
+                  };
+                  return StreamBuilder<List<CalendarEvent>>(
+                    stream: appDb.watchEvents(),
+                    builder: (context, evSnap) {
+                      // 事件按年展开：day → 事件；并汇总状态角标与彩点
+                      final eventsByDay = <String, List<CalendarEvent>>{};
+                      for (final e in evSnap.data ?? const <CalendarEvent>[]) {
+                        for (final d in AppDatabase.eventDaysInYear(e, _year)) {
+                          eventsByDay.putIfAbsent(d, () => []).add(e);
+                        }
                       }
-                      // 休/班已有角标语义，彩点只承载无标记类型
-                      if (t.mark == CalendarMark.none &&
-                          !colors.contains(t.color)) {
-                        colors.add(t.color);
+                      // 状态角标：带单字符角标的状态（如 休/班）上格子角标；
+                      // 同日多个时 sortOrder 大者优先（补班 > 放假）
+                      final badgesByDay = <String, EventStatus>{};
+                      // 彩点：无角标事件的类型色（或状态色）
+                      final dotsByDay = <String, List<Color>>{};
+                      for (final entry in eventsByDay.entries) {
+                        final colors = <int>[];
+                        for (final e in entry.value) {
+                          final t = typeById[e.typeId];
+                          if (t == null) continue;
+                          final s =
+                              e.statusId == null ? null : statusById[e.statusId];
+                          if (s != null && s.glyph.isNotEmpty) {
+                            // 角标语义的状态：只上角标，不重复画彩点；
+                            // 同日多个时 sortOrder 大者优先（补班 > 放假）
+                            final cur = badgesByDay[entry.key];
+                            if (cur == null || s.sortOrder >= cur.sortOrder) {
+                              badgesByDay[entry.key] = s;
+                            }
+                            continue;
+                          }
+                          final c = s?.color ?? t.color;
+                          if (!colors.contains(c)) colors.add(c);
+                        }
+                        dotsByDay[entry.key] = [
+                          for (final c in colors.take(3)) Color(c),
+                        ];
                       }
-                    }
-                    if (mark != CalendarMark.none) {
-                      marksByDay[entry.key] = mark;
-                    }
-                    dotsByDay[entry.key] = [
-                      for (final c in colors.take(3)) Color(c),
-                    ];
-                  }
                   final counts = <String, int>{};
                   for (final e in entries) {
                     counts[e.day] = (counts[e.day] ?? 0) + 1;
@@ -219,9 +215,9 @@ class _CalendarPageState extends State<CalendarPage> {
                               const SizedBox(height: 12),
                               narrow
                                   ? _monthCard(context, counts, eventsByMd,
-                                      marksByDay, dotsByDay, locale)
+                                      badgesByDay, dotsByDay, locale)
                                   : _heatmap(context, counts, eventsByMd,
-                                      marksByDay, dotsByDay, locale),
+                                      badgesByDay, dotsByDay, locale),
                               const SizedBox(height: 24),
                               if (_selectedDay != null) ...[
                                 Text(
@@ -328,8 +324,13 @@ class _CalendarPageState extends State<CalendarPage> {
                                   ),
                                   const SizedBox(height: 4),
                                   for (final e in dayEvents)
-                                    _dayEventCard(
-                                        context, e, typeById[e.typeId]),
+                                     _dayEventCard(
+                                         context,
+                                         e,
+                                         typeById[e.typeId],
+                                         e.statusId == null
+                                             ? null
+                                             : statusById[e.statusId]),
                                   const SizedBox(height: 12),
                                 ],
                                 // 当日特殊日子（每年循环的思绪）
@@ -384,21 +385,27 @@ class _CalendarPageState extends State<CalendarPage> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+                       );
+                     },
+                   );
+                     }, // events builder
+                   );   // StreamBuilder(events)
+                  },    // statuses builder
+                );      // StreamBuilder(statuses)
+             },         // types builder
+           );
+         },
+       ),
+     );
+   }
 
-  /// 选中日面板里的一条事件：字符/彩点 + 标题（或类型名）+ 区间
+  /// 选中日面板里的一条事件：字符/彩点 + 标题（或类型名）+ 状态 + 区间
   Widget _dayEventCard(
-      BuildContext context, CalendarEvent e, EventType? type) {
+    BuildContext context,
+    CalendarEvent e,
+    EventType? type,
+    EventStatus? status,
+  ) {
     if (type == null) return const SizedBox.shrink();
     final l = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
@@ -407,14 +414,24 @@ class _CalendarPageState extends State<CalendarPage> {
     final range = e.endDate == null
         ? null
         : '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))} ~ ${DateFormat.MMMd(locale).format(DateTime.parse(e.endDate!))}';
+    // 状态角标优先（如 休/班/✓），否则类型彩点
+    final showGlyph =
+        status != null && status.glyph.isNotEmpty ? status.glyph : type.glyph;
+    final showColor = status != null && status.glyph.isNotEmpty
+        ? Color(status.color)
+        : color;
+    final subtitleParts = [
+      if (status != null && status.glyph.isEmpty) status.name,
+      ?range,
+    ];
     return Card(
       child: ListTile(
-        leading: type.glyph == null || type.glyph!.isEmpty
+        leading: showGlyph == null || showGlyph.isEmpty
             ? Container(
                 width: 24,
                 height: 24,
                 decoration:
-                    BoxDecoration(shape: BoxShape.circle, color: color),
+                    BoxDecoration(shape: BoxShape.circle, color: showColor),
               )
             : Container(
                 width: 24,
@@ -422,17 +439,18 @@ class _CalendarPageState extends State<CalendarPage> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: color.withValues(alpha: 0.15),
+                  color: showColor.withValues(alpha: 0.15),
                 ),
                 child: Text(
-                  type.glyph!,
-                  style: TextStyle(fontSize: 13, color: color),
+                  showGlyph,
+                  style: TextStyle(fontSize: 13, color: showColor),
                 ),
               ),
         title: Text(title),
-        subtitle: range == null
+        subtitle: subtitleParts.isEmpty
             ? null
-            : Text(range, style: Theme.of(context).textTheme.labelSmall),
+            : Text(subtitleParts.join(' · '),
+                style: Theme.of(context).textTheme.labelSmall),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           if (e.annual)
             Padding(
@@ -469,7 +487,7 @@ class _CalendarPageState extends State<CalendarPage> {
     BuildContext context,
     Map<String, int> counts,
     Map<String, List<ThoughtEntry>> eventsByMd,
-    Map<String, CalendarMark> marksByDay,
+    Map<String, EventStatus> badgesByDay,
     Map<String, List<Color>> dotsByDay,
     String locale,
   ) {
@@ -488,8 +506,8 @@ class _CalendarPageState extends State<CalendarPage> {
       final isSelected = _selectedDay == dayStr;
       final isToday = dayStr == today;
       final color = _heatColor(context, level, date.isAfter(DateTime.now()));
-      final mark = _effectiveMark(date, marksByDay);
-      final isExplicit = marksByDay[dayStr] != null;
+      final badge = badgesByDay[dayStr];
+      final isWeekend = date.weekday >= DateTime.saturday;
       final hasEvent = eventsByMd.containsKey(dayStr.substring(5));
       final dots = dotsByDay[dayStr] ?? const <Color>[];
 
@@ -501,7 +519,7 @@ class _CalendarPageState extends State<CalendarPage> {
       }
 
       final filled = !date.isAfter(DateTime.now()) && level >= 4;
-      final weekendRest = mark == CalendarMark.rest && !isExplicit;
+      final weekendRest = badge == null && isWeekend;
       // 满档用反色；周末默认休的日期数字用弱红（纸质日历习惯）
       final fg = filled
           ? scheme.onPrimary
@@ -579,25 +597,33 @@ class _CalendarPageState extends State<CalendarPage> {
                             ],
                           ),
                         ),
-                      // 休/班 角标：颜色与图例及热力图圆点一致
-                      // （休=红，周末默认休为弱化红；班=主题色）
-                      if (mark != CalendarMark.none)
+                      // 状态角标（带单字符角标的状态，颜色随状态）；
+                      // 周末默认休为弱化红（无事件时）
+                      if (badge != null)
                         Positioned(
                           top: 2,
                           right: 3,
                           child: Text(
-                            mark == CalendarMark.work
-                                ? l.glyphWork
-                                : l.glyphRest,
+                            badge.glyph,
                             style: TextStyle(
                               fontSize: 9,
                               height: 1.1,
                               fontWeight: FontWeight.w700,
-                              color: mark == CalendarMark.work
-                                  ? scheme.primary
-                                  : isExplicit
-                                      ? scheme.error
-                                      : scheme.error.withValues(alpha: 0.45),
+                              color: Color(badge.color),
+                            ),
+                          ),
+                        )
+                      else if (weekendRest)
+                        Positioned(
+                          top: 2,
+                          right: 3,
+                          child: Text(
+                            l.glyphRest,
+                            style: TextStyle(
+                              fontSize: 9,
+                              height: 1.1,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.error.withValues(alpha: 0.45),
                             ),
                           ),
                         ),
@@ -695,7 +721,7 @@ class _CalendarPageState extends State<CalendarPage> {
   /// 保证整年（含 12 月）完整显示、无需滚动。
   Widget _heatmap(BuildContext context, Map<String, int> counts,
       Map<String, List<ThoughtEntry>> eventsByMd,
-      Map<String, CalendarMark> marksByDay, Map<String, List<Color>> dotsByDay,
+      Map<String, EventStatus> badgesByDay, Map<String, List<Color>> dotsByDay,
       String locale) {
     final now = DateTime.now();
     final today = AppDatabase.today();
@@ -757,9 +783,10 @@ class _CalendarPageState extends State<CalendarPage> {
                         count: counts[AppDatabase.formatDay(date)] ?? 0,
                         isFuture: date.isAfter(now),
                         isToday: AppDatabase.formatDay(date) == today,
-                        // 仅显式标记（法定假日/调休补班）；周末默认休不上点，
-                        // 靠列位置已可辨识
-                        mark: marksByDay[AppDatabase.formatDay(date)],
+                        // 状态角标日（法定假日/调休补班等）上彩色点；
+                        // 周末默认休不上点，靠列位置已可辨识
+                        badge:
+                            badgesByDay[AppDatabase.formatDay(date)],
                         dotColor: (dotsByDay[AppDatabase.formatDay(date)] ??
                                 const <Color>[])
                             .firstOrNull,
@@ -818,7 +845,7 @@ class _CalendarPageState extends State<CalendarPage> {
     required int count,
     required bool isFuture,
     required bool isToday,
-    required CalendarMark? mark,
+    required EventStatus? badge,
     required Color? dotColor,
     required bool hasEvent,
     required String locale,
@@ -832,17 +859,13 @@ class _CalendarPageState extends State<CalendarPage> {
     final isSelected = _selectedDay == dayStr;
     final level = heatLevel(count);
     final color = _heatColor(context, level, isFuture);
-    // 小点颜色优先级：班 > 显式休 > 类型彩点 > 特殊日子
-    final Color? dot = mark == CalendarMark.work
-        ? scheme.primary
-        : mark == CalendarMark.rest
-            ? scheme.error
-            : dotColor ?? (hasEvent ? scheme.tertiary : null);
-    final flagLabel = mark == null
+    // 小点颜色优先级：状态角标 > 类型彩点 > 特殊日子
+    final Color? dot = badge != null
+        ? Color(badge.color)
+        : dotColor ?? (hasEvent ? scheme.tertiary : null);
+    final flagLabel = badge == null
         ? (hasEvent || dotColor != null ? ' · ${l.dayEventsLabel}' : '')
-        : mark == CalendarMark.work
-            ? ' · ${l.workLabel}'
-            : ' · ${l.restLabel}';
+        : ' · ${badge.name}';
 
     Border? border;
     if (isSelected) {
@@ -916,40 +939,23 @@ class _CalendarPageState extends State<CalendarPage> {
         const SizedBox(width: 4),
         Text(l.more, style: Theme.of(context).textTheme.labelSmall),
         const SizedBox(width: 12),
+        // 周末默认休（弱红）
         Container(
           width: 7,
           height: 7,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: scheme.error,
+            color: scheme.error.withValues(alpha: 0.45),
             border: Border.all(color: scheme.surface, width: 1),
           ),
         ),
         const SizedBox(width: 3),
         Text(
-          l.restLabel,
+          l.defaultRestLabel,
           style: Theme.of(context)
               .textTheme
               .labelSmall
-              ?.copyWith(color: scheme.error),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: scheme.primary,
-            border: Border.all(color: scheme.surface, width: 1),
-          ),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          l.workLabel,
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall
-              ?.copyWith(color: scheme.primary),
+              ?.copyWith(color: scheme.error.withValues(alpha: 0.8)),
         ),
       ],
     );

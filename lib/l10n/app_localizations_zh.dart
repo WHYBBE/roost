@@ -475,6 +475,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cornerGlyphHint => '字符角标（可选）';
 
   @override
+  String get statusPresetTitle => '状态预设';
+
+  @override
+  String get statusLabel => '状态';
+
+  @override
+  String get statusNameHint => '状态名（如：已完成）';
+
+  @override
+  String get statusGlyphHint => '字符';
+
+  @override
+  String get addStatus => '添加状态';
+
+  @override
+  String get statusRest => '放假';
+
+  @override
+  String get statusMakeup => '补班';
+
+  @override
   String get addEvent => '添加事件';
 
   @override

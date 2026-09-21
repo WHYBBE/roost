@@ -218,6 +218,8 @@ Future<void> showEntryEditor(
   // 保存后待创建的关联（新事件）
   int? pendingTypeId;
   bool pendingAnnual = false;
+  // 新事件的默认状态（类型状态预设的第一个）
+  int? pendingStatusId;
   // 保存后待关联的已有事件（仅限思绪当天的事件）
   int? pendingEventId;
   String? pendingEventTitle;
@@ -353,14 +355,18 @@ Future<void> showEntryEditor(
           }
           return;
         }
-        // 新建事件：生日类型默认每年循环
+        // 新建事件：生日类型默认每年循环；状态默认取类型状态预设的第一个
         final annual = await _promptAnnual(
           context,
           initial: type.kind == EventTypeKind.birthday,
         );
         if (annual == null || !context.mounted) return;
+        final typeStatuses = await appDb.statusesFor(type.id);
+        if (!context.mounted) return;
         pendingTypeId = type.id;
         pendingAnnual = annual;
+        pendingStatusId =
+            typeStatuses.isEmpty ? null : typeStatuses.first.id;
         setState(() {});
       }
 
@@ -690,6 +696,7 @@ Future<void> showEntryEditor(
                     startDate: existing?.day ?? AppDatabase.today(),
                     annual: pendingAnnual,
                     title: text,
+                    statusId: pendingStatusId,
                     thoughtId: thoughtId,
                   );
                 } else if (pendingEventId != null) {

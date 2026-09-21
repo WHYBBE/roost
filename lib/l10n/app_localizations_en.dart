@@ -492,6 +492,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cornerGlyphHint => 'Corner glyph (optional)';
 
   @override
+  String get statusPresetTitle => 'Statuses';
+
+  @override
+  String get statusLabel => 'Status';
+
+  @override
+  String get statusNameHint => 'Status name (e.g. Done)';
+
+  @override
+  String get statusGlyphHint => 'Glyph';
+
+  @override
+  String get addStatus => 'Add status';
+
+  @override
+  String get statusRest => 'Holiday';
+
+  @override
+  String get statusMakeup => 'Makeup';
+
+  @override
   String get addEvent => 'Add event';
 
   @override
