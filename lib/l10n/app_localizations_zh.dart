@@ -391,6 +391,57 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deleteReaction => '移除反应';
 
   @override
+  String get archiveTrashTitle => '归档与回收站';
+
+  @override
+  String get archiveTab => '归档';
+
+  @override
+  String get trashTab => '回收站';
+
+  @override
+  String get archive => '归档';
+
+  @override
+  String get unarchive => '取消归档';
+
+  @override
+  String get moveToTrash => '删除';
+
+  @override
+  String get restore => '恢复';
+
+  @override
+  String get deleteForever => '永久删除';
+
+  @override
+  String get deleteForeverBody => '永久删除后无法恢复。';
+
+  @override
+  String get emptyTrash => '清空回收站';
+
+  @override
+  String get emptyTrashBody => '将永久删除回收站中的全部思绪，无法恢复。';
+
+  @override
+  String get emptyArchiveHint => '还没有归档的思绪';
+
+  @override
+  String get emptyTrashHint => '回收站是空的';
+
+  @override
+  String get trashRetentionHint => '回收站中的思绪将在 7 天后自动清除。';
+
+  @override
+  String get movedToTrash => '已移入回收站';
+
+  @override
+  String get undo => '撤销';
+
+  @override
+  String get archiveHint => '归档 ≠ 删除：归档的思绪会一直保留在这里，可随时取消归档。';
+
+  @override
   String get addImage => '添加图片';
 
   @override

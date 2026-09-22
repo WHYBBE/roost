@@ -75,6 +75,28 @@ class $ThoughtsTable extends Thoughts
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -83,6 +105,8 @@ class $ThoughtsTable extends Thoughts
     createdAt,
     updatedAt,
     annualDate,
+    archivedAt,
+    deletedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -137,6 +161,18 @@ class $ThoughtsTable extends Thoughts
         annualDate.isAcceptableOrUnknown(data['annual_date']!, _annualDateMeta),
       );
     }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -170,6 +206,14 @@ class $ThoughtsTable extends Thoughts
         DriftSqlType.string,
         data['${effectivePrefix}annual_date'],
       ),
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      ),
     );
   }
 
@@ -186,6 +230,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   final int createdAt;
   final int updatedAt;
   final String? annualDate;
+  final int? archivedAt;
+  final int? deletedAt;
   const ThoughtEntry({
     required this.id,
     required this.content,
@@ -193,6 +239,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     required this.createdAt,
     required this.updatedAt,
     this.annualDate,
+    this.archivedAt,
+    this.deletedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -204,6 +252,12 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     map['updated_at'] = Variable<int>(updatedAt);
     if (!nullToAbsent || annualDate != null) {
       map['annual_date'] = Variable<String>(annualDate);
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<int>(deletedAt);
     }
     return map;
   }
@@ -218,6 +272,12 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       annualDate: annualDate == null && nullToAbsent
           ? const Value.absent()
           : Value(annualDate),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
     );
   }
 
@@ -233,6 +293,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       annualDate: serializer.fromJson<String?>(json['annualDate']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      deletedAt: serializer.fromJson<int?>(json['deletedAt']),
     );
   }
   @override
@@ -245,6 +307,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'annualDate': serializer.toJson<String?>(annualDate),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'deletedAt': serializer.toJson<int?>(deletedAt),
     };
   }
 
@@ -255,6 +319,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     int? createdAt,
     int? updatedAt,
     Value<String?> annualDate = const Value.absent(),
+    Value<int?> archivedAt = const Value.absent(),
+    Value<int?> deletedAt = const Value.absent(),
   }) => ThoughtEntry(
     id: id ?? this.id,
     content: content ?? this.content,
@@ -262,6 +328,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     annualDate: annualDate.present ? annualDate.value : this.annualDate,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   ThoughtEntry copyWithCompanion(ThoughtsCompanion data) {
     return ThoughtEntry(
@@ -273,6 +341,10 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       annualDate: data.annualDate.present
           ? data.annualDate.value
           : this.annualDate,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
 
@@ -284,14 +356,24 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('annualDate: $annualDate')
+          ..write('annualDate: $annualDate, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, content, day, createdAt, updatedAt, annualDate);
+  int get hashCode => Object.hash(
+    id,
+    content,
+    day,
+    createdAt,
+    updatedAt,
+    annualDate,
+    archivedAt,
+    deletedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -301,7 +383,9 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           other.day == this.day &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.annualDate == this.annualDate);
+          other.annualDate == this.annualDate &&
+          other.archivedAt == this.archivedAt &&
+          other.deletedAt == this.deletedAt);
 }
 
 class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
@@ -311,6 +395,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   final Value<int> createdAt;
   final Value<int> updatedAt;
   final Value<String?> annualDate;
+  final Value<int?> archivedAt;
+  final Value<int?> deletedAt;
   const ThoughtsCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
@@ -318,6 +404,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.annualDate = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   });
   ThoughtsCompanion.insert({
     this.id = const Value.absent(),
@@ -326,6 +414,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     required int createdAt,
     required int updatedAt,
     this.annualDate = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
   }) : content = Value(content),
        day = Value(day),
        createdAt = Value(createdAt),
@@ -337,6 +427,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
     Expression<String>? annualDate,
+    Expression<int>? archivedAt,
+    Expression<int>? deletedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -345,6 +437,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (annualDate != null) 'annual_date': annualDate,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
     });
   }
 
@@ -355,6 +449,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Value<int>? createdAt,
     Value<int>? updatedAt,
     Value<String?>? annualDate,
+    Value<int?>? archivedAt,
+    Value<int?>? deletedAt,
   }) {
     return ThoughtsCompanion(
       id: id ?? this.id,
@@ -363,6 +459,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       annualDate: annualDate ?? this.annualDate,
+      archivedAt: archivedAt ?? this.archivedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
@@ -387,6 +485,12 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     if (annualDate.present) {
       map['annual_date'] = Variable<String>(annualDate.value);
     }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
     return map;
   }
 
@@ -398,7 +502,9 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('annualDate: $annualDate')
+          ..write('annualDate: $annualDate, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
@@ -3831,6 +3937,8 @@ typedef $$ThoughtsTableCreateCompanionBuilder =
       required int createdAt,
       required int updatedAt,
       Value<String?> annualDate,
+      Value<int?> archivedAt,
+      Value<int?> deletedAt,
     });
 typedef $$ThoughtsTableUpdateCompanionBuilder =
     ThoughtsCompanion Function({
@@ -3840,6 +3948,8 @@ typedef $$ThoughtsTableUpdateCompanionBuilder =
       Value<int> createdAt,
       Value<int> updatedAt,
       Value<String?> annualDate,
+      Value<int?> archivedAt,
+      Value<int?> deletedAt,
     });
 
 final class $$ThoughtsTableReferences
@@ -3974,6 +4084,16 @@ class $$ThoughtsTableFilterComposer
 
   ColumnFilters<String> get annualDate => $composableBuilder(
     column: $table.annualDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4141,6 +4261,16 @@ class $$ThoughtsTableOrderingComposer
     column: $table.annualDate,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ThoughtsTableAnnotationComposer
@@ -4171,6 +4301,14 @@ class $$ThoughtsTableAnnotationComposer
     column: $table.annualDate,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
 
   Expression<T> thoughtTagsRefs<T extends Object>(
     Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
@@ -4338,6 +4476,8 @@ class $$ThoughtsTableTableManager
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<String?> annualDate = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
               }) => ThoughtsCompanion(
                 id: id,
                 content: content,
@@ -4345,6 +4485,8 @@ class $$ThoughtsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 annualDate: annualDate,
+                archivedAt: archivedAt,
+                deletedAt: deletedAt,
               ),
           createCompanionCallback:
               ({
@@ -4354,6 +4496,8 @@ class $$ThoughtsTableTableManager
                 required int createdAt,
                 required int updatedAt,
                 Value<String?> annualDate = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<int?> deletedAt = const Value.absent(),
               }) => ThoughtsCompanion.insert(
                 id: id,
                 content: content,
@@ -4361,6 +4505,8 @@ class $$ThoughtsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 annualDate: annualDate,
+                archivedAt: archivedAt,
+                deletedAt: deletedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

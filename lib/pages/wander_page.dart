@@ -145,7 +145,7 @@ class _WanderPageState extends State<WanderPage> {
               (e) => EntryCard(
                 entry: e,
                 onTap: () => showEntryEditor(context, existing: e),
-                onLongPress: () => confirmDelete(context, e),
+                onLongPress: () => showEntryActions(context, e),
               ),
             ),
           ],
@@ -186,7 +186,7 @@ class _WanderPageState extends State<WanderPage> {
                 EntryCard(
                   entry: e,
                   onTap: () => showEntryEditor(context, existing: e),
-                  onLongPress: () => confirmDelete(context, e),
+                  onLongPress: () => showEntryActions(context, e),
                 ),
               ],
             ),

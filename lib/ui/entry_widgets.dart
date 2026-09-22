@@ -720,7 +720,7 @@ Future<void> showEntryEditor(
                   color: Theme.of(context).colorScheme.error,
                   tooltip: l.delete,
                   onPressed: () async {
-                    final deleted = await confirmDelete(context, existing);
+                    final deleted = await trashEntry(context, existing);
                     if (deleted && context.mounted) {
                       Navigator.pop(context, true);
                     }
@@ -1227,14 +1227,91 @@ Future<String?> _promptText(
   return result;
 }
 
-/// 删除确认；返回是否确实删除
+/// 长按操作表：归档 / 删除（回收站内的条目则为 恢复 / 永久删除）
+Future<void> showEntryActions(BuildContext context, ThoughtEntry entry) async {
+  final l = AppLocalizations.of(context)!;
+  final scheme = Theme.of(context).colorScheme;
+  final isTrashed = entry.deletedAt != null;
+  final isArchived = entry.archivedAt != null;
+  await showModalBottomSheet<void>(
+    context: context,
+    builder: (sheetContext) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isTrashed) ...[
+            ListTile(
+              leading: const Icon(Icons.restore),
+              title: Text(l.restore),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                appDb.restoreThought(entry.id);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_forever, color: scheme.error),
+              title: Text(l.deleteForever,
+                  style: TextStyle(color: scheme.error)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                confirmDelete(context, entry);
+              },
+            ),
+          ] else ...[
+            ListTile(
+              leading: Icon(
+                  isArchived ? Icons.unarchive_outlined : Icons.archive_outlined),
+              title: Text(isArchived ? l.unarchive : l.archive),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                if (isArchived) {
+                  appDb.unarchiveThought(entry.id);
+                } else {
+                  appDb.archiveThought(entry.id);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l.moveToTrash),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                trashEntry(context, entry);
+              },
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+/// 删除 = 移入回收站（可撤销；超过保留期自动永久清除）
+Future<bool> trashEntry(BuildContext context, ThoughtEntry entry) async {
+  final l = AppLocalizations.of(context)!;
+  final messenger = ScaffoldMessenger.of(context);
+  await appDb.trashThought(entry.id);
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(l.movedToTrash),
+      action: SnackBarAction(
+        label: l.undo,
+        onPressed: () => appDb.restoreThought(entry.id),
+      ),
+    ),
+  );
+  return true;
+}
+
+/// 永久删除确认（回收站内）；返回是否确实删除
 Future<bool> confirmDelete(BuildContext context, ThoughtEntry entry) async {
   final l = AppLocalizations.of(context)!;
   final ok = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(l.confirmDeleteTitle),
-      content: Text(l.confirmDeleteBody),
+      title: Text(l.deleteForever),
+      content: Text(l.deleteForeverBody),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
@@ -1245,7 +1322,7 @@ Future<bool> confirmDelete(BuildContext context, ThoughtEntry entry) async {
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
           onPressed: () => Navigator.pop(context, true),
-          child: Text(l.delete),
+          child: Text(l.deleteForever),
         ),
       ],
     ),

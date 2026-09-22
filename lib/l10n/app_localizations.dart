@@ -794,6 +794,108 @@ abstract class AppLocalizations {
   /// **'Remove reaction'**
   String get deleteReaction;
 
+  /// No description provided for @archiveTrashTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive & Trash'**
+  String get archiveTrashTitle;
+
+  /// No description provided for @archiveTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archiveTab;
+
+  /// No description provided for @trashTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get trashTab;
+
+  /// No description provided for @archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archive;
+
+  /// No description provided for @unarchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get unarchive;
+
+  /// No description provided for @moveToTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get moveToTrash;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @deleteForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete forever'**
+  String get deleteForever;
+
+  /// No description provided for @deleteForeverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get deleteForeverBody;
+
+  /// No description provided for @emptyTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty trash'**
+  String get emptyTrash;
+
+  /// No description provided for @emptyTrashBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All thoughts in trash will be permanently deleted. This cannot be undone.'**
+  String get emptyTrashBody;
+
+  /// No description provided for @emptyArchiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived thoughts'**
+  String get emptyArchiveHint;
+
+  /// No description provided for @emptyTrashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash is empty'**
+  String get emptyTrashHint;
+
+  /// No description provided for @trashRetentionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Thoughts in trash are removed automatically after 7 days.'**
+  String get trashRetentionHint;
+
+  /// No description provided for @movedToTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to trash'**
+  String get movedToTrash;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @archiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive is not delete: archived thoughts stay here and can be unarchived anytime.'**
+  String get archiveHint;
+
   /// No description provided for @addImage.
   ///
   /// In en, this message translates to:

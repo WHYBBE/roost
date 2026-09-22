@@ -362,7 +362,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                           icon: const Icon(
                                               Icons.delete_outline),
                                           onPressed: () =>
-                                              confirmDelete(context, t),
+                                              trashEntry(context, t),
                                         ),
                                       ),
                                     ),
@@ -377,8 +377,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                       onTap: () => showEntryEditor(
                                           context,
                                           existing: e),
-                                      onLongPress: () =>
-                                          confirmDelete(context, e),
+                                      onLongPress: () => showEntryActions(context, e),
                                     ),
                                   ),
                               ],

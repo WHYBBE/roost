@@ -938,4 +938,114 @@ void main() {
       );
     });
   });
+
+  group('archive-trash', () {
+    test('归档：从活跃列表移除、归档列表可见、可取消归档，标签计数同步', () async {
+      final id = await db.insertThought(
+        content: '归档的思绪',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      await db.setThoughtTags(id, ['测试标签']);
+      // 归档后：活跃列表与搜索都不再出现
+      await db.archiveThought(id);
+      expect(await db.watchAllEntries().first, isEmpty);
+      expect(await db.watchSearch('').first, isEmpty);
+      final archived = await db.watchArchivedEntries().first;
+      expect(archived.single.content, '归档的思绪');
+      expect(archived.single.archivedAt, isNotNull);
+      // 归档不参与活跃标签统计（归档 ≠ 删除，只是不计入活跃）
+      final tagged = (await db.watchTagsWithCount().first)
+          .where((t) => t.tag.name == '测试标签');
+      expect(tagged.single.count, 0);
+
+      // 取消归档
+      await db.unarchiveThought(id);
+      expect((await db.watchAllEntries().first).single.id, id);
+      expect(await db.watchArchivedEntries().first, isEmpty);
+    });
+
+    test('回收站：软删除、恢复、永久删除、清空', () async {
+      final id = await db.insertThought(
+        content: '待删除',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      await db.trashThought(id);
+      expect(await db.watchAllEntries().first, isEmpty);
+      var trash = await db.watchTrashedEntries().first;
+      expect(trash.single.id, id);
+      expect(trash.single.deletedAt, isNotNull);
+
+      // 恢复
+      await db.restoreThought(id);
+      expect((await db.watchAllEntries().first).single.id, id);
+      expect(await db.watchTrashedEntries().first, isEmpty);
+
+      // 再删并永久删除
+      await db.trashThought(id);
+      await db.deleteThought(id);
+      expect(await db.watchTrashedEntries().first, isEmpty);
+
+      // 清空回收站
+      final a = await db.insertThought(
+        content: 'a', day: '2026-09-21', createdAt: DateTime(2026, 9, 21, 10));
+      final b = await db.insertThought(
+        content: 'b', day: '2026-09-21', createdAt: DateTime(2026, 9, 21, 11));
+      await db.trashThought(a);
+      await db.trashThought(b);
+      expect(await db.emptyTrash(), 2);
+      expect(await db.watchTrashedEntries().first, isEmpty);
+    });
+
+    test('回收站保留期：超期由 purge 清除，未超期保留', () async {
+      final old = await db.insertThought(
+        content: '旧的',
+        day: '2026-09-01',
+        createdAt: DateTime(2026, 9, 1, 9),
+      );
+      final fresh = await db.insertThought(
+        content: '新的',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      await db.trashThought(old);
+      await db.trashThought(fresh);
+      // 把旧的 deletedAt 改到保留期之前
+      final expired = DateTime.now()
+          .subtract(const Duration(days: AppDatabase.trashRetentionDays + 1))
+          .millisecondsSinceEpoch;
+      await (db.update(db.thoughts)..where((t) => t.id.equals(old))).write(
+        ThoughtsCompanion(deletedAt: Value(expired)),
+      );
+
+      final purged = await db.purgeExpiredTrash();
+      expect(purged, 1);
+      final trash = await db.watchTrashedEntries().first;
+      expect(trash.single.id, fresh);
+    });
+
+    test('导出/导入往返：归档状态保留', () async {
+      await db.insertThought(
+        content: '活跃',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 9),
+      );
+      final archived = await db.insertThought(
+        content: '归档',
+        day: '2026-09-21',
+        createdAt: DateTime(2026, 9, 21, 10),
+      );
+      await db.archiveThought(archived);
+
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      await db2.importData(data);
+
+      expect((await db2.watchAllEntries().first).single.content, '活跃');
+      final archivedIn = await db2.watchArchivedEntries().first;
+      expect(archivedIn.single.content, '归档');
+    });
+  });
 }

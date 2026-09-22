@@ -729,7 +729,7 @@ class TagDetailPage extends StatelessWidget {
                 children.add(EntryCard(
                   entry: e,
                   onTap: () => showEntryEditor(context, existing: e),
-                  onLongPress: () => confirmDelete(context, e),
+                  onLongPress: () => showEntryActions(context, e),
                 ));
               }
               return Center(

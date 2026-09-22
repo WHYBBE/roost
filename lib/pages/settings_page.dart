@@ -7,6 +7,7 @@ import '../data/data_io.dart';
 import '../data/tag_presets.dart';
 import '../settings/app_settings.dart';
 import '../ui/vault_switcher.dart';
+import 'archive_trash_page.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -536,6 +537,15 @@ class SettingsPage extends StatelessWidget {
               Card(
                 child: Column(
                   children: [
+                    ListTile(
+                      leading: const Icon(Icons.inventory_2_outlined),
+                      title: Text(l.archiveTrashTitle),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const ArchiveTrashPage()),
+                      ),
+                    ),
                     ListTile(
                       leading: const Icon(Icons.save_alt_outlined),
                       title: Text(l.exportData),

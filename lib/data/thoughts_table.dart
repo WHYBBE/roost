@@ -24,6 +24,10 @@ class Thoughts extends Table {
   IntColumn get updatedAt => integer()();
   // 年度循环日期（MM-DD，如 03-08）；非空即"特殊日子"思绪，日历每年该日展示
   TextColumn get annualDate => text().nullable()();
+  // 归档时间（UTC 毫秒）；非空即已归档。归档 ≠ 删除，归档视图始终可见
+  IntColumn get archivedAt => integer().nullable()();
+  // 移入回收站时间（UTC 毫秒）；超过保留期后由 purge 永久清除
+  IntColumn get deletedAt => integer().nullable()();
 }
 
 @DataClassName('Tag')

@@ -406,6 +406,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteReaction => 'Remove reaction';
 
   @override
+  String get archiveTrashTitle => 'Archive & Trash';
+
+  @override
+  String get archiveTab => 'Archive';
+
+  @override
+  String get trashTab => 'Trash';
+
+  @override
+  String get archive => 'Archive';
+
+  @override
+  String get unarchive => 'Unarchive';
+
+  @override
+  String get moveToTrash => 'Delete';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get deleteForever => 'Delete forever';
+
+  @override
+  String get deleteForeverBody => 'This cannot be undone.';
+
+  @override
+  String get emptyTrash => 'Empty trash';
+
+  @override
+  String get emptyTrashBody =>
+      'All thoughts in trash will be permanently deleted. This cannot be undone.';
+
+  @override
+  String get emptyArchiveHint => 'No archived thoughts';
+
+  @override
+  String get emptyTrashHint => 'Trash is empty';
+
+  @override
+  String get trashRetentionHint =>
+      'Thoughts in trash are removed automatically after 7 days.';
+
+  @override
+  String get movedToTrash => 'Moved to trash';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get archiveHint =>
+      'Archive is not delete: archived thoughts stay here and can be unarchived anytime.';
+
+  @override
   String get addImage => 'Add image';
 
   @override

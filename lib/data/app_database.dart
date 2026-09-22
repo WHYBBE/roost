@@ -32,7 +32,10 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
+
+  /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
+  static const int trashRetentionDays = 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -214,6 +217,8 @@ class AppDatabase extends _$AppDatabase {
             'createdAt': t.createdAt,
             'updatedAt': t.updatedAt,
             'annualDate': t.annualDate,
+            'archivedAt': t.archivedAt,
+            'deletedAt': t.deletedAt,
           },
       ],
       'tags': [
@@ -344,6 +349,8 @@ class AppDatabase extends _$AppDatabase {
             createdAt: createdAt,
             updatedAt: updatedAt,
             annualDate: Value(m['annualDate'] as String?),
+            archivedAt: Value((m['archivedAt'] as num?)?.toInt()),
+            deletedAt: Value((m['deletedAt'] as num?)?.toInt()),
           ),
         );
         thoughtIdByIndex[i] = id;
@@ -558,9 +565,13 @@ class AppDatabase extends _$AppDatabase {
     final joined = (select(thoughts)
           ..where((t) {
             final content = query.trim();
-            return content.isEmpty
+            final match = content.isEmpty
                 ? const Constant(true)
                 : t.content.like('%$content%');
+            // 活跃思绪：未归档、未进回收站
+            return match &
+                t.archivedAt.isNull() &
+                t.deletedAt.isNull();
           })
           ..orderBy([
             (t) => OrderingTerm.desc(t.day),
@@ -585,19 +596,26 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// 某一天的思绪（按时间倒序）
+  /// 某一天的思绪（按时间倒序，仅活跃：未归档、未回收）
   Stream<List<ThoughtEntry>> watchDay(String day) {
-    return (select(thoughts)..where((t) => t.day.equals(day)))
+    return (select(thoughts)
+          ..where((t) =>
+              t.day.equals(day) &
+              t.archivedAt.isNull() &
+              t.deletedAt.isNull()))
         .watch()
         .map((rows) => rows..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
   }
 
-  /// 随机漫步：随机抽 N 条旧思绪
+  /// 随机漫步：随机抽 N 条旧思绪（仅活跃）
   Future<List<ThoughtEntry>> randomThoughts({int limit = 5}) {
     final now = DateTime.now();
     final today = formatDay(now);
     return (select(thoughts)
-          ..where((t) => t.day.equals(today).not())
+          ..where((t) =>
+              t.day.equals(today).not() &
+              t.archivedAt.isNull() &
+              t.deletedAt.isNull())
           ..orderBy([
             (t) => OrderingTerm(
                   expression: CustomExpression<Object>('RANDOM()'),
@@ -607,25 +625,93 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  /// "那年今日"：历史上同月同日的所有思绪（不含今天）
+  /// "那年今日"：历史上同月同日的所有思绪（不含今天，仅活跃）
   Future<List<ThoughtEntry>> onThisDay({required int month, required int day}) {
     final today = formatDay(DateTime.now());
     final suffix =
         '-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
     return (select(thoughts)
-          ..where((t) => t.day.like('%$suffix') & t.day.equals(today).not())
+          ..where((t) =>
+              t.day.like('%$suffix') &
+              t.day.equals(today).not() &
+              t.archivedAt.isNull() &
+              t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.desc(t.day)]))
         .get();
   }
 
-  /// 全部思绪（供热力图与漫步页统计）
+  /// 全部思绪（供热力图与漫步页统计；仅活跃）
   Stream<List<ThoughtEntry>> watchAllEntries() {
     return (select(thoughts)
+          ..where((t) => t.archivedAt.isNull() & t.deletedAt.isNull())
           ..orderBy([
             (t) => OrderingTerm.desc(t.day),
             (t) => OrderingTerm.desc(t.createdAt),
           ]))
         .watch();
+  }
+
+  // ---------- 归档与回收站 ----------
+
+  /// 已归档思绪（未进回收站），最近归档在前
+  Stream<List<ThoughtEntry>> watchArchivedEntries() {
+    return (select(thoughts)
+          ..where((t) => t.archivedAt.isNotNull() & t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.archivedAt)]))
+        .watch();
+  }
+
+  /// 回收站中的思绪，最近移入在前
+  Stream<List<ThoughtEntry>> watchTrashedEntries() {
+    return (select(thoughts)
+          ..where((t) => t.deletedAt.isNotNull())
+          ..orderBy([(t) => OrderingTerm.desc(t.deletedAt)]))
+        .watch();
+  }
+
+  /// 归档（保留原回收站状态，归档 ≠ 删除）
+  Future<void> archiveThought(int id) {
+    return (update(thoughts)..where((t) => t.id.equals(id))).write(
+      ThoughtsCompanion(
+        archivedAt: Value(DateTime.now().millisecondsSinceEpoch),
+      ),
+    );
+  }
+
+  Future<void> unarchiveThought(int id) {
+    return (update(thoughts)..where((t) => t.id.equals(id)))
+        .write(const ThoughtsCompanion(archivedAt: Value(null)));
+  }
+
+  /// 移入回收站（软删除），保留期后由 purge 永久清除
+  Future<void> trashThought(int id) {
+    return (update(thoughts)..where((t) => t.id.equals(id))).write(
+      ThoughtsCompanion(
+        deletedAt: Value(DateTime.now().millisecondsSinceEpoch),
+      ),
+    );
+  }
+
+  /// 从回收站恢复
+  Future<void> restoreThought(int id) {
+    return (update(thoughts)..where((t) => t.id.equals(id)))
+        .write(const ThoughtsCompanion(deletedAt: Value(null)));
+  }
+
+  /// 永久清除：删除回收站中超过保留期的思绪（返回清除条数）
+  Future<int> purgeExpiredTrash() {
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: trashRetentionDays))
+        .millisecondsSinceEpoch;
+    return (delete(thoughts)
+          ..where((t) =>
+              t.deletedAt.isNotNull() & t.deletedAt.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
+  /// 清空回收站（永久删除全部）
+  Future<int> emptyTrash() {
+    return (delete(thoughts)..where((t) => t.deletedAt.isNotNull())).go();
   }
 
   // ---------- 评论与反应 ----------
@@ -684,10 +770,13 @@ class AppDatabase extends _$AppDatabase {
 
   // ---------- 日历：特殊日子（思绪） ----------
 
-  /// 特殊日子（生日、纪念日等）：annualDate 非空的思绪，按 MM-DD 升序
+  /// 特殊日子（生日、纪念日等）：annualDate 非空的思绪，按 MM-DD 升序（仅活跃）
   Stream<List<ThoughtEntry>> watchAnnualEvents() {
     return (select(thoughts)
-          ..where((t) => t.annualDate.isNotNull())
+          ..where((t) =>
+              t.annualDate.isNotNull() &
+              t.archivedAt.isNull() &
+              t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.asc(t.annualDate)]))
         .watch();
   }
@@ -1033,12 +1122,20 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// 所有标签及其使用数量（按数量降序）
+  /// 所有标签及其使用数量（按数量降序；仅统计活跃思绪）
   Stream<List<TagWithCount>> watchTagsWithCount() {
     final usage = thoughts.id.count();
     final q = select(tags).join([
-      leftOuterJoin(thoughtTags, thoughtTags.tagId.equalsExp(tags.id)),
-      leftOuterJoin(thoughts, thoughts.id.equalsExp(thoughtTags.thoughtId)),
+      leftOuterJoin(
+        thoughtTags,
+        thoughtTags.tagId.equalsExp(tags.id),
+      ),
+      leftOuterJoin(
+        thoughts,
+        thoughts.id.equalsExp(thoughtTags.thoughtId) &
+            thoughts.archivedAt.isNull() &
+            thoughts.deletedAt.isNull(),
+      ),
     ])
       ..addColumns([usage])
       ..groupBy([tags.id])
@@ -1064,12 +1161,14 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  /// 某个标签下的全部思绪
+  /// 某个标签下的全部思绪（仅活跃）
   Stream<List<ThoughtEntry>> watchEntriesWithTag(int tagId) {
     final q = select(thoughts).join([
       innerJoin(thoughtTags, thoughtTags.thoughtId.equalsExp(thoughts.id)),
     ])
-      ..where(thoughtTags.tagId.equals(tagId))
+      ..where(thoughtTags.tagId.equals(tagId) &
+          thoughts.archivedAt.isNull() &
+          thoughts.deletedAt.isNull())
       ..orderBy([
         OrderingTerm.desc(thoughts.day),
         OrderingTerm.desc(thoughts.createdAt),

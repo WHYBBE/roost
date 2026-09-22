@@ -30,10 +30,16 @@ class _RoostAppState extends State<RoostApp> {
 
   void _onChanged() => setState(() {});
 
-  /// 启动引导：加载保险库注册表并打开当前库，随后健康检查
+  /// 启动引导：加载保险库注册表并打开当前库，随后健康检查；
+  /// 顺带清理回收站中超过保留期的思绪
   Future<void> _bootstrap() async {
     await DataStore.instance.init();
     await DataStore.instance.checkHealth();
+    try {
+      await appDb.purgeExpiredTrash();
+    } catch (_) {
+      // 清理失败不阻塞启动
+    }
   }
 
   @override
