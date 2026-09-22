@@ -273,6 +273,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get longestStreakLabel => 'Longest streak';
+
+  @override
   String get confirm => 'Confirm';
 
   @override
@@ -458,6 +461,71 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get archiveHint =>
       'Archive is not delete: archived thoughts stay here and can be unarchived anytime.';
+
+  @override
+  String get navInsights => 'Insights';
+
+  @override
+  String get insightsTitle => 'Insights';
+
+  @override
+  String get insightsOverview => 'Overview';
+
+  @override
+  String get totalThoughts => 'Thoughts';
+
+  @override
+  String get totalWords => 'Words';
+
+  @override
+  String get activeDays => 'Active days';
+
+  @override
+  String get currentStreak => 'Current streak';
+
+  @override
+  String daysValue(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days',
+      one: '1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get insightsMonthly => 'Monthly trend';
+
+  @override
+  String get seriesThoughts => 'Entries';
+
+  @override
+  String get seriesWords => 'Words';
+
+  @override
+  String get insightsMood => 'Mood';
+
+  @override
+  String get moodDistribution => 'Mood distribution';
+
+  @override
+  String get insightsTags => 'Top tags';
+
+  @override
+  String get insightsWritingTime => 'Writing time';
+
+  @override
+  String get insightsCalendar => 'Calendar';
+
+  @override
+  String get eventTotal => 'Events';
+
+  @override
+  String get eventTypeDistribution => 'By type';
+
+  @override
+  String get insightsEmpty => 'No data yet';
 
   @override
   String get addImage => 'Add image';

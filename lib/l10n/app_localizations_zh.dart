@@ -264,6 +264,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get longestStreakLabel => '最长连击';
+
+  @override
   String get confirm => '确认';
 
   @override
@@ -440,6 +443,65 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get archiveHint => '归档 ≠ 删除：归档的思绪会一直保留在这里，可随时取消归档。';
+
+  @override
+  String get navInsights => '洞察';
+
+  @override
+  String get insightsTitle => '洞察';
+
+  @override
+  String get insightsOverview => '概览';
+
+  @override
+  String get totalThoughts => '总思绪';
+
+  @override
+  String get totalWords => '总字数';
+
+  @override
+  String get activeDays => '活跃天数';
+
+  @override
+  String get currentStreak => '当前连击';
+
+  @override
+  String daysValue(num count) {
+    return '$count 天';
+  }
+
+  @override
+  String get insightsMonthly => '月度趋势';
+
+  @override
+  String get seriesThoughts => '条数';
+
+  @override
+  String get seriesWords => '字数';
+
+  @override
+  String get insightsMood => '心情';
+
+  @override
+  String get moodDistribution => '心情分布';
+
+  @override
+  String get insightsTags => '标签 Top';
+
+  @override
+  String get insightsWritingTime => '写作时段';
+
+  @override
+  String get insightsCalendar => '日历洞察';
+
+  @override
+  String get eventTotal => '事件总数';
+
+  @override
+  String get eventTypeDistribution => '类型分布';
+
+  @override
+  String get insightsEmpty => '暂无数据';
 
   @override
   String get addImage => '添加图片';

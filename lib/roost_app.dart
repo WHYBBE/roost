@@ -6,6 +6,7 @@ import 'data/database_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/calendar_page.dart';
 import 'pages/home_page.dart';
+import 'pages/insights_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/tags_page.dart';
 import 'pages/wander_page.dart';
@@ -111,6 +112,7 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
     HomePage(),
     TagsPage(),
     CalendarPage(),
+    InsightsPage(),
     WanderPage(),
     SettingsPage(),
   ];
@@ -119,14 +121,18 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
     final wide = MediaQuery.sizeOf(context).width >= 720;
-    // 移动端底部只有 4 个 tab（设置移到首页右上角，经路由打开）；
-    // 若从桌面端切到窄窗时正停留在设置页，则回落到首页
-    final tab = wide ? _index : (_index >= 4 ? 0 : _index);
+    // 手机底栏固定 4 个 tab：首页/标签/日历/漫游
+    //（洞察在 PC 侧栏与日历相邻；手机从日历页进入）
+    const mobileTabs = [0, 1, 2, 4];
+    final mobileIndex = mobileTabs.indexOf(_index);
+    // 宽屏停留的设置页/洞察页在窄屏回落到首页
+    final bodyIndex = wide ? _index : (mobileIndex >= 0 ? _index : 0);
 
     final destinations = [
       (icon: Icons.psychology_alt_outlined, selected: Icons.psychology_alt, label: l.navHome),
       (icon: Icons.sell_outlined, selected: Icons.sell, label: l.navTags),
       (icon: Icons.calendar_month_outlined, selected: Icons.calendar_month, label: l.navCalendar),
+      (icon: Icons.insights_outlined, selected: Icons.insights, label: l.navInsights),
       (icon: Icons.explore_outlined, selected: Icons.explore, label: l.navWander),
       (icon: Icons.settings_outlined, selected: Icons.settings, label: l.navSettings),
     ];
@@ -173,21 +179,22 @@ class _ResponsiveShellState extends State<ResponsiveShell> {
                    trailingAtBottom: true,
                  ),
               ),
-            Expanded(child: _pages[tab]),
+            Expanded(child: _pages[bodyIndex]),
           ],
         ),
       ),
       bottomNavigationBar: wide
           ? null
           : NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (i) => setState(() => _index = i),
+              selectedIndex: mobileIndex >= 0 ? mobileIndex : 0,
+              onDestinationSelected: (i) =>
+                  setState(() => _index = mobileTabs[i]),
               destinations: [
-                for (final d in destinations.take(4))
+                for (final i in mobileTabs)
                   NavigationDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selected),
-                    label: d.label,
+                    icon: Icon(destinations[i].icon),
+                    selectedIcon: Icon(destinations[i].selected),
+                    label: destinations[i].label,
                   ),
               ],
             ),

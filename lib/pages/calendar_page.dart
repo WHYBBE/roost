@@ -12,6 +12,7 @@ import '../ui/heatmap.dart';
 import '../ui/mood.dart';
 import '../ui/vault_switcher.dart';
 import 'calendar_manage_page.dart';
+import 'insights_page.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -50,6 +51,17 @@ class _CalendarPageState extends State<CalendarPage> {
         leading: appBarVaultSwitcher(context),
         title: Text(l.navCalendar),
         actions: [
+          // 窄屏（手机）：洞察为独立页面，入口放在标题右侧
+          if (narrow)
+            IconButton(
+              icon: const Icon(Icons.insights_outlined),
+              tooltip: l.insightsTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => InsightsPage(initialYear: _year),
+                ),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.chevron_left),
             tooltip: '$_year - 1',
@@ -377,7 +389,8 @@ class _CalendarPageState extends State<CalendarPage> {
                                       onTap: () => showEntryEditor(
                                           context,
                                           existing: e),
-                                      onLongPress: () => showEntryActions(context, e),
+                                      onLongPress: () =>
+                                          showEntryActions(context, e),
                                     ),
                                   ),
                               ],

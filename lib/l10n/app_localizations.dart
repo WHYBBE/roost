@@ -548,6 +548,12 @@ abstract class AppLocalizations {
   /// **'Longest {days} day(s)'**
   String longestStreak(Object days);
 
+  /// No description provided for @longestStreakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest streak'**
+  String get longestStreakLabel;
+
   /// No description provided for @confirm.
   ///
   /// In en, this message translates to:
@@ -895,6 +901,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Archive is not delete: archived thoughts stay here and can be unarchived anytime.'**
   String get archiveHint;
+
+  /// No description provided for @navInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get navInsights;
+
+  /// No description provided for @insightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get insightsTitle;
+
+  /// No description provided for @insightsOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get insightsOverview;
+
+  /// No description provided for @totalThoughts.
+  ///
+  /// In en, this message translates to:
+  /// **'Thoughts'**
+  String get totalThoughts;
+
+  /// No description provided for @totalWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get totalWords;
+
+  /// No description provided for @activeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active days'**
+  String get activeDays;
+
+  /// No description provided for @currentStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Current streak'**
+  String get currentStreak;
+
+  /// No description provided for @daysValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 day} other{{count} days}}'**
+  String daysValue(num count);
+
+  /// No description provided for @insightsMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly trend'**
+  String get insightsMonthly;
+
+  /// No description provided for @seriesThoughts.
+  ///
+  /// In en, this message translates to:
+  /// **'Entries'**
+  String get seriesThoughts;
+
+  /// No description provided for @seriesWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get seriesWords;
+
+  /// No description provided for @insightsMood.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get insightsMood;
+
+  /// No description provided for @moodDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood distribution'**
+  String get moodDistribution;
+
+  /// No description provided for @insightsTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Top tags'**
+  String get insightsTags;
+
+  /// No description provided for @insightsWritingTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing time'**
+  String get insightsWritingTime;
+
+  /// No description provided for @insightsCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get insightsCalendar;
+
+  /// No description provided for @eventTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get eventTotal;
+
+  /// No description provided for @eventTypeDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'By type'**
+  String get eventTypeDistribution;
+
+  /// No description provided for @insightsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No data yet'**
+  String get insightsEmpty;
 
   /// No description provided for @addImage.
   ///
