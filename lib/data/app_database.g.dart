@@ -2950,6 +2950,19 @@ class $EventStatusesTable extends EventStatuses
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _isDoneMeta = const VerificationMeta('isDone');
+  @override
+  late final GeneratedColumn<bool> isDone = GeneratedColumn<bool>(
+    'is_done',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_done" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2958,6 +2971,7 @@ class $EventStatusesTable extends EventStatuses
     color,
     glyph,
     sortOrder,
+    isDone,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3010,6 +3024,12 @@ class $EventStatusesTable extends EventStatuses
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('is_done')) {
+      context.handle(
+        _isDoneMeta,
+        isDone.isAcceptableOrUnknown(data['is_done']!, _isDoneMeta),
+      );
+    }
     return context;
   }
 
@@ -3043,6 +3063,10 @@ class $EventStatusesTable extends EventStatuses
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      isDone: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_done'],
+      )!,
     );
   }
 
@@ -3059,6 +3083,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
   final int color;
   final String glyph;
   final int sortOrder;
+  final bool isDone;
   const EventStatus({
     required this.id,
     required this.typeId,
@@ -3066,6 +3091,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
     required this.color,
     required this.glyph,
     required this.sortOrder,
+    required this.isDone,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3076,6 +3102,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
     map['color'] = Variable<int>(color);
     map['glyph'] = Variable<String>(glyph);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['is_done'] = Variable<bool>(isDone);
     return map;
   }
 
@@ -3087,6 +3114,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
       color: Value(color),
       glyph: Value(glyph),
       sortOrder: Value(sortOrder),
+      isDone: Value(isDone),
     );
   }
 
@@ -3102,6 +3130,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
       color: serializer.fromJson<int>(json['color']),
       glyph: serializer.fromJson<String>(json['glyph']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isDone: serializer.fromJson<bool>(json['isDone']),
     );
   }
   @override
@@ -3114,6 +3143,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
       'color': serializer.toJson<int>(color),
       'glyph': serializer.toJson<String>(glyph),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'isDone': serializer.toJson<bool>(isDone),
     };
   }
 
@@ -3124,6 +3154,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
     int? color,
     String? glyph,
     int? sortOrder,
+    bool? isDone,
   }) => EventStatus(
     id: id ?? this.id,
     typeId: typeId ?? this.typeId,
@@ -3131,6 +3162,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
     color: color ?? this.color,
     glyph: glyph ?? this.glyph,
     sortOrder: sortOrder ?? this.sortOrder,
+    isDone: isDone ?? this.isDone,
   );
   EventStatus copyWithCompanion(EventStatusesCompanion data) {
     return EventStatus(
@@ -3140,6 +3172,7 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
       color: data.color.present ? data.color.value : this.color,
       glyph: data.glyph.present ? data.glyph.value : this.glyph,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isDone: data.isDone.present ? data.isDone.value : this.isDone,
     );
   }
 
@@ -3151,13 +3184,15 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('glyph: $glyph, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isDone: $isDone')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, typeId, name, color, glyph, sortOrder);
+  int get hashCode =>
+      Object.hash(id, typeId, name, color, glyph, sortOrder, isDone);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3167,7 +3202,8 @@ class EventStatus extends DataClass implements Insertable<EventStatus> {
           other.name == this.name &&
           other.color == this.color &&
           other.glyph == this.glyph &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.isDone == this.isDone);
 }
 
 class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
@@ -3177,6 +3213,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
   final Value<int> color;
   final Value<String> glyph;
   final Value<int> sortOrder;
+  final Value<bool> isDone;
   const EventStatusesCompanion({
     this.id = const Value.absent(),
     this.typeId = const Value.absent(),
@@ -3184,6 +3221,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
     this.color = const Value.absent(),
     this.glyph = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.isDone = const Value.absent(),
   });
   EventStatusesCompanion.insert({
     this.id = const Value.absent(),
@@ -3192,6 +3230,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
     required int color,
     this.glyph = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.isDone = const Value.absent(),
   }) : typeId = Value(typeId),
        name = Value(name),
        color = Value(color);
@@ -3202,6 +3241,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
     Expression<int>? color,
     Expression<String>? glyph,
     Expression<int>? sortOrder,
+    Expression<bool>? isDone,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3210,6 +3250,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
       if (color != null) 'color': color,
       if (glyph != null) 'glyph': glyph,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (isDone != null) 'is_done': isDone,
     });
   }
 
@@ -3220,6 +3261,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
     Value<int>? color,
     Value<String>? glyph,
     Value<int>? sortOrder,
+    Value<bool>? isDone,
   }) {
     return EventStatusesCompanion(
       id: id ?? this.id,
@@ -3228,6 +3270,7 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
       color: color ?? this.color,
       glyph: glyph ?? this.glyph,
       sortOrder: sortOrder ?? this.sortOrder,
+      isDone: isDone ?? this.isDone,
     );
   }
 
@@ -3252,6 +3295,9 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (isDone.present) {
+      map['is_done'] = Variable<bool>(isDone.value);
+    }
     return map;
   }
 
@@ -3263,7 +3309,8 @@ class EventStatusesCompanion extends UpdateCompanion<EventStatus> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('glyph: $glyph, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isDone: $isDone')
           ..write(')'))
         .toString();
   }
@@ -7074,6 +7121,7 @@ typedef $$EventStatusesTableCreateCompanionBuilder =
       required int color,
       Value<String> glyph,
       Value<int> sortOrder,
+      Value<bool> isDone,
     });
 typedef $$EventStatusesTableUpdateCompanionBuilder =
     EventStatusesCompanion Function({
@@ -7083,6 +7131,7 @@ typedef $$EventStatusesTableUpdateCompanionBuilder =
       Value<int> color,
       Value<String> glyph,
       Value<int> sortOrder,
+      Value<bool> isDone,
     });
 
 final class $$EventStatusesTableReferences
@@ -7160,6 +7209,11 @@ class $$EventStatusesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDone => $composableBuilder(
+    column: $table.isDone,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7246,6 +7300,11 @@ class $$EventStatusesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isDone => $composableBuilder(
+    column: $table.isDone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$EventTypesTableOrderingComposer get typeId {
     final $$EventTypesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7293,6 +7352,9 @@ class $$EventStatusesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDone =>
+      $composableBuilder(column: $table.isDone, builder: (column) => column);
 
   $$EventTypesTableAnnotationComposer get typeId {
     final $$EventTypesTableAnnotationComposer composer = $composerBuilder(
@@ -7377,6 +7439,7 @@ class $$EventStatusesTableTableManager
                 Value<int> color = const Value.absent(),
                 Value<String> glyph = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> isDone = const Value.absent(),
               }) => EventStatusesCompanion(
                 id: id,
                 typeId: typeId,
@@ -7384,6 +7447,7 @@ class $$EventStatusesTableTableManager
                 color: color,
                 glyph: glyph,
                 sortOrder: sortOrder,
+                isDone: isDone,
               ),
           createCompanionCallback:
               ({
@@ -7393,6 +7457,7 @@ class $$EventStatusesTableTableManager
                 required int color,
                 Value<String> glyph = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> isDone = const Value.absent(),
               }) => EventStatusesCompanion.insert(
                 id: id,
                 typeId: typeId,
@@ -7400,6 +7465,7 @@ class $$EventStatusesTableTableManager
                 color: color,
                 glyph: glyph,
                 sortOrder: sortOrder,
+                isDone: isDone,
               ),
           withReferenceMapper: (p0) => p0
               .map(

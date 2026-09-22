@@ -13,6 +13,7 @@ import '../ui/mood.dart';
 import '../ui/vault_switcher.dart';
 import 'calendar_manage_page.dart';
 import 'insights_page.dart';
+import 'todo_page.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -62,6 +63,14 @@ class _CalendarPageState extends State<CalendarPage> {
                 ),
               ),
             ),
+          // 待办聚合：跨类型汇总未完成的事件
+          IconButton(
+            icon: const Icon(Icons.checklist),
+            tooltip: l.todosTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TodoPage()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.chevron_left),
             tooltip: '$_year - 1',

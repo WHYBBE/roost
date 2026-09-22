@@ -770,4 +770,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkExistingHint => 'Existing events on that day (link directly)';
+
+  @override
+  String get navTodos => 'To-dos';
+
+  @override
+  String get todosTitle => 'To-dos';
+
+  @override
+  String get todoBadgeHint =>
+      'Mark a status as \"done\" (e.g. Done); unfinished events of that type will show up in To-dos.';
+
+  @override
+  String get statusDoneToggle => 'Done state';
+
+  @override
+  String get todosEmpty =>
+      'No to-dos. Give a type a \"done\" status and unfinished events will appear here.';
+
+  @override
+  String get todoComplete => 'Done';
+
+  @override
+  String todoCompleted(String title) {
+    return 'Completed \"$title\"';
+  }
+
+  @override
+  String get todoNoStatus => 'No status';
 }

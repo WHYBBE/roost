@@ -243,5 +243,14 @@
   "addToCalendar": "Add to calendar",
   "unlinkEvent": "Unlink",
   "newEvent": "New event",
-  "linkExistingHint": "Existing events on that day (link directly)"
+  "linkExistingHint": "Existing events on that day (link directly)",
+  "navTodos": "To-dos",
+  "todosTitle": "To-dos",
+  "todoBadgeHint": "Mark a status as \"done\" (e.g. Done); unfinished events of that type will show up in To-dos.",
+  "statusDoneToggle": "Done state",
+  "todosEmpty": "No to-dos. Give a type a \"done\" status and unfinished events will appear here.",
+  "todoComplete": "Done",
+  "todoCompleted": "Completed \"{title}\"",
+  "@todoCompleted": { "placeholders": { "title": { "type": "String" } } },
+  "todoNoStatus": "No status"
 }

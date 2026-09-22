@@ -742,4 +742,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkExistingHint => '当天已有事件（可直接关联）';
+
+  @override
+  String get navTodos => '待办';
+
+  @override
+  String get todosTitle => '待办';
+
+  @override
+  String get todoBadgeHint => '标记为完成态的状态（如：已完成）；未完成的事件会汇总在待办视图。';
+
+  @override
+  String get statusDoneToggle => '完成态';
+
+  @override
+  String get todosEmpty => '没有待办。给类型加一个完成态状态，事件未完成时就会出现在这里。';
+
+  @override
+  String get todoComplete => '完成';
+
+  @override
+  String todoCompleted(String title) {
+    return '已完成「$title」';
+  }
+
+  @override
+  String get todoNoStatus => '无状态';
 }

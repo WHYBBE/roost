@@ -747,6 +747,97 @@ void main() {
       );
     });
 
+    test('待办聚合：仅含完成态状态的类型，未完成事件跨类型汇总', () async {
+      // 任务类型：未完成/已完成（完成态）——参与待办
+      final taskType = await db.createEventType(
+        name: '任务',
+        color: 0xFF4A7DC4,
+        statuses: [
+          EventStatusesCompanion.insert(
+              typeId: 0, name: '未完成', color: 0xFF9E9E9E),
+          EventStatusesCompanion.insert(
+              typeId: 0, name: '已完成', color: 0xFF4CAF50,
+              sortOrder: const Value(1), isDone: const Value(true)),
+        ],
+      );
+      final taskStatuses = await db.statusesFor(taskType);
+      final undoneSid = taskStatuses[0].id;
+      final doneSid = taskStatuses[1].id;
+
+      // 节假日类型：无完成态状态——不参与待办
+      final holidayType = await db.createEventType(
+        name: '节假日',
+        color: 0xFFCF4B3F,
+        kind: EventTypeKind.holiday,
+        statuses: [
+          EventStatusesCompanion.insert(
+              typeId: 0, name: '放假', color: 0xFFCF4B3F),
+        ],
+      );
+      final holidaySid = (await db.statusesFor(holidayType)).single.id;
+
+      // 无状态自定义类型：不参与待办
+      await db.createEventType(name: '旅行', color: 0xFF9C27B0);
+
+      final todoA = await db.insertEvent(
+        typeId: taskType,
+        title: '写周报',
+        startDate: '2026-09-20',
+        statusId: undoneSid,
+      );
+      await db.insertEvent(
+        typeId: taskType,
+        title: '交房租',
+        startDate: '2026-09-25',
+        statusId: doneSid, // 已完成
+      );
+      await db.insertEvent(
+        typeId: taskType,
+        title: '无状态任务',
+        startDate: '2026-09-22',
+        statusId: null, // 无状态 = 未完成
+      );
+      await db.insertEvent(
+        typeId: holidayType,
+        title: '国庆',
+        startDate: '2026-10-01',
+        statusId: holidaySid, // 类型无完成态 → 不出现
+      );
+      await db.insertEvent(typeId: holidayType, startDate: '2026-10-02');
+
+      var todos = await db.watchTodos().first;
+      expect(todos.map((t) => t.event.title), ['写周报', '无状态任务']);
+      expect(todos.first.doneStatusId, doneSid);
+      expect(todos.first.status?.id, undoneSid);
+
+      // 勾完成：状态写成完成态后退出待办
+      await db.completeTodo(todos.first);
+      todos = await db.watchTodos().first;
+      expect(todos.map((t) => t.event.title), ['无状态任务']);
+
+      // 撤销：恢复原状态回到待办
+      await db.setEventStatus(todoA, undoneSid);
+      todos = await db.watchTodos().first;
+      expect(todos.map((t) => t.event.title), ['写周报', '无状态任务']);
+
+      // 导出/导入：isDone 随状态保留，事件引用重映射后待办一致
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      await db2.importData(data);
+      final importedTypes = await db2.watchEventTypes().first;
+      final importedTask = importedTypes.firstWhere((t) => t.name == '任务');
+      final importedStatuses = await db2.statusesFor(importedTask.id);
+      expect(importedStatuses.where((s) => s.isDone), hasLength(1));
+      final importedTodos = await db2.watchTodos().first;
+      expect(importedTodos.map((t) => t.event.title), ['写周报', '无状态任务']);
+
+      // 删除完成态状态 → 类型不再参与待办
+      await db.deleteEventStatus(doneSid);
+      todos = await db.watchTodos().first;
+      expect(todos, isEmpty);
+    });
+
     test('导出/导入往返：类型、事件与联动', () async {
       final typeId = await db.createEventType(
         name: '生日',

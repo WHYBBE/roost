@@ -1483,6 +1483,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Existing events on that day (link directly)'**
   String get linkExistingHint;
+
+  /// No description provided for @navTodos.
+  ///
+  /// In en, this message translates to:
+  /// **'To-dos'**
+  String get navTodos;
+
+  /// No description provided for @todosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To-dos'**
+  String get todosTitle;
+
+  /// No description provided for @todoBadgeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark a status as \"done\" (e.g. Done); unfinished events of that type will show up in To-dos.'**
+  String get todoBadgeHint;
+
+  /// No description provided for @statusDoneToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Done state'**
+  String get statusDoneToggle;
+
+  /// No description provided for @todosEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No to-dos. Give a type a \"done\" status and unfinished events will appear here.'**
+  String get todosEmpty;
+
+  /// No description provided for @todoComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get todoComplete;
+
+  /// No description provided for @todoCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed \"{title}\"'**
+  String todoCompleted(String title);
+
+  /// No description provided for @todoNoStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'No status'**
+  String get todoNoStatus;
 }
 
 class _AppLocalizationsDelegate

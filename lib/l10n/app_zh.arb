@@ -236,5 +236,14 @@
   "addToCalendar": "添加到日历",
   "unlinkEvent": "取消关联",
   "newEvent": "新建事件",
-  "linkExistingHint": "当天已有事件（可直接关联）"
+  "linkExistingHint": "当天已有事件（可直接关联）",
+  "navTodos": "待办",
+  "todosTitle": "待办",
+  "todoBadgeHint": "标记为完成态的状态（如：已完成）；未完成的事件会汇总在待办视图。",
+  "statusDoneToggle": "完成态",
+  "todosEmpty": "没有待办。给类型加一个完成态状态，事件未完成时就会出现在这里。",
+  "todoComplete": "完成",
+  "todoCompleted": "已完成「{title}」",
+  "@todoCompleted": { "placeholders": { "title": { "type": "String" } } },
+  "todoNoStatus": "无状态"
 }

@@ -20,12 +20,15 @@ class _StatusDraft {
   final TextEditingController name;
   final TextEditingController glyph;
   int color;
+  // 完成态：该状态代表已完成（每类型单选）；待办视图按此汇总未完成事件
+  bool isDone;
 
   _StatusDraft({
     this.id,
     required String name,
     String glyph = '',
     this.color = 0xFF9E9E9E,
+    this.isDone = false,
   })  : name = TextEditingController(text: name),
         glyph = TextEditingController(text: glyph);
 
@@ -91,6 +94,7 @@ class CalendarManagePage extends StatelessWidget {
             name: s.name,
             glyph: s.glyph,
             color: s.color,
+            isDone: s.isDone,
           ),
       ]);
     }
@@ -161,6 +165,23 @@ class CalendarManagePage extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+            // 完成态：该状态代表"已完成"（每类型单选，再点一次取消）
+            IconButton(
+              icon: Icon(
+                d.isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+                size: 20,
+                color: d.isDone ? Theme.of(context).colorScheme.primary : null,
+              ),
+              tooltip: l.statusDoneToggle,
+              onPressed: () {
+                final was = d.isDone;
+                for (final other in drafts) {
+                  other.isDone = false;
+                }
+                d.isDone = !was;
+                onChanged();
+              },
             ),
             IconButton(
               icon: const Icon(Icons.remove_circle_outline, size: 20),
@@ -298,6 +319,15 @@ class CalendarManagePage extends StatelessWidget {
                         ),
                       )
                     else ...[
+                      Text(
+                        l.todoBadgeHint,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
                       for (final d in drafts)
                         statusRow(d, () => setState(() {})),
                       TextButton.icon(
@@ -356,6 +386,7 @@ class CalendarManagePage extends StatelessWidget {
                 name: d.name.text.trim(),
                 color: d.color,
                 glyph: Value(d.glyph.text.trim()),
+                isDone: Value(d.isDone),
               ),
         ],
       );
@@ -380,6 +411,7 @@ class CalendarManagePage extends StatelessWidget {
               name: n,
               color: d.color,
               glyph: d.glyph.text.trim(),
+              isDone: d.isDone,
             );
             keepIds.add(d.id!);
           } else {
@@ -388,6 +420,7 @@ class CalendarManagePage extends StatelessWidget {
               name: n,
               color: d.color,
               glyph: d.glyph.text.trim(),
+              isDone: d.isDone,
             );
             keepIds.add(sid);
           }
@@ -429,8 +462,9 @@ class CalendarManagePage extends StatelessWidget {
   // ---------- 事件（实例） ----------
 
   /// 新建/编辑事件实例（existing 为 null 即新建）。
-  /// 类型有状态预设时（如节假日的 放假/补班、任务的 已完成/未完成）可选择
-  Future<void> _showEventDialog(
+  /// 类型有状态预设时（如节假日的 放假/补班、任务的 已完成/未完成）可选择。
+  /// 静态方法：日历管理页与待办页共用
+  static Future<void> showEventDialog(
     BuildContext context, {
     required EventType type,
     CalendarEvent? existing,
@@ -527,9 +561,7 @@ class CalendarManagePage extends StatelessWidget {
                             ),
                           ),
                           label: Text(
-                            s.glyph.isEmpty
-                                ? s.name
-                                : '${s.glyph} ${s.name}',
+                            '${s.isDone ? '✓ ' : ''}${s.glyph.isEmpty ? s.name : '${s.glyph} ${s.name}'}',
                           ),
                           selected: selStatus == s.id,
                           onSelected: (_) =>
@@ -791,7 +823,7 @@ class CalendarManagePage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          onTap: () => _showEventDialog(
+                          onTap: () => showEventDialog(
                             context,
                             type: type,
                             existing: e,
@@ -808,7 +840,7 @@ class CalendarManagePage extends StatelessWidget {
                         leading: const Icon(Icons.add),
                         title: Text(l.addEvent),
                         onTap: () =>
-                            _showEventDialog(context, type: type),
+                            showEventDialog(context, type: type),
                       ),
                     ];
                   }

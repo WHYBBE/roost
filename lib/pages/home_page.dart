@@ -8,7 +8,6 @@ import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
 import '../ui/vault_switcher.dart';
-import 'archive_trash_page.dart';
 import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -43,14 +42,6 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.add),
             tooltip: l.newThought,
             onPressed: () => showEntryEditor(context),
-          ),
-          // 归档与回收站入口
-          IconButton(
-            icon: const Icon(Icons.inventory_2_outlined),
-            tooltip: l.archiveTrashTitle,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ArchiveTrashPage()),
-            ),
           ),
           // 移动端：设置不再是底部 tab，改为右上角入口
           if (!wide)

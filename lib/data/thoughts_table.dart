@@ -171,7 +171,8 @@ class Reactions extends Table {
 
 /// 事件类型的状态（属于类型）：
 /// 节假日内置 放假（休·红）/ 补班（班·蓝）；自定义类型可任意预设
-/// （如任务：已完成/未完成/放弃）。事件实例选择其中一个（或无状态）
+/// （如任务：已完成/未完成/放弃）。事件实例选择其中一个（或无状态）。
+/// isDone 标记"完成态"：该状态代表已完成，事件到达该状态即不再列入待办
 @DataClassName('EventStatus')
 class EventStatuses extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -183,6 +184,8 @@ class EventStatuses extends Table {
   // 单字符角标（如 休/班/✓），空 = 无角标（不参与格子角标）
   TextColumn get glyph => text().withDefault(const Constant(''))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  // 完成态：待办聚合视图以"未完成（或无状态）"筛选该类型的事件
+  BoolColumn get isDone => boolean().withDefault(const Constant(false))();
 }
 
 /// 日历事件：单日或日期区间，可每年循环（生日），可选联动一条思绪

@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
   static const int trashRetentionDays = 7;
@@ -286,6 +286,7 @@ class AppDatabase extends _$AppDatabase {
                   'color': s.color,
                   'glyph': s.glyph,
                   'sortOrder': s.sortOrder,
+                  'isDone': s.isDone,
                 },
             ],
           },
@@ -445,6 +446,7 @@ class AppDatabase extends _$AppDatabase {
               color: (sm['color'] as num?)?.toInt() ?? 0xFF9E9E9E,
               glyph: Value((sm['glyph'] ?? '') as String),
               sortOrder: Value((sm['sortOrder'] as num?)?.toInt() ?? 0),
+              isDone: Value((sm['isDone'] as bool?) ?? false),
             ),
           );
           if (oldSid != null) statusIdMap[oldSid] = sid;
@@ -809,6 +811,53 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
+  /// 待办聚合视图：跨类型汇总所有"未完成"的事件。
+  /// 完成的定义：
+  /// - 类型定义了至少一个"完成态"状态（isDone）才参与待办
+  ///   （节假日、生日、计数器等类型不参与，避免无关事件混入）；
+  /// - 事件状态为完成态 → 已完成；无状态（或状态被删后置空）→ 未完成
+  /// 按开始日期升序；每条附带类型、当前状态与该类型的完成态状态
+  Stream<List<TodoItem>> watchTodos() {
+    final q = select(calendarEvents).join([
+      innerJoin(eventTypes, eventTypes.id.equalsExp(calendarEvents.typeId)),
+      leftOuterJoin(
+          eventStatuses, eventStatuses.id.equalsExp(calendarEvents.statusId)),
+    ])
+      ..orderBy([
+        OrderingTerm.asc(calendarEvents.startDate),
+        OrderingTerm.asc(calendarEvents.id),
+      ]);
+    return q.watch().asyncMap((rows) async {
+      // 完成态状态按类型归组（同类型多个完成态取 sortOrder 最小者）
+      final allStatuses = await select(eventStatuses).get();
+      final doneByType = <int, EventStatus>{};
+      for (final s in allStatuses) {
+        if (!s.isDone) continue;
+        final cur = doneByType[s.typeId];
+        if (cur == null || s.sortOrder < cur.sortOrder) {
+          doneByType[s.typeId] = s;
+        }
+      }
+      final items = <TodoItem>[];
+      for (final r in rows) {
+        final type = r.readTable(eventTypes);
+        final doneStatus = doneByType[type.id];
+        if (doneStatus == null) continue; // 类型未参与待办
+        final status = r.read(eventStatuses.id) == null
+            ? null
+            : r.readTable(eventStatuses);
+        if (status?.isDone ?? false) continue; // 已完成
+        items.add(TodoItem(
+          event: r.readTable(calendarEvents),
+          type: type,
+          status: status,
+          doneStatusId: doneStatus.id,
+        ));
+      }
+      return items;
+    });
+  }
+
   /// 某类型的全部状态（按 sortOrder、id）
   Future<List<EventStatus>> statusesFor(int typeId) {
     return (select(eventStatuses)
@@ -847,6 +896,7 @@ class AppDatabase extends _$AppDatabase {
             color: s.color.value,
             glyph: s.glyph,
             sortOrder: s.sortOrder,
+            isDone: s.isDone,
           ),
         );
       }
@@ -879,6 +929,8 @@ class AppDatabase extends _$AppDatabase {
     required int color,
     String glyph = '',
     int sortOrder = 0,
+    // 完成态：该状态代表已完成，事件到达即退出待办
+    bool isDone = false,
   }) {
     return into(eventStatuses).insert(
       EventStatusesCompanion.insert(
@@ -887,6 +939,7 @@ class AppDatabase extends _$AppDatabase {
         color: color,
         glyph: Value(glyph),
         sortOrder: Value(sortOrder),
+        isDone: Value(isDone),
       ),
     );
   }
@@ -896,12 +949,14 @@ class AppDatabase extends _$AppDatabase {
     required String name,
     required int color,
     String glyph = '',
+    bool isDone = false,
   }) {
     return (update(eventStatuses)..where((s) => s.id.equals(id))).write(
       EventStatusesCompanion(
         name: Value(name),
         color: Value(color),
         glyph: Value(glyph),
+        isDone: Value(isDone),
       ),
     );
   }
@@ -966,6 +1021,18 @@ class AppDatabase extends _$AppDatabase {
         .write(const CalendarEventsCompanion(thoughtId: Value(null)));
   }
 
+  /// 一键勾完成：把事件状态改为该类型的完成态状态（isDone）
+  Future<void> completeTodo(TodoItem item) {
+    return (update(calendarEvents)..where((e) => e.id.equals(item.event.id)))
+        .write(CalendarEventsCompanion(statusId: Value(item.doneStatusId)));
+  }
+
+  /// 快捷改事件状态（待办勾完成后的撤销恢复等）
+  Future<void> setEventStatus(int eventId, int? statusId) {
+    return (update(calendarEvents)..where((e) => e.id.equals(eventId)))
+        .write(CalendarEventsCompanion(statusId: Value(statusId)));
+  }
+
   /// 把事件关联到思绪（覆盖该事件原有的关联）
   Future<void> linkEventToThought(int eventId, int thoughtId) {
     return (update(calendarEvents)..where((e) => e.id.equals(eventId)))
@@ -1023,8 +1090,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 事件在某年覆盖的日期（yyyy-MM-dd 升序）。
   /// annual 事件按 startDate 的月-日在 [year] 重复；区间裁剪到年内
-  static List<String> eventDaysInYear(CalendarEvent e, int year) {
-    String fmt(DateTime d) => formatDay(d);
+  static List<String> eventDaysInYear(CalendarEvent e, int year) {    String fmt(DateTime d) => formatDay(d);
     if (e.annual) {
       final start = DateTime.parse(e.startDate);
       final month = start.month.toString().padLeft(2, '0');
@@ -1238,4 +1304,20 @@ class TagWithCount {
   final int count;
 
   const TagWithCount({required this.tag, required this.count});
+}
+
+/// 待办聚合视图的一条：事件实例 + 所属类型 + 当前状态 + 完成态状态 id。
+/// [doneStatusId] 供 UI 一键勾完成（把事件状态写成该状态）
+class TodoItem {
+  final CalendarEvent event;
+  final EventType type;
+  final EventStatus? status;
+  final int doneStatusId;
+
+  const TodoItem({
+    required this.event,
+    required this.type,
+    required this.status,
+    required this.doneStatusId,
+  });
 }
