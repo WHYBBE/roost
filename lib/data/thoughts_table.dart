@@ -28,6 +28,8 @@ class Thoughts extends Table {
   IntColumn get archivedAt => integer().nullable()();
   // 移入回收站时间（UTC 毫秒）；超过保留期后由 purge 永久清除
   IntColumn get deletedAt => integer().nullable()();
+  // 私密：不参与搜索与漫步，查看详情需先通过应用锁（PIN/图案）
+  BoolColumn get locked => boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('Tag')

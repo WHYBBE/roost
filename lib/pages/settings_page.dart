@@ -6,6 +6,8 @@ import '../data/database_provider.dart';
 import '../data/data_io.dart';
 import '../data/tag_presets.dart';
 import '../settings/app_settings.dart';
+import '../settings/lock_session.dart';
+import '../ui/lock_widgets.dart';
 import '../ui/vault_switcher.dart';
 import 'archive_trash_page.dart';
 
@@ -324,9 +326,43 @@ Future<void> _resetAllData(BuildContext context) async {
   }
 }
 
+/// 开启应用锁：先选方式（PIN / 图案），再设置并确认密码
+Future<void> _enableLock(BuildContext context) async {
+  final l = AppLocalizations.of(context)!;
+  final method = await showLockMethodPicker(context);
+  if (method == null || !context.mounted) return;
+  final ok = await showLockSetup(context, method);
+  if (ok && context.mounted) _snack(context, l.saved);
+}
+
+/// 更换密码：先验证（会话已解锁则直接通过）
+Future<void> _changeLock(BuildContext context) async {
+  final l = AppLocalizations.of(context)!;
+  if (!await showLockVerify(context) || !context.mounted) return;
+  final ok = await showLockSetup(context, AppSettings.instance.lockMethod);
+  if (ok && context.mounted) _snack(context, l.saved);
+}
+
+/// 关闭应用锁：验证 + 二次确认后清除密码
+Future<void> _turnOffLock(BuildContext context) async {
+  final l = AppLocalizations.of(context)!;
+  if (!await showLockVerify(context) || !context.mounted) return;
+  if (!await _confirm(
+    context,
+    title: l.lockTurnOff,
+    body: l.lockTurnOffBody,
+    confirmLabel: l.lockTurnOff,
+    danger: true,
+  )) {
+    return;
+  }
+  await AppSettings.instance.clearLock();
+  LockSession.instance.reset();
+  if (context.mounted) _snack(context, l.saved);
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
-
   Widget _buildVaultTile(BuildContext context, VaultMeta vault) {
     final l = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
@@ -503,6 +539,70 @@ class SettingsPage extends StatelessWidget {
                 ],
                 selected: {settings.weekStart},
                 onSelectionChanged: (s) => settings.setWeekStart(s.first),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l.lockTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l.lockSectionHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Column(
+                  children: [
+                    if (!settings.lockConfigured)
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: Text(l.lockTitle),
+                        subtitle: Text(l.lockProtectedHint),
+                        onTap: () => _enableLock(context),
+                      )
+                    else ...[
+                      ListTile(
+                        leading: const Icon(Icons.lock_outline),
+                        title: Text(l.lockTitle),
+                        trailing: Text(
+                          settings.lockMethod == LockMethod.pin
+                              ? l.lockPin
+                              : l.lockPattern,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant),
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.password),
+                        title: Text(l.lockChange),
+                        onTap: () => _changeLock(context),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.lock_clock),
+                        title: Text(l.lockLockNow),
+                        onTap: () => LockSession.instance.lock(),
+                      ),
+                      ListTile(
+                        leading: Icon(
+                          Icons.lock_open_outlined,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        title: Text(
+                          l.lockTurnOff,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        ),
+                        onTap: () => _turnOffLock(context),
+                      ),
+                    ],
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               Text(

@@ -7,8 +7,10 @@ import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../settings/app_settings.dart';
+import '../settings/lock_session.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/heatmap.dart';
+import '../ui/lock_widgets.dart';
 import '../ui/mood.dart';
 import '../ui/vault_switcher.dart';
 import 'calendar_manage_page.dart';
@@ -25,7 +27,8 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   int _year = DateTime.now().year;
   int _month = DateTime.now().month;
-  String? _selectedDay;
+  // 默认选中今天，日历打开即显示当天记录（点按选中日可取消选择）
+  String? _selectedDay = AppDatabase.today();
 
   static const _topGutter = 20.0;
   static const _leftGutter = 20.0;
@@ -187,7 +190,12 @@ class _CalendarPageState extends State<CalendarPage> {
                       : (eventsByDay[_selectedDay!] ?? const <CalendarEvent>[])
                           .where((e) => !(typeById[e.typeId]?.counter ?? false))
                           .toList();
-                  return StreamBuilder<List<ThoughtEntry>>(
+                  // 私密思绪 id：事件标题遮罩（关联私密思绪的事件标题即其内容）
+                  return StreamBuilder<Set<int>>(
+                    stream: appDb.watchLockedThoughtIds(),
+                    builder: (context, lockSnap) {
+                    final lockedIds = lockSnap.data ?? const <int>{};
+                    return StreamBuilder<List<ThoughtEntry>>(
                     stream: appDb.watchAnnualEvents(),
                     builder: (context, thSnap) {
                       // MM-DD → 特殊日子思绪
@@ -344,14 +352,18 @@ class _CalendarPageState extends State<CalendarPage> {
                                                 .primary),
                                   ),
                                   const SizedBox(height: 4),
-                                  for (final e in dayEvents)
-                                     _dayEventCard(
-                                         context,
-                                         e,
-                                         typeById[e.typeId],
-                                         e.statusId == null
-                                             ? null
-                                             : statusById[e.statusId]),
+                                   for (final e in dayEvents)
+                                     ListenableBuilder(
+                                       listenable: LockSession.instance,
+                                       builder: (context, _) => _dayEventCard(
+                                           context,
+                                           e,
+                                           typeById[e.typeId],
+                                           e.statusId == null
+                                               ? null
+                                               : statusById[e.statusId],
+                                           lockedIds),
+                                     ),
                                   const SizedBox(height: 12),
                                 ],
                                 // 当日特殊日子（每年循环的思绪）
@@ -368,22 +380,38 @@ class _CalendarPageState extends State<CalendarPage> {
                                   ),
                                   const SizedBox(height: 4),
                                   for (final t in dayThoughts)
-                                    Card(
-                                      child: ListTile(
-                                        leading: Icon(
-                                            Icons.celebration_outlined,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .tertiary),
-                                        title: Text(t.content),
-                                        onTap: () => showEntryEditor(
-                                            context,
-                                            existing: t),
-                                        trailing: IconButton(
-                                          icon: const Icon(
-                                              Icons.delete_outline),
-                                          onPressed: () =>
-                                              trashEntry(context, t),
+                                    ListenableBuilder(
+                                      listenable: LockSession.instance,
+                                      builder: (context, _) => Card(
+                                        child: ListTile(
+                                          leading: Icon(
+                                              Icons.celebration_outlined,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .tertiary),
+                                          title: isEntryMasked(t)
+                                              ? Text(
+                                                  l.lockedBadge,
+                                                  style: TextStyle(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontStyle:
+                                                        FontStyle.italic,
+                                                  ),
+                                                )
+                                              : Text(t.content),
+                                          onTap: () => openEntryGuarded(
+                                              context,
+                                              t,
+                                              () => showEntryEditor(
+                                                  context, existing: t)),
+                                          trailing: IconButton(
+                                            icon: const Icon(
+                                                Icons.delete_outline),
+                                            onPressed: () =>
+                                                trashEntry(context, t),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -409,6 +437,8 @@ class _CalendarPageState extends State<CalendarPage> {
                        );
                      },
                    );
+                   },
+                 );
                      }, // events builder
                    );   // StreamBuilder(events)
                   },    // statuses builder
@@ -420,18 +450,20 @@ class _CalendarPageState extends State<CalendarPage> {
      );
    }
 
-  /// 选中日面板里的一条事件：字符/彩点 + 标题（或类型名）+ 状态 + 区间
+  /// 选中日面板里的一条事件：字符/彩点 + 标题（或类型名）+ 状态 + 区间。
+  /// 关联私密思绪的事件标题以类型名遮罩
   Widget _dayEventCard(
     BuildContext context,
     CalendarEvent e,
     EventType? type,
     EventStatus? status,
+    Set<int> lockedThoughtIds,
   ) {
     if (type == null) return const SizedBox.shrink();
     final l = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
     final color = Color(type.color);
-    final title = e.title ?? type.name;
+    final title = eventDisplayTitle(e, type.name, lockedThoughtIds);
     final range = e.endDate == null
         ? null
         : '${DateFormat.MMMd(locale).format(DateTime.parse(e.startDate))} ~ ${DateFormat.MMMd(locale).format(DateTime.parse(e.endDate!))}';

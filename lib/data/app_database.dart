@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
   static const int trashRetentionDays = 7;
@@ -219,6 +219,7 @@ class AppDatabase extends _$AppDatabase {
             'annualDate': t.annualDate,
             'archivedAt': t.archivedAt,
             'deletedAt': t.deletedAt,
+            'locked': t.locked,
           },
       ],
       'tags': [
@@ -352,6 +353,7 @@ class AppDatabase extends _$AppDatabase {
             annualDate: Value(m['annualDate'] as String?),
             archivedAt: Value((m['archivedAt'] as num?)?.toInt()),
             deletedAt: Value((m['deletedAt'] as num?)?.toInt()),
+            locked: Value((m['locked'] as bool?) ?? false),
           ),
         );
         thoughtIdByIndex[i] = id;
@@ -534,6 +536,8 @@ class AppDatabase extends _$AppDatabase {
     DateTime? createdAt,
     // 非空即"特殊日子"思绪（MM-DD，每年循环）
     String? annualDate,
+    // 私密：不参与搜索与漫步，查看需解锁
+    bool locked = false,
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
     return into(thoughts).insert(
@@ -543,6 +547,7 @@ class AppDatabase extends _$AppDatabase {
         createdAt: createdAt?.millisecondsSinceEpoch ?? now,
         updatedAt: now,
         annualDate: Value(annualDate),
+        locked: Value(locked),
       ),
     );
   }
@@ -556,24 +561,34 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// 切换私密状态
+  Future<void> setThoughtLocked(int id, bool locked) {
+    return (update(thoughts)..where((t) => t.id.equals(id)))
+        .write(ThoughtsCompanion(locked: Value(locked)));
+  }
+
   Future<int> deleteThought(int id) {
     return (delete(thoughts)..where((t) => t.id.equals(id))).go();
   }
 
   // ---------- 思绪：查询 ----------
 
-  /// 搜索全部思绪（内容 LIKE + 可选标签过滤），按日期分组排列
+  /// 搜索全部思绪（内容 LIKE + 可选标签过滤），按日期分组排列。
+  /// 搜索时排除私密思绪（私密内容不可被搜到）；浏览（空查询）时保留，
+  /// 由列表侧遮罩显示
   Stream<List<ThoughtEntry>> watchSearch(String query, {String? tagName}) {
     final joined = (select(thoughts)
           ..where((t) {
             final content = query.trim();
+            final searching = content.isNotEmpty;
             final match = content.isEmpty
                 ? const Constant(true)
                 : t.content.like('%$content%');
-            // 活跃思绪：未归档、未进回收站
+            // 活跃思绪：未归档、未进回收站；搜索时私密不参与
             return match &
                 t.archivedAt.isNull() &
-                t.deletedAt.isNull();
+                t.deletedAt.isNull() &
+                (searching ? t.locked.equals(false) : const Constant(true));
           })
           ..orderBy([
             (t) => OrderingTerm.desc(t.day),
@@ -609,7 +624,7 @@ class AppDatabase extends _$AppDatabase {
         .map((rows) => rows..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
   }
 
-  /// 随机漫步：随机抽 N 条旧思绪（仅活跃）
+  /// 随机漫步：随机抽 N 条旧思绪（仅活跃；私密条目保留，由列表遮罩）
   Future<List<ThoughtEntry>> randomThoughts({int limit = 5}) {
     final now = DateTime.now();
     final today = formatDay(now);
@@ -627,7 +642,8 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  /// "那年今日"：历史上同月同日的所有思绪（不含今天，仅活跃）
+  /// "那年今日"：历史上同月同日的所有思绪（不含今天，仅活跃；
+  /// 私密条目保留，由列表遮罩）
   Future<List<ThoughtEntry>> onThisDay({required int month, required int day}) {
     final today = formatDay(DateTime.now());
     final suffix =
@@ -799,6 +815,18 @@ class AppDatabase extends _$AppDatabase {
     return (select(calendarEvents)
           ..orderBy([(e) => OrderingTerm.asc(e.startDate)]))
         .watch();
+  }
+
+  /// 全部私密思绪的 id 集合（含归档/回收站）。
+  /// 供日历事件标题遮罩等使用：编辑器创建的事件标题即思绪内容，
+  /// 关联到私密思绪时不应直接显示
+  Stream<Set<int>> watchLockedThoughtIds() {
+    final q = selectOnly(thoughts)
+      ..addColumns([thoughts.id])
+      ..where(thoughts.locked.equals(true));
+    return q.watch().map(
+          (rows) => {for (final r in rows) r.read(thoughts.id)!},
+        );
   }
 
   /// 全部事件状态（按类型、sortOrder 排序）

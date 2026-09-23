@@ -37,6 +37,7 @@ void main() {
       day: day,
       createdAt: createdAt.millisecondsSinceEpoch,
       updatedAt: createdAt.millisecondsSinceEpoch,
+      locked: false,
     );
   }
 
@@ -1137,6 +1138,126 @@ void main() {
       expect((await db2.watchAllEntries().first).single.content, '活跃');
       final archivedIn = await db2.watchArchivedEntries().first;
       expect(archivedIn.single.content, '归档');
+    });
+  });
+
+  group('lock', () {
+    test('私密思绪：排除于搜索/漫步/那年今日，仍在日视图与全量中', () async {
+      final publicId = await db.insertThought(
+        content: '公开的日记',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 9),
+      );
+      final secretId = await db.insertThought(
+        content: '私密的心情',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 10),
+        locked: true,
+      );
+
+      // 搜索（非空查询）：私密不参与；浏览（空查询）：私密保留由列表遮罩
+      expect(await db.watchSearch('心情').first, isEmpty);
+      expect(
+        (await db.watchSearch('').first).map((e) => e.id).toSet(),
+        {publicId, secretId},
+      );
+
+      // 非今天的旧思绪：漫步与那年今日保留私密条目（由列表遮罩），不因上锁消失
+      final oldPublic = await db.insertThought(
+        content: '去年的公开',
+        day: '2020-01-05',
+        createdAt: DateTime(2020, 1, 5, 9),
+      );
+      final oldSecret = await db.insertThought(
+        content: '去年的秘密',
+        day: '2020-01-05',
+        createdAt: DateTime(2020, 1, 5, 10),
+        locked: true,
+      );
+      final randomIds =
+          (await db.randomThoughts(limit: 50)).map((e) => e.id).toSet();
+      expect(randomIds, contains(oldPublic));
+      expect(randomIds, contains(oldSecret));
+
+      expect(
+        (await db.onThisDay(month: 1, day: 5)).map((e) => e.id).toSet(),
+        {oldPublic, oldSecret},
+      );
+
+      // 日视图与全量仍包含私密（列表侧负责遮罩）
+      expect(
+        (await db.watchDay('2026-09-20').first).map((e) => e.id).toSet(),
+        {publicId, secretId},
+      );
+      expect(
+        (await db.watchAllEntries().first).map((e) => e.id).toSet(),
+        {publicId, secretId, oldPublic, oldSecret},
+      );
+
+      // 切换私密
+      await db.setThoughtLocked(secretId, false);
+      expect((await db.watchSearch('心情').first).map((e) => e.id), [secretId]);
+      await db.setThoughtLocked(secretId, true);
+      expect(await db.watchSearch('心情').first, isEmpty);
+    });
+
+    test('私密思绪 id 集合：含归档与回收站，供事件标题遮罩', () async {
+      final active = await db.insertThought(
+        content: 'A',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 9),
+        locked: true,
+      );
+      final public = await db.insertThought(
+        content: 'B',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 10),
+      );
+      final archived = await db.insertThought(
+        content: 'C',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 11),
+        locked: true,
+      );
+      await db.archiveThought(archived);
+      final trashed = await db.insertThought(
+        content: 'D',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 12),
+        locked: true,
+      );
+      await db.trashThought(trashed);
+
+      var ids = await db.watchLockedThoughtIds().first;
+      expect(ids, {active, archived, trashed});
+      expect(ids, isNot(contains(public)));
+
+      await db.setThoughtLocked(active, false);
+      ids = await db.watchLockedThoughtIds().first;
+      expect(ids, {archived, trashed});
+    });
+
+    test('导出/导入往返：私密标记保留，导入后仍不参与搜索', () async {      await db.insertThought(
+        content: '私密内容',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 9),
+        locked: true,
+      );
+      await db.insertThought(
+        content: '公开内容',
+        day: '2026-09-20',
+        createdAt: DateTime(2026, 9, 20, 10),
+      );
+      final data = await db.exportData();
+      final db2 = AppDatabase.connect(NativeDatabase.memory());
+      addTearDown(db2.close);
+      await db2.importData(data);
+
+      final all = await db2.watchAllEntries().first;
+      expect(all.firstWhere((e) => e.content == '私密内容').locked, isTrue);
+      expect(all.firstWhere((e) => e.content == '公开内容').locked, isFalse);
+      expect(await db2.watchSearch('私密').first, isEmpty);
+      expect((await db2.watchSearch('内容').first).single.content, '公开内容');
     });
   });
 }

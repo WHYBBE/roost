@@ -798,4 +798,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get todoNoStatus => 'No status';
+
+  @override
+  String get lockTitle => 'App lock';
+
+  @override
+  String get lockSectionHint =>
+      'Set a passcode for the app; locked thoughts are excluded from search and require unlock to view.';
+
+  @override
+  String get lockChooseMethod => 'Choose unlock method';
+
+  @override
+  String get lockPin => 'PIN';
+
+  @override
+  String get lockPattern => 'Pattern';
+
+  @override
+  String get lockSetPin => 'Set PIN';
+
+  @override
+  String get lockSetPattern => 'Set pattern';
+
+  @override
+  String get lockEnterPinHint => 'Enter 4-8 digits';
+
+  @override
+  String get lockConfirmHint => 'Confirm once more';
+
+  @override
+  String get lockPatternHint => 'Connect at least 4 dots';
+
+  @override
+  String get lockMismatch => 'Doesn\'t match — try again';
+
+  @override
+  String get lockWrong => 'Wrong passcode';
+
+  @override
+  String get lockPatternShort => 'Connect at least 4 dots';
+
+  @override
+  String get lockVerifyTitle => 'Locked';
+
+  @override
+  String get lockPrivate => 'Mark as private';
+
+  @override
+  String get lockUnlockEntry => 'Unmark private';
+
+  @override
+  String get lockChange => 'Change passcode';
+
+  @override
+  String get lockTurnOff => 'Turn off app lock';
+
+  @override
+  String get lockTurnOffBody =>
+      'After turning off, private thoughts can be viewed without unlocking (the private mark is kept).';
+
+  @override
+  String get lockLockNow => 'Lock now';
+
+  @override
+  String get lockedBadge => 'Private';
+
+  @override
+  String get lockProtectedHint =>
+      'Private thoughts are excluded from search and wander.';
 }

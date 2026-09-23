@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/lock_session.dart';
 import '../ui/entry_widgets.dart';
+import '../ui/lock_widgets.dart';
 
 /// 归档与回收站：
 /// - 归档 ≠ 删除，归档的思绪一直保留在归档标签页，可随时取消归档
@@ -235,25 +237,39 @@ class _EntryManagementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        title: Text(
-          entry.content,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+    return ListenableBuilder(
+      listenable: LockSession.instance,
+      builder: (context, _) => Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          title: isEntryMasked(entry)
+              ? Text(
+                  l.lockedBadge,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              : Text(
+                  entry.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+          subtitle: Text(
+            subtitle,
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          trailing: Row(mainAxisSize: MainAxisSize.min, children: actions),
+          onTap: onTap == null
+              ? null
+              : () => openEntryGuarded(context, entry, onTap!),
         ),
-        subtitle: Text(
-          subtitle,
-          style: Theme.of(context)
-              .textTheme
-              .labelSmall
-              ?.copyWith(color: scheme.onSurfaceVariant),
-        ),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: actions),
-        onTap: onTap,
       ),
     );
   }

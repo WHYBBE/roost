@@ -9,7 +9,9 @@ import '../data/database_provider.dart';
 import '../data/tag_presets.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/lock_session.dart';
 import 'attachment_widgets.dart';
+import 'lock_widgets.dart';
 import 'tag_view.dart';
 
 extension EntryX on ThoughtEntry {
@@ -37,11 +39,23 @@ class EntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 私密内容的显隐跟随会话解锁状态（解锁后整卡即时刷新）
+    return ListenableBuilder(
+      listenable: LockSession.instance,
+      builder: (context, _) => _buildCard(context),
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final time = entry.createdAtLocal;
-    final mood = tags
-        ?.where((t) => t.tagKind == TagKind.mood)
-        .fold<Tag?>(null, (prev, t) => prev ?? t);
+    final masked = isEntryMasked(entry);
+    final mood = masked
+        ? null
+        : tags
+            ?.where((t) => t.tagKind == TagKind.mood)
+            .fold<Tag?>(null, (prev, t) => prev ?? t);
     final normalTags =
         tags?.where((t) => t.tagKind == TagKind.normal).toList() ?? const [];
 
@@ -52,7 +66,9 @@ class EntryCard extends StatelessWidget {
         // 桌面端明确的可点击反馈
         mouseCursor: SystemMouseCursors.click,
         hoverColor: scheme.primary.withValues(alpha: 0.06),
-        onTap: onTap,
+        onTap: onTap == null
+            ? null
+            : () => openEntryGuarded(context, entry, onTap!),
         onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
@@ -73,6 +89,11 @@ class EntryCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                   ],
+                  if (masked) ...[
+                    Icon(Icons.lock_outline,
+                        size: 13, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                  ],
                   Text(
                     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -83,14 +104,24 @@ class EntryCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               // 不能用 SelectionArea：会接管点击手势，导致卡片无法点按编辑
-              Text(
-                entry.content,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              AttachmentStrip(thoughtId: entry.id, thumbSize: 64),
-              if (normalTags.isNotEmpty) TagChips(tags: normalTags),
-              // 评论与反应：自动加载，有内容时才显示
-              _CommentReactionPreview(entryId: entry.id),
+              if (masked)
+                Text(
+                  l.lockedBadge,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                        fontStyle: FontStyle.italic,
+                      ),
+                )
+              else ...[
+                Text(
+                  entry.content,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                AttachmentStrip(thoughtId: entry.id, thumbSize: 64),
+                if (normalTags.isNotEmpty) TagChips(tags: normalTags),
+                // 评论与反应：自动加载，有内容时才显示
+                _CommentReactionPreview(entryId: entry.id),
+              ],
             ],
           ),
         ),
@@ -516,6 +547,8 @@ Future<void> showEntryEditor(
     }
   }
   final tagController = TextEditingController();
+  // 私密开关（编辑已有思绪时沿用其状态）
+  var locked = existing?.locked ?? false;
   // 附件：kept 为已入库（可移除），pending 为本次新增（未入库）
   final existingAtts = existing == null
       ? const <Attachment>[]
@@ -546,6 +579,9 @@ Future<void> showEntryEditor(
   // 保存后待关联的已有事件（仅限思绪当天的事件）
   int? pendingEventId;
   String? pendingEventTitle;
+  // 私密思绪 id：事件标题遮罩（事件标题即所关联思绪的内容）
+  final lockedThoughtIds = await appDb.watchLockedThoughtIds().first;
+  if (!context.mounted) return;
 
   await showDialog<bool>(
     context: context,
@@ -652,7 +688,8 @@ Future<void> showEntryEditor(
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.event_outlined),
-                    title: Text(e.title ?? type.name),
+                    title: Text(
+                        eventDisplayTitle(e, type.name, lockedThoughtIds)),
                     subtitle: e.endDate == null
                         ? null
                         : Text('${e.startDate} ~ ${e.endDate}'),
@@ -832,6 +869,19 @@ Future<void> showEntryEditor(
                       tagController, allTags, () => setState(() {})),
                 ),
                 const SizedBox(height: 12),
+                // 私密：上锁的思绪不参与搜索，查看需先解锁
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  secondary: Icon(
+                    locked ? Icons.lock : Icons.lock_open_outlined,
+                    color: locked ? Theme.of(context).colorScheme.primary : null,
+                  ),
+                  title: Text(l.lockPrivate),
+                  value: locked,
+                  onChanged: (v) => setState(() => locked = v),
+                ),
+                const SizedBox(height: 12),
                 // 关联到日历：事件以该思绪为载体（万物皆思绪，可选）
                 Row(
                   children: [
@@ -996,9 +1046,13 @@ Future<void> showEntryEditor(
                   thoughtId = await appDb.insertThought(
                     content: text,
                     day: AppDatabase.today(),
+                    locked: locked,
                   );
                 } else {
                   await appDb.updateThought(existing.id, text);
+                  if (existing.locked != locked) {
+                    await appDb.setThoughtLocked(existing.id, locked);
+                  }
                 }
                 await appDb.setThoughtTags(
                   thoughtId!,
@@ -1229,6 +1283,11 @@ Future<String?> _promptText(
 
 /// 长按操作表：归档 / 删除（回收站内的条目则为 恢复 / 永久删除）
 Future<void> showEntryActions(BuildContext context, ThoughtEntry entry) async {
+  // 私密条目：打开操作表前先解锁
+  if (entry.locked) {
+    final ok = await showLockVerify(context);
+    if (!ok || !context.mounted) return;
+  }
   final l = AppLocalizations.of(context)!;
   final scheme = Theme.of(context).colorScheme;
   final isTrashed = entry.deletedAt != null;
@@ -1272,6 +1331,15 @@ Future<void> showEntryActions(BuildContext context, ThoughtEntry entry) async {
               },
             ),
             ListTile(
+              leading: Icon(
+                  entry.locked ? Icons.lock_open : Icons.lock_outline),
+              title: Text(entry.locked ? l.lockUnlockEntry : l.lockPrivate),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                appDb.setThoughtLocked(entry.id, !entry.locked);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.delete_outline),
               title: Text(l.moveToTrash),
               onTap: () {
@@ -1286,8 +1354,13 @@ Future<void> showEntryActions(BuildContext context, ThoughtEntry entry) async {
   );
 }
 
-/// 删除 = 移入回收站（可撤销；超过保留期自动永久清除）
+/// 删除 = 移入回收站（可撤销；超过保留期自动永久清除）。
+/// 私密条目需先解锁
 Future<bool> trashEntry(BuildContext context, ThoughtEntry entry) async {
+  if (entry.locked) {
+    final ok = await showLockVerify(context);
+    if (!ok || !context.mounted) return false;
+  }
   final l = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
   await appDb.trashThought(entry.id);
@@ -1304,8 +1377,12 @@ Future<bool> trashEntry(BuildContext context, ThoughtEntry entry) async {
   return true;
 }
 
-/// 永久删除确认（回收站内）；返回是否确实删除
+/// 永久删除确认（回收站内）；返回是否确实删除。私密条目需先解锁
 Future<bool> confirmDelete(BuildContext context, ThoughtEntry entry) async {
+  if (entry.locked) {
+    final ok = await showLockVerify(context);
+    if (!ok || !context.mounted) return false;
+  }
   final l = AppLocalizations.of(context)!;
   final ok = await showDialog<bool>(
     context: context,

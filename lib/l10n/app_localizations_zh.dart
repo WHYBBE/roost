@@ -768,4 +768,70 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get todoNoStatus => '无状态';
+
+  @override
+  String get lockTitle => '应用锁';
+
+  @override
+  String get lockSectionHint => '为应用设置密码；上锁的思绪不参与搜索，查看详情需先解锁。';
+
+  @override
+  String get lockChooseMethod => '选择解锁方式';
+
+  @override
+  String get lockPin => 'PIN 码';
+
+  @override
+  String get lockPattern => '九宫格图案';
+
+  @override
+  String get lockSetPin => '设置 PIN 码';
+
+  @override
+  String get lockSetPattern => '设置图案';
+
+  @override
+  String get lockEnterPinHint => '输入 4-8 位数字';
+
+  @override
+  String get lockConfirmHint => '再输入一次确认';
+
+  @override
+  String get lockPatternHint => '连接至少 4 个点';
+
+  @override
+  String get lockMismatch => '两次输入不一致';
+
+  @override
+  String get lockWrong => '密码错误';
+
+  @override
+  String get lockPatternShort => '至少连接 4 个点';
+
+  @override
+  String get lockVerifyTitle => '已上锁';
+
+  @override
+  String get lockPrivate => '设为私密';
+
+  @override
+  String get lockUnlockEntry => '取消私密';
+
+  @override
+  String get lockChange => '更换密码';
+
+  @override
+  String get lockTurnOff => '关闭应用锁';
+
+  @override
+  String get lockTurnOffBody => '关闭后，私密思绪将不再需要解锁即可查看（私密标记仍保留）。';
+
+  @override
+  String get lockLockNow => '立即上锁';
+
+  @override
+  String get lockedBadge => '私密';
+
+  @override
+  String get lockProtectedHint => '私密思绪不出现在搜索与漫步中。';
 }

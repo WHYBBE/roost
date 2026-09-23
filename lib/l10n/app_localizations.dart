@@ -1531,6 +1531,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No status'**
   String get todoNoStatus;
+
+  /// No description provided for @lockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock'**
+  String get lockTitle;
+
+  /// No description provided for @lockSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a passcode for the app; locked thoughts are excluded from search and require unlock to view.'**
+  String get lockSectionHint;
+
+  /// No description provided for @lockChooseMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose unlock method'**
+  String get lockChooseMethod;
+
+  /// No description provided for @lockPin.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN'**
+  String get lockPin;
+
+  /// No description provided for @lockPattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Pattern'**
+  String get lockPattern;
+
+  /// No description provided for @lockSetPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Set PIN'**
+  String get lockSetPin;
+
+  /// No description provided for @lockSetPattern.
+  ///
+  /// In en, this message translates to:
+  /// **'Set pattern'**
+  String get lockSetPattern;
+
+  /// No description provided for @lockEnterPinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 4-8 digits'**
+  String get lockEnterPinHint;
+
+  /// No description provided for @lockConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm once more'**
+  String get lockConfirmHint;
+
+  /// No description provided for @lockPatternHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect at least 4 dots'**
+  String get lockPatternHint;
+
+  /// No description provided for @lockMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Doesn\'t match — try again'**
+  String get lockMismatch;
+
+  /// No description provided for @lockWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong passcode'**
+  String get lockWrong;
+
+  /// No description provided for @lockPatternShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect at least 4 dots'**
+  String get lockPatternShort;
+
+  /// No description provided for @lockVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get lockVerifyTitle;
+
+  /// No description provided for @lockPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as private'**
+  String get lockPrivate;
+
+  /// No description provided for @lockUnlockEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmark private'**
+  String get lockUnlockEntry;
+
+  /// No description provided for @lockChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change passcode'**
+  String get lockChange;
+
+  /// No description provided for @lockTurnOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off app lock'**
+  String get lockTurnOff;
+
+  /// No description provided for @lockTurnOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'After turning off, private thoughts can be viewed without unlocking (the private mark is kept).'**
+  String get lockTurnOffBody;
+
+  /// No description provided for @lockLockNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock now'**
+  String get lockLockNow;
+
+  /// No description provided for @lockedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get lockedBadge;
+
+  /// No description provided for @lockProtectedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Private thoughts are excluded from search and wander.'**
+  String get lockProtectedHint;
 }
 
 class _AppLocalizationsDelegate

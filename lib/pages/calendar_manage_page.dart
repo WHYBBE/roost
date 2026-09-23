@@ -7,6 +7,8 @@ import '../data/database_provider.dart';
 import '../data/tag_presets.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/lock_session.dart';
+import '../ui/lock_widgets.dart';
 
 /// 创建种类：创建前先选中，字段随种类显隐。
 /// 节假日为单一类型（内置 放假/补班 两个状态）；生日下的事件默认每年循环；
@@ -470,6 +472,16 @@ class CalendarManagePage extends StatelessWidget {
     CalendarEvent? existing,
     String? initialDate,
   }) async {
+    // 事件标题可能即所关联思绪的内容：关联私密思绪时编辑前需先解锁
+    final linkedThoughtId = existing?.thoughtId;
+    if (linkedThoughtId != null) {
+      final lockedIds = await appDb.watchLockedThoughtIds().first;
+      if (!context.mounted) return;
+      if (lockedIds.contains(linkedThoughtId)) {
+        final ok = await showLockVerify(context);
+        if (!ok || !context.mounted) return;
+      }
+    }
     final l = AppLocalizations.of(context)!;
     final title = TextEditingController(text: existing?.title ?? '');
     var start = DateTime.parse(existing?.startDate ??
@@ -710,7 +722,11 @@ class CalendarManagePage extends StatelessWidget {
                     .putIfAbsent(s.typeId, () => [])
                     .add(s);
               }
-              return StreamBuilder<List<CalendarEvent>>(
+              return StreamBuilder<Set<int>>(
+                stream: appDb.watchLockedThoughtIds(),
+                builder: (context, lockSnap) {
+                final lockedIds = lockSnap.data ?? const <int>{};
+                return StreamBuilder<List<CalendarEvent>>(
                 stream: appDb.watchEvents(),
                 builder: (context, evSnap) {
                   final events = evSnap.data ?? const <CalendarEvent>[];
@@ -783,7 +799,12 @@ class CalendarManagePage extends StatelessWidget {
                         ListTile(
                           dense: true,
                           leading: typeIcon(type, size: 24),
-                          title: Text(e.title ?? type.name),
+                          title: ListenableBuilder(
+                            listenable: LockSession.instance,
+                            builder: (context, _) => Text(
+                              eventDisplayTitle(e, type.name, lockedIds),
+                            ),
+                          ),
                           subtitle: Text(
                             [
                               _eventRange(e, locale),
@@ -921,6 +942,8 @@ class CalendarManagePage extends StatelessWidget {
                   );
                 },
               );
+              },
+            );
             },
           );
         },

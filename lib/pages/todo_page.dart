@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../settings/lock_session.dart';
+import '../ui/lock_widgets.dart';
 import 'calendar_manage_page.dart';
 
 /// 待办聚合视图：跨类型汇总所有"未完成"的事件。
@@ -79,7 +81,11 @@ class TodoPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l.todosTitle)),
-      body: StreamBuilder<List<TodoItem>>(
+      body: StreamBuilder<Set<int>>(
+        stream: appDb.watchLockedThoughtIds(),
+        builder: (context, lockSnap) {
+          final lockedIds = lockSnap.data ?? const <int>{};
+          return StreamBuilder<List<TodoItem>>(
         stream: appDb.watchTodos(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
@@ -116,9 +122,13 @@ class TodoPage extends StatelessWidget {
                     title: Row(
                       children: [
                         Flexible(
-                          child: Text(
-                            item.event.title ?? item.type.name,
-                            overflow: TextOverflow.ellipsis,
+                          child: ListenableBuilder(
+                            listenable: LockSession.instance,
+                            builder: (context, _) => Text(
+                              eventDisplayTitle(
+                                  item.event, item.type.name, lockedIds),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                         if (item.event.annual) ...[
@@ -171,6 +181,8 @@ class TodoPage extends StatelessWidget {
                   ),
                 ),
             ],
+          );
+        },
           );
         },
       ),
