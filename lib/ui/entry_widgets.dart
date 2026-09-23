@@ -649,10 +649,10 @@ Future<void> showEntryEditor(
   final lockedThoughtIds = await appDb.watchLockedThoughtIds().first;
   if (!context.mounted) return;
 
-  await showDialog<bool>(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
+  // 窄屏用整页编辑器（手机上对话框太小）；宽屏保留对话框
+  final wide = MediaQuery.sizeOf(context).width >= 720;
+
+  Widget buildFields(BuildContext context, StateSetter setState) {
       /// 选类型 → 新建事件 或 关联当天已有事件
       Future<void> pickLink() async {
         if (calTypes.isEmpty) {
@@ -806,40 +806,10 @@ Future<void> showEntryEditor(
         for (final p in pendingImages) ImageViewerItem.bytes(p.bytes),
       ];
 
-        return AlertDialog(
-          title: Row(
-            children: [
-              Text(existing == null ? l.newThought : l.editThought),
-              const Spacer(),
-              // 星标/收藏：保存时写库
-              IconButton(
-                icon: Icon(
-                  starred ? Icons.star : Icons.star_border,
-                  color: starred ? Colors.amber : null,
-                ),
-                tooltip: starred ? l.unstar : l.star,
-                onPressed: () => setState(() => starred = !starred),
-              ),
-              // 删除藏在标题栏：图标形式，确认后关闭编辑器
-              if (existing != null)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  color: Theme.of(context).colorScheme.error,
-                  tooltip: l.delete,
-                  onPressed: () async {
-                    final deleted = await trashEntry(context, existing);
-                    if (deleted && context.mounted) {
-                      Navigator.pop(context, true);
-                    }
-                  },
-                ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
                 TextFormField(
                   controller: controller,
                   autofocus: existing == null,
@@ -1229,98 +1199,180 @@ Future<void> showEntryEditor(
                   CommentReactionSection(thoughtId: existing.id),
                 ],
               ],
-            ),
+            );
+  }
+
+  /// 保存（对话框与整页共用）
+  Future<void> save(BuildContext context) async {
+    _addTagsFromField(tagController, normalTags, () {});
+    final text = controller.text.trim();
+    if (text.isEmpty) return;
+    final dayStr = AppDatabase.formatDay(recordDay);
+    var thoughtId = existing?.id;
+    if (existing == null) {
+      thoughtId = await appDb.insertThought(
+        content: text,
+        day: dayStr,
+        locked: locked,
+      );
+    } else {
+      await appDb.updateThought(
+        existing.id,
+        text,
+        day: existing.day == dayStr ? null : dayStr,
+      );
+      if (existing.locked != locked) {
+        await appDb.setThoughtLocked(existing.id, locked);
+      }
+    }
+    if ((existing?.starred ?? false) != starred) {
+      await appDb.setThoughtStarred(thoughtId!, starred);
+    }
+    // 普通标签：整体替换
+    await appDb.setThoughtNormalTags(
+      thoughtId!,
+      normalTags.map((t) => t.name).toList(),
+    );
+    // 高级标签：移除不再添加的组，写入各组的选中值
+    final previousCategories = existing == null
+        ? <int>{}
+        : await appDb.thoughtCategoryIds(thoughtId);
+    for (final cid
+        in previousCategories.difference(appliedCategoryIds)) {
+      await appDb.removeThoughtCategory(thoughtId, cid);
+    }
+    for (final cid in appliedCategoryIds) {
+      await appDb.addThoughtCategory(thoughtId, cid);
+      await appDb.setThoughtCategoryTags(
+        thoughtId,
+        cid,
+        selectedByCategory[cid]?.toList() ?? const [],
+      );
+    }
+    // 附件：删除被移除的已入库项，追加本次新增
+    for (final a in existingAtts) {
+      if (!kept.any((k) => k.id == a.id)) {
+        await appDb.deleteAttachment(a.id);
+      }
+    }
+    for (final p in pending) {
+      await appDb.insertAttachment(
+        thoughtId: thoughtId,
+        kind: p.kind,
+        mime: p.mime,
+        bytes: p.bytes,
+        durationMs: p.durationMs,
+      );
+    }
+    // 新建的日历关联：新建事件 或 关联当天已有事件
+    if (pendingTypeId != null) {
+      await appDb.insertEvent(
+        typeId: pendingTypeId!,
+        startDate: dayStr,
+        annual: pendingAnnual,
+        title: text,
+        statusId: pendingStatusId,
+        thoughtId: thoughtId,
+      );
+    } else if (pendingEventId != null) {
+      await appDb.linkEventToThought(pendingEventId!, thoughtId);
+    }
+    saved = true;
+    if (context.mounted) Navigator.pop(context, true);
+  }
+
+  /// 标题栏动作：星标 / 删除（对话框标题与整页 AppBar 共用）
+  List<Widget> chromeActions(BuildContext context, StateSetter setState) => [
+        IconButton(
+          icon: Icon(
+            starred ? Icons.star : Icons.star_border,
+            color: starred ? Colors.amber : null,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l.cancel),
-            ),
-            FilledButton(
-              onPressed: () async {
-                _addTagsFromField(tagController, normalTags, () {});
-                final text = controller.text.trim();
-                if (text.isEmpty) return;
-                final dayStr = AppDatabase.formatDay(recordDay);
-                var thoughtId = existing?.id;
-                if (existing == null) {
-                  thoughtId = await appDb.insertThought(
-                    content: text,
-                    day: dayStr,
-                    locked: locked,
-                  );
-                } else {
-                  await appDb.updateThought(
-                    existing.id,
-                    text,
-                    day: existing.day == dayStr ? null : dayStr,
-                  );
-                  if (existing.locked != locked) {
-                    await appDb.setThoughtLocked(existing.id, locked);
-                  }
-                }
-                if ((existing?.starred ?? false) != starred) {
-                  await appDb.setThoughtStarred(thoughtId!, starred);
-                }
-                // 普通标签：整体替换
-                await appDb.setThoughtNormalTags(
-                  thoughtId!,
-                  normalTags.map((t) => t.name).toList(),
-                );
-                // 高级标签：移除不再添加的组，写入各组的选中值
-                final previousCategories = existing == null
-                    ? <int>{}
-                    : await appDb.thoughtCategoryIds(thoughtId);
-                for (final cid
-                    in previousCategories.difference(appliedCategoryIds)) {
-                  await appDb.removeThoughtCategory(thoughtId, cid);
-                }
-                for (final cid in appliedCategoryIds) {
-                  await appDb.addThoughtCategory(thoughtId, cid);
-                  await appDb.setThoughtCategoryTags(
-                    thoughtId,
-                    cid,
-                    selectedByCategory[cid]?.toList() ?? const [],
-                  );
-                }
-                // 附件：删除被移除的已入库项，追加本次新增
-                for (final a in existingAtts) {
-                  if (!kept.any((k) => k.id == a.id)) {
-                    await appDb.deleteAttachment(a.id);
-                  }
-                }
-                for (final p in pending) {
-                  await appDb.insertAttachment(
-                    thoughtId: thoughtId,
-                    kind: p.kind,
-                    mime: p.mime,
-                    bytes: p.bytes,
-                    durationMs: p.durationMs,
-                  );
-                }
-                // 新建的日历关联：新建事件 或 关联当天已有事件
-                if (pendingTypeId != null) {
-                  await appDb.insertEvent(
-                    typeId: pendingTypeId!,
-                    startDate: dayStr,
-                    annual: pendingAnnual,
-                    title: text,
-                    statusId: pendingStatusId,
-                    thoughtId: thoughtId,
-                  );
-                } else if (pendingEventId != null) {
-                  await appDb.linkEventToThought(pendingEventId!, thoughtId);
-                }
-                saved = true;
-                if (context.mounted) Navigator.pop(context, true);
-              },
-              child: Text(l.save),
-            ),
+          tooltip: starred ? l.unstar : l.star,
+          onPressed: () => setState(() => starred = !starred),
+        ),
+        if (existing != null)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            color: Theme.of(context).colorScheme.error,
+            tooltip: l.delete,
+            onPressed: () async {
+              final deleted = await trashEntry(context, existing);
+              if (deleted && context.mounted) {
+                Navigator.pop(context, true);
+              }
+            },
+          ),
+      ];
+
+  /// 底部动作：取消 / 保存
+  List<Widget> bottomActions(BuildContext context) => [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          onPressed: () => save(context),
+          child: Text(l.save),
+        ),
+      ];
+
+  Widget surface(BuildContext context, StateSetter setState) {
+    final titleText = existing == null ? l.newThought : l.editThought;
+    // 宽屏：对话框；窄屏：整页
+    if (wide) {
+      return AlertDialog(
+        title: Row(
+          children: [
+            Text(titleText),
+            const Spacer(),
+            ...chromeActions(context, setState),
           ],
-        );
-      },
-    ),
-  );
+        ),
+        content: SingleChildScrollView(
+          child: buildFields(context, setState),
+        ),
+        actions: bottomActions(context),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(titleText),
+        actions: chromeActions(context, setState),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: buildFields(context, setState),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: bottomActions(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  if (wide) {
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => surface(context, setState),
+      ),
+    );
+  } else {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => surface(context, setState),
+        ),
+      ),
+    );
+  }
   controller.dispose();
   tagController.dispose();
   if (saved && context.mounted) {
