@@ -106,7 +106,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get randomHeader => '随机漫游';
 
   @override
+  String get thisWeekTitle => '本周回顾';
+
+  @override
+  String get thisMonthTitle => '本月回顾';
+
+  @override
+  String get recapEmpty => '这段时间还没有记录。';
+
+  @override
   String get showAll => '显示全部';
+
+  @override
+  String get collapse => '收起';
 
   @override
   String onThisDay(int years) {

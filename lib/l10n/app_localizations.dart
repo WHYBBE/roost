@@ -290,11 +290,35 @@ abstract class AppLocalizations {
   /// **'Random wander'**
   String get randomHeader;
 
+  /// No description provided for @thisWeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get thisWeekTitle;
+
+  /// No description provided for @thisMonthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get thisMonthTitle;
+
+  /// No description provided for @recapEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recorded in this period yet.'**
+  String get recapEmpty;
+
   /// No description provided for @showAll.
   ///
   /// In en, this message translates to:
   /// **'Show all'**
   String get showAll;
+
+  /// No description provided for @collapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get collapse;
 
   /// No description provided for @onThisDay.
   ///

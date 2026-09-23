@@ -106,7 +106,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get randomHeader => 'Random wander';
 
   @override
+  String get thisWeekTitle => 'This week';
+
+  @override
+  String get thisMonthTitle => 'This month';
+
+  @override
+  String get recapEmpty => 'Nothing recorded in this period yet.';
+
+  @override
   String get showAll => 'Show all';
+
+  @override
+  String get collapse => 'Show less';
 
   @override
   String onThisDay(int years) {
