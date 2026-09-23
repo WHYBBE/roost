@@ -1335,23 +1335,65 @@ Future<void> showEntryEditor(
         actions: bottomActions(context),
       );
     }
+    // 整页：取消/保存放右上角（底部会被手机键盘遮住）
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(titleText),
-        actions: chromeActions(context, setState),
+        actions: [
+          // 星标/删除收进溢出菜单，给取消/保存留出空间
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'star') {
+                setState(() => starred = !starred);
+              } else if (value == 'delete' && existing != null) {
+                final deleted = await trashEntry(context, existing);
+                if (deleted && context.mounted) Navigator.pop(context, true);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'star',
+                child: Row(
+                  children: [
+                    Icon(
+                      starred ? Icons.star : Icons.star_border,
+                      size: 20,
+                      color: starred ? Colors.amber : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(starred ? l.unstar : l.star),
+                  ],
+                ),
+              ),
+              if (existing != null)
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline,
+                          size: 20, color: scheme.error),
+                      const SizedBox(width: 12),
+                      Text(l.delete, style: TextStyle(color: scheme.error)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => save(context),
+            child: Text(l.save),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: buildFields(context, setState),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: bottomActions(context),
-          ),
-        ),
       ),
     );
   }
