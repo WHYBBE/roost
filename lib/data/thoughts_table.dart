@@ -39,6 +39,8 @@ class Thoughts extends Table {
   IntColumn get deletedAt => integer().nullable()();
   // 私密：不参与搜索与漫步，查看详情需先通过应用锁（PIN/图案）
   BoolColumn get locked => boolean().withDefault(const Constant(false))();
+  // 星标/收藏：在"收藏"视图中汇总展示
+  BoolColumn get starred => boolean().withDefault(const Constant(false))();
 }
 
 /// 标签：categoryId 为空 = 普通标签（自由输入、多选）；

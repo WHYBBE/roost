@@ -79,6 +79,7 @@ void main() {
       createdAt: 0,
       updatedAt: 0,
       locked: true,
+      starred: false,
     );
     final publicEntry = const ThoughtEntry(
       id: 2,
@@ -87,6 +88,7 @@ void main() {
       createdAt: 0,
       updatedAt: 0,
       locked: false,
+      starred: false,
     );
     const event = CalendarEvent(
       id: 1,

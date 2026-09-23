@@ -111,6 +111,24 @@ class EntryCard extends StatelessWidget {
                           color: scheme.onSurfaceVariant,
                         ),
                   ),
+                  const Spacer(),
+                  // 星标/收藏：点按即切换（收藏视图汇总展示）
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                    iconSize: 20,
+                    tooltip: entry.starred ? l.unstar : l.star,
+                    icon: Icon(
+                      entry.starred ? Icons.star : Icons.star_border,
+                      color: entry.starred
+                          ? Colors.amber
+                          : scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () =>
+                        appDb.setThoughtStarred(entry.id, !entry.starred),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -595,6 +613,8 @@ Future<void> showEntryEditor(
   final tagController = TextEditingController();
   // 私密开关（编辑已有思绪时沿用其状态）
   var locked = existing?.locked ?? false;
+  // 星标/收藏（编辑已有思绪时沿用其状态）
+  var starred = existing?.starred ?? false;
   // 附件：kept 为已入库（可移除），pending 为本次新增（未入库）
   final existingAtts = existing == null
       ? const <Attachment>[]
@@ -791,6 +811,15 @@ Future<void> showEntryEditor(
             children: [
               Text(existing == null ? l.newThought : l.editThought),
               const Spacer(),
+              // 星标/收藏：保存时写库
+              IconButton(
+                icon: Icon(
+                  starred ? Icons.star : Icons.star_border,
+                  color: starred ? Colors.amber : null,
+                ),
+                tooltip: starred ? l.unstar : l.star,
+                onPressed: () => setState(() => starred = !starred),
+              ),
               // 删除藏在标题栏：图标形式，确认后关闭编辑器
               if (existing != null)
                 IconButton(
@@ -1229,6 +1258,9 @@ Future<void> showEntryEditor(
                   if (existing.locked != locked) {
                     await appDb.setThoughtLocked(existing.id, locked);
                   }
+                }
+                if ((existing?.starred ?? false) != starred) {
+                  await appDb.setThoughtStarred(thoughtId!, starred);
                 }
                 // 普通标签：整体替换
                 await appDb.setThoughtNormalTags(
@@ -1670,6 +1702,15 @@ Future<void> showEntryActions(BuildContext context, ThoughtEntry entry) async {
                 } else {
                   appDb.archiveThought(entry.id);
                 }
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                  entry.starred ? Icons.star : Icons.star_border),
+              title: Text(entry.starred ? l.unstar : l.star),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                appDb.setThoughtStarred(entry.id, !entry.starred);
               },
             ),
             ListTile(

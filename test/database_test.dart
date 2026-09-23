@@ -38,6 +38,7 @@ void main() {
       createdAt: createdAt.millisecondsSinceEpoch,
       updatedAt: createdAt.millisecondsSinceEpoch,
       locked: false,
+      starred: false,
     );
   }
 
@@ -194,6 +195,42 @@ void main() {
       final list = await other.watchEntryTemplates().first;
       expect(list, hasLength(1));
       expect(list.single.content, '问题一\n问题二');
+      await other.close();
+    });
+  });
+
+  group('starred', () {
+    test('收藏：仅活跃且按天倒序，切换与归档生效', () async {
+      final now = DateTime(2026, 9, 16, 10, 30);
+      final a = await insert('a', day: '2026-09-16', createdAt: now);
+      final b = await insert('b', day: '2026-09-10', createdAt: now);
+
+      await db.setThoughtStarred(a.id, true);
+      await db.setThoughtStarred(b.id, true);
+      var list = await db.watchStarredEntries().first;
+      expect(list.map((e) => e.content), ['a', 'b']);
+
+      // 取消收藏
+      await db.setThoughtStarred(a.id, false);
+      list = await db.watchStarredEntries().first;
+      expect(list.map((e) => e.content), ['b']);
+
+      // 归档后不再出现在收藏视图
+      await db.archiveThought(b.id);
+      expect(await db.watchStarredEntries().first, isEmpty);
+    });
+
+    test('导出/导入往返：星标保留', () async {
+      final now = DateTime(2026, 9, 16, 10, 30);
+      final a = await insert('a', day: '2026-09-16', createdAt: now);
+      await db.setThoughtStarred(a.id, true);
+
+      final data = await db.exportData();
+      final other = AppDatabase.connect(NativeDatabase.memory());
+      await other.importData(data);
+      final list = await other.watchStarredEntries().first;
+      expect(list, hasLength(1));
+      expect(list.single.starred, isTrue);
       await other.close();
     });
   });

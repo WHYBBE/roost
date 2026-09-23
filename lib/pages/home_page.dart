@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
 import '../ui/vault_switcher.dart';
+import 'favorites_page.dart';
 import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -38,6 +39,14 @@ class _HomePageState extends State<HomePage> {
         leading: appBarVaultSwitcher(context),
         title: Text(l.navHome),
         actions: [
+          // 收藏视图：汇总星标思绪
+          IconButton(
+            icon: const Icon(Icons.star_outline),
+            tooltip: l.favoritesTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FavoritesPage()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: l.newThought,

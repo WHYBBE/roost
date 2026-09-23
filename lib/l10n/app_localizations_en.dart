@@ -64,6 +64,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moodLabel => 'Mood';
 
   @override
+  String get star => 'Star';
+
+  @override
+  String get unstar => 'Unstar';
+
+  @override
+  String get favoritesTitle => 'Favorites';
+
+  @override
+  String get emptyFavoritesHint =>
+      'No favorites yet.\nTap the star on a thought card to save it here.';
+
+  @override
   String get tagEditorTitle => 'Edit tag';
 
   @override

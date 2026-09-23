@@ -64,6 +64,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get moodLabel => '心情';
 
   @override
+  String get star => '收藏';
+
+  @override
+  String get unstar => '取消收藏';
+
+  @override
+  String get favoritesTitle => '收藏';
+
+  @override
+  String get emptyFavoritesHint => '还没有收藏的思绪。\n点思绪卡片上的星标即可收藏。';
+
+  @override
   String get tagEditorTitle => '编辑标签';
 
   @override

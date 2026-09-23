@@ -206,6 +206,30 @@ abstract class AppLocalizations {
   /// **'Mood'**
   String get moodLabel;
 
+  /// No description provided for @star.
+  ///
+  /// In en, this message translates to:
+  /// **'Star'**
+  String get star;
+
+  /// No description provided for @unstar.
+  ///
+  /// In en, this message translates to:
+  /// **'Unstar'**
+  String get unstar;
+
+  /// No description provided for @favoritesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favoritesTitle;
+
+  /// No description provided for @emptyFavoritesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet.\nTap the star on a thought card to save it here.'**
+  String get emptyFavoritesHint;
+
   /// No description provided for @tagEditorTitle.
   ///
   /// In en, this message translates to:

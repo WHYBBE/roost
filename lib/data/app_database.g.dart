@@ -110,6 +110,21 @@ class $ThoughtsTable extends Thoughts
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _starredMeta = const VerificationMeta(
+    'starred',
+  );
+  @override
+  late final GeneratedColumn<bool> starred = GeneratedColumn<bool>(
+    'starred',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("starred" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -121,6 +136,7 @@ class $ThoughtsTable extends Thoughts
     archivedAt,
     deletedAt,
     locked,
+    starred,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -193,6 +209,12 @@ class $ThoughtsTable extends Thoughts
         locked.isAcceptableOrUnknown(data['locked']!, _lockedMeta),
       );
     }
+    if (data.containsKey('starred')) {
+      context.handle(
+        _starredMeta,
+        starred.isAcceptableOrUnknown(data['starred']!, _starredMeta),
+      );
+    }
     return context;
   }
 
@@ -238,6 +260,10 @@ class $ThoughtsTable extends Thoughts
         DriftSqlType.bool,
         data['${effectivePrefix}locked'],
       )!,
+      starred: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}starred'],
+      )!,
     );
   }
 
@@ -257,6 +283,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
   final int? archivedAt;
   final int? deletedAt;
   final bool locked;
+  final bool starred;
   const ThoughtEntry({
     required this.id,
     required this.content,
@@ -267,6 +294,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     this.archivedAt,
     this.deletedAt,
     required this.locked,
+    required this.starred,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -286,6 +314,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       map['deleted_at'] = Variable<int>(deletedAt);
     }
     map['locked'] = Variable<bool>(locked);
+    map['starred'] = Variable<bool>(starred);
     return map;
   }
 
@@ -306,6 +335,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           ? const Value.absent()
           : Value(deletedAt),
       locked: Value(locked),
+      starred: Value(starred),
     );
   }
 
@@ -324,6 +354,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
       locked: serializer.fromJson<bool>(json['locked']),
+      starred: serializer.fromJson<bool>(json['starred']),
     );
   }
   @override
@@ -339,6 +370,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
       'archivedAt': serializer.toJson<int?>(archivedAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
       'locked': serializer.toJson<bool>(locked),
+      'starred': serializer.toJson<bool>(starred),
     };
   }
 
@@ -352,6 +384,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     Value<int?> archivedAt = const Value.absent(),
     Value<int?> deletedAt = const Value.absent(),
     bool? locked,
+    bool? starred,
   }) => ThoughtEntry(
     id: id ?? this.id,
     content: content ?? this.content,
@@ -362,6 +395,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     locked: locked ?? this.locked,
+    starred: starred ?? this.starred,
   );
   ThoughtEntry copyWithCompanion(ThoughtsCompanion data) {
     return ThoughtEntry(
@@ -378,6 +412,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           : this.archivedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       locked: data.locked.present ? data.locked.value : this.locked,
+      starred: data.starred.present ? data.starred.value : this.starred,
     );
   }
 
@@ -392,7 +427,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           ..write('annualDate: $annualDate, ')
           ..write('archivedAt: $archivedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('locked: $locked')
+          ..write('locked: $locked, ')
+          ..write('starred: $starred')
           ..write(')'))
         .toString();
   }
@@ -408,6 +444,7 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
     archivedAt,
     deletedAt,
     locked,
+    starred,
   );
   @override
   bool operator ==(Object other) =>
@@ -421,7 +458,8 @@ class ThoughtEntry extends DataClass implements Insertable<ThoughtEntry> {
           other.annualDate == this.annualDate &&
           other.archivedAt == this.archivedAt &&
           other.deletedAt == this.deletedAt &&
-          other.locked == this.locked);
+          other.locked == this.locked &&
+          other.starred == this.starred);
 }
 
 class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
@@ -434,6 +472,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   final Value<int?> archivedAt;
   final Value<int?> deletedAt;
   final Value<bool> locked;
+  final Value<bool> starred;
   const ThoughtsCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
@@ -444,6 +483,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     this.archivedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.locked = const Value.absent(),
+    this.starred = const Value.absent(),
   });
   ThoughtsCompanion.insert({
     this.id = const Value.absent(),
@@ -455,6 +495,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     this.archivedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.locked = const Value.absent(),
+    this.starred = const Value.absent(),
   }) : content = Value(content),
        day = Value(day),
        createdAt = Value(createdAt),
@@ -469,6 +510,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Expression<int>? archivedAt,
     Expression<int>? deletedAt,
     Expression<bool>? locked,
+    Expression<bool>? starred,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -480,6 +522,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       if (archivedAt != null) 'archived_at': archivedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (locked != null) 'locked': locked,
+      if (starred != null) 'starred': starred,
     });
   }
 
@@ -493,6 +536,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     Value<int?>? archivedAt,
     Value<int?>? deletedAt,
     Value<bool>? locked,
+    Value<bool>? starred,
   }) {
     return ThoughtsCompanion(
       id: id ?? this.id,
@@ -504,6 +548,7 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
       archivedAt: archivedAt ?? this.archivedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       locked: locked ?? this.locked,
+      starred: starred ?? this.starred,
     );
   }
 
@@ -537,6 +582,9 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
     if (locked.present) {
       map['locked'] = Variable<bool>(locked.value);
     }
+    if (starred.present) {
+      map['starred'] = Variable<bool>(starred.value);
+    }
     return map;
   }
 
@@ -551,7 +599,8 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
           ..write('annualDate: $annualDate, ')
           ..write('archivedAt: $archivedAt, ')
           ..write('deletedAt: $deletedAt, ')
-          ..write('locked: $locked')
+          ..write('locked: $locked, ')
+          ..write('starred: $starred')
           ..write(')'))
         .toString();
   }
@@ -5182,6 +5231,7 @@ typedef $$ThoughtsTableCreateCompanionBuilder =
       Value<int?> archivedAt,
       Value<int?> deletedAt,
       Value<bool> locked,
+      Value<bool> starred,
     });
 typedef $$ThoughtsTableUpdateCompanionBuilder =
     ThoughtsCompanion Function({
@@ -5194,6 +5244,7 @@ typedef $$ThoughtsTableUpdateCompanionBuilder =
       Value<int?> archivedAt,
       Value<int?> deletedAt,
       Value<bool> locked,
+      Value<bool> starred,
     });
 
 final class $$ThoughtsTableReferences
@@ -5364,6 +5415,11 @@ class $$ThoughtsTableFilterComposer
 
   ColumnFilters<bool> get locked => $composableBuilder(
     column: $table.locked,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get starred => $composableBuilder(
+    column: $table.starred,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5571,6 +5627,11 @@ class $$ThoughtsTableOrderingComposer
     column: $table.locked,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get starred => $composableBuilder(
+    column: $table.starred,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ThoughtsTableAnnotationComposer
@@ -5612,6 +5673,9 @@ class $$ThoughtsTableAnnotationComposer
 
   GeneratedColumn<bool> get locked =>
       $composableBuilder(column: $table.locked, builder: (column) => column);
+
+  GeneratedColumn<bool> get starred =>
+      $composableBuilder(column: $table.starred, builder: (column) => column);
 
   Expression<T> thoughtTagsRefs<T extends Object>(
     Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
@@ -5809,6 +5873,7 @@ class $$ThoughtsTableTableManager
                 Value<int?> archivedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<bool> locked = const Value.absent(),
+                Value<bool> starred = const Value.absent(),
               }) => ThoughtsCompanion(
                 id: id,
                 content: content,
@@ -5819,6 +5884,7 @@ class $$ThoughtsTableTableManager
                 archivedAt: archivedAt,
                 deletedAt: deletedAt,
                 locked: locked,
+                starred: starred,
               ),
           createCompanionCallback:
               ({
@@ -5831,6 +5897,7 @@ class $$ThoughtsTableTableManager
                 Value<int?> archivedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
                 Value<bool> locked = const Value.absent(),
+                Value<bool> starred = const Value.absent(),
               }) => ThoughtsCompanion.insert(
                 id: id,
                 content: content,
@@ -5841,6 +5908,7 @@ class $$ThoughtsTableTableManager
                 archivedAt: archivedAt,
                 deletedAt: deletedAt,
                 locked: locked,
+                starred: starred,
               ),
           withReferenceMapper: (p0) => p0
               .map(

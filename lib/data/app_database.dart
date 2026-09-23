@@ -35,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
   static const int trashRetentionDays = 7;
@@ -327,6 +327,7 @@ class AppDatabase extends _$AppDatabase {
             'archivedAt': t.archivedAt,
             'deletedAt': t.deletedAt,
             'locked': t.locked,
+            'starred': t.starred,
           },
       ],
       // 写作模板
@@ -501,6 +502,7 @@ class AppDatabase extends _$AppDatabase {
             archivedAt: Value((m['archivedAt'] as num?)?.toInt()),
             deletedAt: Value((m['deletedAt'] as num?)?.toInt()),
             locked: Value((m['locked'] as bool?) ?? false),
+            starred: Value((m['starred'] as bool?) ?? false),
           ),
         );
         thoughtIdByIndex[i] = id;
@@ -772,6 +774,12 @@ class AppDatabase extends _$AppDatabase {
         .write(ThoughtsCompanion(locked: Value(locked)));
   }
 
+  /// 切换星标/收藏
+  Future<void> setThoughtStarred(int id, bool starred) {
+    return (update(thoughts)..where((t) => t.id.equals(id)))
+        .write(ThoughtsCompanion(starred: Value(starred)));
+  }
+
   Future<int> deleteThought(int id) {
     return (delete(thoughts)..where((t) => t.id.equals(id))).go();
   }
@@ -861,6 +869,20 @@ class AppDatabase extends _$AppDatabase {
               t.deletedAt.isNull())
           ..orderBy([(t) => OrderingTerm.desc(t.day)]))
         .get();
+  }
+
+  /// 星标/收藏的思绪（仅活跃：未归档、未回收），最近在前
+  Stream<List<ThoughtEntry>> watchStarredEntries() {
+    return (select(thoughts)
+          ..where((t) =>
+              t.starred.equals(true) &
+              t.archivedAt.isNull() &
+              t.deletedAt.isNull())
+          ..orderBy([
+            (t) => OrderingTerm.desc(t.day),
+            (t) => OrderingTerm.desc(t.createdAt),
+          ]))
+        .watch();
   }
 
   /// 全部思绪（供热力图与漫步页统计；仅活跃）
