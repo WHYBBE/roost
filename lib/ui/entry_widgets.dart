@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
-import '../data/tag_presets.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
 import '../settings/lock_session.dart';
@@ -32,8 +31,8 @@ class EntryCard extends StatelessWidget {
 
   final ThoughtEntry entry;
 
-  /// 标签列表（含心情标签）；为 null 时自动加载
-  final List<Tag>? tags;
+  /// 标签列表（含高级标签值）；为 null 时自动加载
+  final List<TagWithCategory>? tags;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -51,13 +50,24 @@ class EntryCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final time = entry.createdAtLocal;
     final masked = isEntryMasked(entry);
+    final allTags = tags ?? const <TagWithCategory>[];
+    // 内置"心情"组：仍以元信息行展示
     final mood = masked
         ? null
-        : tags
-            ?.where((t) => t.tagKind == TagKind.mood)
+        : allTags
+            .where((t) => t.isBuiltin)
+            .map((t) => t.tag)
             .fold<Tag?>(null, (prev, t) => prev ?? t);
-    final normalTags =
-        tags?.where((t) => t.tagKind == TagKind.normal).toList() ?? const [];
+    // 其他高级标签组的值：卡片下方胶囊展示
+    final advanced =
+        masked ? const <TagWithCategory>[] : allTags.where((t) => !t.isNormal).toList();
+    // 普通标签
+    final normalTags = masked
+        ? const <Tag>[]
+        : allTags.where((t) => t.isNormal).map((t) => t.tag).toList();
+    // 除内置心情外的高级标签（心情已在元信息行）
+    final otherAdvanced =
+        advanced.where((t) => !t.isBuiltin).toList();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -118,6 +128,15 @@ class EntryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 AttachmentStrip(thoughtId: entry.id, thumbSize: 64),
+                if (otherAdvanced.isNotEmpty)
+                  AdvancedTagChips(
+                    items: otherAdvanced,
+                    showCategoryName: otherAdvanced
+                            .map((t) => t.category?.id)
+                            .toSet()
+                            .length >
+                        1,
+                  ),
                 if (normalTags.isNotEmpty) TagChips(tags: normalTags),
                 // 评论与反应：自动加载，有内容时才显示
                 _CommentReactionPreview(entryId: entry.id),
@@ -508,7 +527,7 @@ class _TagChipsLoader extends StatefulWidget {  const _TagChipsLoader({required 
 }
 
 class _TagChipsLoaderState extends State<_TagChipsLoader> {
-  List<Tag>? _tags;
+  List<TagWithCategory>? _tags;
 
   @override
   void initState() {
@@ -520,7 +539,10 @@ class _TagChipsLoaderState extends State<_TagChipsLoader> {
 
   @override
   Widget build(BuildContext context) {
-    final normal = _tags?.where((t) => t.tagKind == TagKind.normal).toList();
+    final normal = _tags
+        ?.where((t) => t.isNormal)
+        .map((t) => t.tag)
+        .toList();
     if (normal == null || normal.isEmpty) return const SizedBox.shrink();
     return TagChips(tags: normal);
   }
@@ -534,17 +556,34 @@ Future<void> showEntryEditor(
   final l = AppLocalizations.of(context)!;
   final controller = TextEditingController(text: existing?.content ?? initialText ?? '');
   var saved = false;
-  final allTags = existing == null
-      ? <Tag>[]
-      : List<Tag>.of(await appDb.tagsFor(existing.id));
+  // 已有标签（含所属高级标签组）
+  final existingTags = existing == null
+      ? <TagWithCategory>[]
+      : List<TagWithCategory>.of(await appDb.tagsFor(existing.id));
   if (!context.mounted) return;
-  final moodTags = await appDb.moodTags();
+  // 高级标签组与各组选项
+  final categories = await appDb.watchTagCategories().first;
   if (!context.mounted) return;
-  // 该思绪的心情标签若已被删除，仍保留在选项里供本次保存
-  for (final t in allTags) {
-    if (t.tagKind == TagKind.mood && !moodTags.any((m) => m.id == t.id)) {
-      moodTags.add(t);
-    }
+  final categoryOptions = <int, List<Tag>>{};
+  for (final c in categories) {
+    categoryOptions[c.id] = await appDb.categoryTags(c.id);
+  }
+  if (!context.mounted) return;
+  // 普通标签（自由输入，多选）
+  final normalTags = existingTags.where((t) => t.isNormal).map((t) => t.tag).toList();
+  // 高级标签：本条思绪已添加的组 → 选中的值名称集合
+  final appliedCategoryIds = <int>{
+    if (existing != null) ...await appDb.thoughtCategoryIds(existing.id),
+  };
+  final selectedByCategory = <int, Set<String>>{};
+  for (final t in existingTags) {
+    final cid = t.category?.id;
+    if (cid == null) continue;
+    appliedCategoryIds.add(cid);
+    selectedByCategory.putIfAbsent(cid, () => <String>{}).add(t.tag.name);
+  }
+  for (final cid in appliedCategoryIds) {
+    selectedByCategory.putIfAbsent(cid, () => <String>{});
   }
   final tagController = TextEditingController();
   // 私密开关（编辑已有思绪时沿用其状态）
@@ -730,11 +769,6 @@ Future<void> showEntryEditor(
         setState(() {});
       }
 
-      var mood = allTags
-          .where((t) => t.tagKind == TagKind.mood)
-          .fold<Tag?>(null, (prev, t) => prev ?? t);
-      final normalTags =
-          allTags.where((t) => t.tagKind == TagKind.normal).toList();
       // 编辑器内可见的全部图片（已入库 + 待新增），供查看器翻页
       final keptImages =
           kept.where((k) => k.kind == AttachmentKind.image).toList();
@@ -781,58 +815,143 @@ Future<void> showEntryEditor(
                   ),
                 ),
                 const SizedBox(height: 12),
-                // 心情：特殊标签，单选；可即时新建心情标签
+                // ---------- 高级标签：按需添加标签组，组内单选/多选 ----------
                 Row(
                   children: [
-                    Text(l.moodLabel, style: Theme.of(context).textTheme.labelLarge),
+                    Text(l.advancedTagsSection,
+                        style: Theme.of(context).textTheme.labelLarge),
                     const Spacer(),
-                    Tooltip(
-                      message: l.createMoodTag,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
-                        onTap: () async {
-                          final name = await _promptText(
-                            context,
-                            title: l.createMoodTag,
-                          );
-                          if (name == null || name.trim().isEmpty) return;
-                          final tag = await appDb.getOrCreateTag(
-                            name,
-                            kind: TagKind.mood,
-                            icon: moodPresets.first.icon.codePoint,
-                            color: moodPresets.first.color,
-                          );
-                          allTags.removeWhere((t) => t.id == tag.id);
-                          allTags.add(tag);
-                          setState(() {});
-                        },
-                        child: const Icon(Icons.add, size: 20),
+                    TextButton.icon(
+                      onPressed: () => _pickCategory(
+                        context,
+                        categories: categories,
+                        applied: appliedCategoryIds,
+                        onPicked: (cid) => setState(() {
+                          appliedCategoryIds.add(cid);
+                          selectedByCategory.putIfAbsent(cid, () => <String>{});
+                        }),
                       ),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(l.addTagCategory),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    for (final m in moodTags)
-                      ChoiceChip(
-                        label: Text(m.name),
-                        selected: mood?.id == m.id,
-                        avatar: TagIcon(
-                          tag: m,
-                          size: 16,
-                          fallback: Icons.mood,
+                if (appliedCategoryIds.isEmpty)
+                  Text(
+                    l.advancedTagsEmpty,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                        onSelected: (sel) {
-                          allTags.removeWhere((t) => t.tagKind == TagKind.mood);
-                          if (sel) allTags.add(m);
-                          setState(() {});
-                        },
+                  )
+                else
+                  for (final c in categories
+                      .where((c) => appliedCategoryIds.contains(c.id)))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CategoryIcon(
+                                category: c,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                                fallback: Icons.label_outline,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(c.name,
+                                  style:
+                                      Theme.of(context).textTheme.labelLarge),
+                              const SizedBox(width: 6),
+                              Text(
+                                c.multi ? l.categoryMulti : l.categorySingle,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: const Icon(Icons.add, size: 18),
+                                tooltip: l.addOption,
+                                onPressed: () async {
+                                  final name = await _promptText(
+                                    context,
+                                    title: l.addOption,
+                                  );
+                                  if (name == null || name.trim().isEmpty) {
+                                    return;
+                                  }
+                                  await appDb.getOrCreateTag(
+                                    name,
+                                    categoryId: c.id,
+                                    color: c.color,
+                                  );
+                                  final options =
+                                      await appDb.categoryTags(c.id);
+                                  if (!context.mounted) return;
+                                  setState(() {
+                                    categoryOptions[c.id] = options;
+                                    selectedByCategory[c.id]!
+                                        .add(name.trim());
+                                  });
+                                },
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: const Icon(Icons.close, size: 18),
+                                tooltip: l.removeTagCategory,
+                                onPressed: () => setState(() {
+                                  appliedCategoryIds.remove(c.id);
+                                  selectedByCategory.remove(c.id);
+                                }),
+                              ),
+                            ],
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              for (final option
+                                  in categoryOptions[c.id] ?? const <Tag>[])
+                                c.multi
+                                    ? FilterChip(
+                                        label: Text(option.name),
+                                        selected: selectedByCategory[c.id]!
+                                            .contains(option.name),
+                                        onSelected: (sel) => setState(() {
+                                          if (sel) {
+                                            selectedByCategory[c.id]!
+                                                .add(option.name);
+                                          } else {
+                                            selectedByCategory[c.id]!
+                                                .remove(option.name);
+                                          }
+                                        }),
+                                      )
+                                    : ChoiceChip(
+                                        label: Text(option.name),
+                                        selected: selectedByCategory[c.id]!
+                                            .contains(option.name),
+                                        onSelected: (sel) => setState(() {
+                                          selectedByCategory[c.id]!.clear();
+                                          if (sel) {
+                                            selectedByCategory[c.id]!
+                                                .add(option.name);
+                                          }
+                                        }),
+                                      ),
+                            ],
+                          ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
                 const SizedBox(height: 12),
                 Text(l.tagHint, style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 4),
@@ -848,7 +967,7 @@ Future<void> showEntryEditor(
                             label: Text('#${t.name}'),
                             visualDensity: VisualDensity.compact,
                             onDeleted: () =>
-                                setState(() => allTags.remove(t)),
+                                setState(() => normalTags.remove(t)),
                           ),
                       ],
                     ),
@@ -862,11 +981,11 @@ Future<void> showEntryEditor(
                       icon: const Icon(Icons.add, size: 20),
                       tooltip: l.tagAdd,
                       onPressed: () => _addTagsFromField(
-                          tagController, allTags, () => setState(() {})),
+                          tagController, normalTags, () => setState(() {})),
                     ),
                   ),
                   onSubmitted: (_) => _addTagsFromField(
-                      tagController, allTags, () => setState(() {})),
+                      tagController, normalTags, () => setState(() {})),
                 ),
                 const SizedBox(height: 12),
                 // 私密：上锁的思绪不参与搜索，查看需先解锁
@@ -1038,7 +1157,7 @@ Future<void> showEntryEditor(
             ),
             FilledButton(
               onPressed: () async {
-                _addTagsFromField(tagController, allTags, () {});
+                _addTagsFromField(tagController, normalTags, () {});
                 final text = controller.text.trim();
                 if (text.isEmpty) return;
                 var thoughtId = existing?.id;
@@ -1054,10 +1173,27 @@ Future<void> showEntryEditor(
                     await appDb.setThoughtLocked(existing.id, locked);
                   }
                 }
-                await appDb.setThoughtTags(
+                // 普通标签：整体替换
+                await appDb.setThoughtNormalTags(
                   thoughtId!,
-                  allTags.map((t) => t.name).toList(),
+                  normalTags.map((t) => t.name).toList(),
                 );
+                // 高级标签：移除不再添加的组，写入各组的选中值
+                final previousCategories = existing == null
+                    ? <int>{}
+                    : await appDb.thoughtCategoryIds(thoughtId);
+                for (final cid
+                    in previousCategories.difference(appliedCategoryIds)) {
+                  await appDb.removeThoughtCategory(thoughtId, cid);
+                }
+                for (final cid in appliedCategoryIds) {
+                  await appDb.addThoughtCategory(thoughtId, cid);
+                  await appDb.setThoughtCategoryTags(
+                    thoughtId,
+                    cid,
+                    selectedByCategory[cid]?.toList() ?? const [],
+                  );
+                }
                 // 附件：删除被移除的已入库项，追加本次新增
                 for (final a in existingAtts) {
                   if (!kept.any((k) => k.id == a.id)) {
@@ -1148,7 +1284,6 @@ void _addTagsFromField(
         tags.add(Tag(
           id: -1,
           name: name,
-          kind: TagKind.normal.value,
           icon: null,
           glyph: null,
           color: null,
@@ -1158,6 +1293,60 @@ void _addTagsFromField(
   }
   controller.clear();
   onChanged();
+}
+
+/// 选择要添加到这条思绪的高级标签组（已添加的不再列出）
+Future<void> _pickCategory(
+  BuildContext context, {
+  required List<TagCategory> categories,
+  required Set<int> applied,
+  required ValueChanged<int> onPicked,
+}) async {
+  final l = AppLocalizations.of(context)!;
+  final available =
+      categories.where((c) => !applied.contains(c.id)).toList();
+  if (available.isEmpty) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l.allTagCategoriesAdded)));
+    return;
+  }
+  final picked = await showModalBottomSheet<TagCategory>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l.addTagCategory,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+          for (final c in available)
+            ListTile(
+              leading: CategoryIcon(
+                category: c,
+                size: 22,
+                fallback: Icons.label_outline,
+              ),
+              title: Text(c.name),
+              subtitle: Text(
+                c.multi ? l.categoryMulti : l.categorySingle,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+              onTap: () => Navigator.pop(context, c),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  if (picked == null) return;
+  onPicked(picked.id);
 }
 
 /// 编辑器中的待新增附件

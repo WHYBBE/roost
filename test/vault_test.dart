@@ -48,7 +48,8 @@ void main() {
     expect(store.currentVault!.name, 'B 库');
     final dbB = store.db;
     expect(await dbB.select(dbB.thoughts).get(), isEmpty);
-    expect(await dbB.moodTags(), hasLength(moodPresets.length));
+    final moodCat = await dbB.watchMoodCategory().first;
+    expect(await dbB.categoryTags(moodCat!.id), hasLength(moodPresets.length));
 
     // 切回默认库：数据原样保留（完全隔离）
     await store.switchVault(store.vaults.first.id);

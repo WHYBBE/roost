@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
-import '../data/thoughts_table.dart';
+
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
@@ -303,17 +303,18 @@ class _InsightsViewState extends State<InsightsView> {
     final scheme = Theme.of(context).colorScheme;
     final yearEntries =
         entries.where((e) => e.year == _year).toList(growable: false);
-    return StreamBuilder<Map<int, List<Tag>>>(
+    return StreamBuilder<Map<int, List<TagWithCategory>>>(
       stream: appDb.watchAllThoughtTags(),
       builder: (context, snap) {
-        final tagMap = snap.data ?? const <int, List<Tag>>{};
-        // 心情分布与月度堆叠
+        final tagMap = snap.data ?? const <int, List<TagWithCategory>>{};
+        // 心情分布与月度堆叠：内置"心情"组的值
         final byMood = <int, int>{};
         final moodById = <int, Tag>{};
         final byMonthMood = List.generate(12, (_) => <int, int>{});
         for (final e in yearEntries) {
-          final mood = (tagMap[e.id] ?? const <Tag>[])
-              .where((t) => t.tagKind == TagKind.mood)
+          final mood = (tagMap[e.id] ?? const <TagWithCategory>[])
+              .where((t) => t.isBuiltin)
+              .map((t) => t.tag)
               .firstOrNull;
           if (mood == null) continue;
           byMood[mood.id] = (byMood[mood.id] ?? 0) + 1;
@@ -433,7 +434,7 @@ class _InsightsViewState extends State<InsightsView> {
       stream: appDb.watchTagsWithCount(),
       builder: (context, snap) {
         final tags = (snap.data ?? const <TagWithCount>[])
-            .where((t) => t.tag.tagKind == TagKind.normal && t.count > 0)
+            .where((t) => t.category == null && t.count > 0)
             .take(10)
             .toList();
         if (tags.isEmpty) {

@@ -274,5 +274,22 @@
   "lockTurnOffBody": "After turning off, private thoughts can be viewed without unlocking (the private mark is kept).",
   "lockLockNow": "Lock now",
   "lockedBadge": "Private",
-  "lockProtectedHint": "Private thoughts are excluded from search and wander."
+  "lockProtectedHint": "Private thoughts are excluded from search and wander.",
+  "advancedTagsSection": "Advanced tags",
+  "advancedTagsHint": "Add tag groups to a thought as needed; each group can be single- or multi-select.",
+  "advancedTagsEmpty": "No tag groups added yet",
+  "addTagCategory": "Add tag group",
+  "removeTagCategory": "Remove tag group",
+  "allTagCategoriesAdded": "All tag groups added",
+  "addOption": "New option",
+  "optionsEmpty": "No options yet — tap + to add",
+  "optionCount": "{count, plural, =0{No options} other{{count} options}}",
+  "@optionCount": { "placeholders": { "count": { "type": "int" } } },
+  "categorySingle": "Single",
+  "categoryMulti": "Multi",
+  "editTagCategory": "Edit tag group",
+  "deleteTagCategory": "Delete tag group",
+  "deleteTagCategoryBody": "Deletes \"{name}\" and all its options; those values are removed from thoughts.",
+  "@deleteTagCategoryBody": { "placeholders": { "name": { "type": "String" } } },
+  "normalTagsSection": "Tags"
 }

@@ -1663,6 +1663,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Private thoughts are excluded from search and wander.'**
   String get lockProtectedHint;
+
+  /// No description provided for @advancedTagsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced tags'**
+  String get advancedTagsSection;
+
+  /// No description provided for @advancedTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag groups to a thought as needed; each group can be single- or multi-select.'**
+  String get advancedTagsHint;
+
+  /// No description provided for @advancedTagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tag groups added yet'**
+  String get advancedTagsEmpty;
+
+  /// No description provided for @addTagCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tag group'**
+  String get addTagCategory;
+
+  /// No description provided for @removeTagCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag group'**
+  String get removeTagCategory;
+
+  /// No description provided for @allTagCategoriesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'All tag groups added'**
+  String get allTagCategoriesAdded;
+
+  /// No description provided for @addOption.
+  ///
+  /// In en, this message translates to:
+  /// **'New option'**
+  String get addOption;
+
+  /// No description provided for @optionsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No options yet — tap + to add'**
+  String get optionsEmpty;
+
+  /// No description provided for @optionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No options} other{{count} options}}'**
+  String optionCount(int count);
+
+  /// No description provided for @categorySingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get categorySingle;
+
+  /// No description provided for @categoryMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi'**
+  String get categoryMulti;
+
+  /// No description provided for @editTagCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tag group'**
+  String get editTagCategory;
+
+  /// No description provided for @deleteTagCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete tag group'**
+  String get deleteTagCategory;
+
+  /// No description provided for @deleteTagCategoryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes \"{name}\" and all its options; those values are removed from thoughts.'**
+  String deleteTagCategoryBody(String name);
+
+  /// No description provided for @normalTagsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get normalTagsSection;
 }
 
 class _AppLocalizationsDelegate

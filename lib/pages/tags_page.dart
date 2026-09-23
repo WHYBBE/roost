@@ -4,13 +4,13 @@ import 'package:intl/intl.dart';
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../data/tag_presets.dart';
-import '../data/thoughts_table.dart';
+
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
 import '../ui/vault_switcher.dart';
 
-/// 标签管理：心情管理入口 + 普通标签胶囊墙（非列表），点按查看、长按操作
+/// 标签管理：高级标签组（内置"心情"+ 自定义组）+ 普通标签胶囊墙
 class TagsPage extends StatelessWidget {
   const TagsPage({super.key});
 
@@ -27,59 +27,109 @@ class TagsPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: l.addTag,
-            onPressed: () => showTagEditor(context, kind: TagKind.normal),
+            onPressed: () => showTagEditor(context),
           ),
         ],
       ),
-      body: StreamBuilder<List<TagWithCount>>(
-        stream: appDb.watchTagsWithCount(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final all = snap.data ?? const <TagWithCount>[];
-          final moodCount =
-              all.where((e) => e.tag.tagKind == TagKind.mood).length;
-          final normal =
-              all.where((e) => e.tag.tagKind == TagKind.normal).toList();
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: ListTile(
-                  leading: Icon(Icons.mood_outlined, color: scheme.primary),
-                  title: Text(l.moodManagement),
-                  subtitle:
-                      moodCount > 0 ? Text(l.moodCount(moodCount)) : null,
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MoodPage()),
+      body: StreamBuilder<List<TagCategory>>(
+        stream: appDb.watchTagCategories(),
+        builder: (context, catSnap) {
+          final categories = catSnap.data ?? const <TagCategory>[];
+          return StreamBuilder<List<TagWithCount>>(
+            stream: appDb.watchTagsWithCount(),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final all = snap.data ?? const <TagWithCount>[];
+              final normal = all.where((e) => e.category == null).toList();
+              // 各组选项数量
+              final optionCounts = <int, int>{};
+              for (final t in all) {
+                final cid = t.category?.id;
+                if (cid != null) {
+                  optionCounts[cid] = (optionCounts[cid] ?? 0) + 1;
+                }
+              }
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Text(
+                    l.advancedTagsSection,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (normal.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Text(
-                    l.tagsEmpty,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  const SizedBox(height: 4),
+                  Text(
+                    l.advancedTagsHint,
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                )
-              else
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final item in normal) _TagPill(item: item),
-                    ],
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final c in categories)
+                          ListTile(
+                            leading: CategoryIcon(
+                              category: c,
+                              size: 24,
+                              color: scheme.primary,
+                              fallback: Icons.label_outline,
+                            ),
+                            title: Text(c.name),
+                            subtitle: Text(
+                              '${c.multi ? l.categoryMulti : l.categorySingle}'
+                              ' · ${l.optionCount(optionCounts[c.id] ?? 0)}',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CategoryPage(categoryId: c.id),
+                              ),
+                            ),
+                          ),
+                        ListTile(
+                          leading: const Icon(Icons.add),
+                          title: Text(l.addTagCategory),
+                          onTap: () => showCategoryEditor(context),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-            ],
+                  const SizedBox(height: 24),
+                  Text(
+                    l.normalTagsSection,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l.tagHint,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  if (normal.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Text(
+                        l.tagsEmpty,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final item in normal) _TagPill(item: item),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -87,79 +137,173 @@ class TagsPage extends StatelessWidget {
   }
 }
 
-/// 心情管理：独立界面，复用标签胶囊与编辑器
-class MoodPage extends StatelessWidget {
-  const MoodPage({super.key});
+/// 单个高级标签组：管理其选项（新建/编辑/删除）与组设置
+class CategoryPage extends StatelessWidget {
+  const CategoryPage({super.key, required this.categoryId});
+
+  final int categoryId;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l.moodManagement),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: l.addMood,
-            onPressed: () => showTagEditor(context, kind: TagKind.mood),
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<TagWithCount>>(
-        stream: appDb.watchTagsWithCount(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final moods = (snap.data ?? const <TagWithCount>[])
-              .where((e) => e.tag.tagKind == TagKind.mood)
-              .toList();
-          if (moods.isEmpty) {
-            return Center(
-              child: Text(
-                l.moodsEmpty,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            );
-          }
-          return Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final m in moods) _TagPill(item: m, moodStyle: true),
-                    ],
+    return StreamBuilder<List<TagCategory>>(
+      stream: appDb.watchTagCategories(),
+      builder: (context, catSnap) {
+        final category = (catSnap.data ?? const <TagCategory>[])
+            .where((c) => c.id == categoryId)
+            .firstOrNull;
+        if (category == null) {
+          return Scaffold(
+            appBar: AppBar(),
+            body: const SizedBox.shrink(),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CategoryIcon(
+                  category: category,
+                  size: 18,
+                  color: scheme.primary,
+                  fallback: Icons.label_outline,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    category.name,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  category.multi ? l.categoryMulti : l.categorySingle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: l.addOption,
+                onPressed: () =>
+                    showTagEditor(context, categoryId: categoryId),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (action) => switch (action) {
+                  'edit' => showCategoryEditor(context, existing: category),
+                  'delete' => _deleteCategory(context, category),
+                  _ => null,
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text(l.editTagCategory),
+                  ),
+                  if (!category.builtin)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        l.deleteTagCategory,
+                        style: TextStyle(color: scheme.error),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          body: StreamBuilder<List<TagWithCount>>(
+            stream: appDb.watchTagsWithCount(),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final options = (snap.data ?? const <TagWithCount>[])
+                  .where((t) => t.category?.id == categoryId)
+                  .toList();
+              if (options.isEmpty) {
+                return Center(
+                  child: Text(
+                    l.optionsEmpty,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                );
+              }
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final item in options)
+                            _TagPill(item: item, advancedStyle: true),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
 
-/// 标签胶囊：普通样式（非列表行）；点按进入详情/编辑，长按弹出操作
+Future<void> _deleteCategory(
+    BuildContext context, TagCategory category) async {
+  final l = AppLocalizations.of(context)!;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(l.deleteTagCategory),
+      content: Text(l.deleteTagCategoryBody(category.name)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(l.cancel),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: () => Navigator.pop(context, true),
+          child: Text(l.delete),
+        ),
+      ],
+    ),
+  );
+  if (ok == true) {
+    await appDb.deleteTagCategory(category.id);
+    if (context.mounted) Navigator.pop(context);
+  }
+}
+
+/// 标签/选项胶囊：高级样式（有底色）与普通样式（#名称）
 class _TagPill extends StatelessWidget {
   const _TagPill({
     required this.item,
-    this.moodStyle = false,
+    this.advancedStyle = false,
     this.interactive = true,
     this.showCount = true,
   });
 
   final TagWithCount item;
-  final bool moodStyle;
+  final bool advancedStyle;
 
   /// 预览模式：无点按/长按行为
   final bool interactive;
@@ -178,7 +322,7 @@ class _TagPill extends StatelessWidget {
       onTap: !interactive
           ? null
           : () {
-              if (moodStyle) {
+              if (advancedStyle) {
                 showTagEditor(context, tag: tag);
               } else {
                 Navigator.push(
@@ -192,10 +336,13 @@ class _TagPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: moodStyle ? c.withValues(alpha: 0.15) : scheme.surfaceContainerHigh,
+          color: advancedStyle
+              ? c.withValues(alpha: 0.15)
+              : scheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: moodStyle ? c.withValues(alpha: 0.4) : scheme.outlineVariant,
+            color:
+                advancedStyle ? c.withValues(alpha: 0.4) : scheme.outlineVariant,
           ),
         ),
         child: Row(
@@ -205,14 +352,14 @@ class _TagPill extends StatelessWidget {
               TagIcon(
                 tag: tag,
                 size: 16,
-                color: moodStyle ? scheme.primary : scheme.onSurfaceVariant,
+                color: advancedStyle ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
             ],
             Text(
-              moodStyle ? tag.name : '#${tag.name}',
+              advancedStyle ? tag.name : '#${tag.name}',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: moodStyle ? c : scheme.onSurface,
+                    color: advancedStyle ? c : scheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
             ),
@@ -324,15 +471,16 @@ Future<void> _deleteDialog(BuildContext context, TagWithCount item) async {
   }
 }
 
-/// 编辑标签；tag 为 null 时进入新建模式（kind 决定新建种类）
-/// 布局：名称 → 颜色（有用则用）→ 单色图标 / Emoji（Tab 切换）
+/// 编辑标签/选项；tag 为 null 时新建（categoryId 非空即高级标签组的选项）
 Future<void> showTagEditor(
   BuildContext context, {
   Tag? tag,
-  TagKind kind = TagKind.normal,
+  int? categoryId,
 }) async {
   final l = AppLocalizations.of(context)!;
   final isCreate = tag == null;
+  final effectiveCategoryId = tag?.categoryId ?? categoryId;
+  final advancedStyle = effectiveCategoryId != null;
   final nameController = TextEditingController(text: tag?.name ?? '');
   // 字符图标（emoji/任意字符）以输入框内容为单一数据源
   final glyphController =
@@ -350,7 +498,7 @@ Future<void> showTagEditor(
       builder: (context, setState) => AlertDialog(
         title: Text(
           isCreate
-              ? (kind == TagKind.mood ? l.addMood : l.addTag)
+              ? (advancedStyle ? l.addOption : l.addTag)
               : l.tagEditorTitle,
         ),
         content: SingleChildScrollView(
@@ -373,7 +521,7 @@ Future<void> showTagEditor(
                 item: TagWithCount(
                   tag: Tag(
                     id: tag?.id ?? -1,
-                    kind: tag?.kind ?? kind.value,
+                    categoryId: effectiveCategoryId,
                     name: _previewName(nameController.text, l),
                     icon: _validatedGlyph(glyphController.text) == null
                         ? icon
@@ -384,8 +532,7 @@ Future<void> showTagEditor(
                   ),
                   count: 0,
                 ),
-                moodStyle:
-                    TagKind.fromValue(tag?.kind ?? kind.value) == TagKind.mood,
+                advancedStyle: advancedStyle,
                 interactive: false,
                 showCount: false,
               ),
@@ -464,8 +611,7 @@ Future<void> showTagEditor(
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.check, size: 20),
                       tooltip: l.save,
-                      onPressed: () =>
-                          FocusScope.of(context).unfocus(),
+                      onPressed: () => FocusScope.of(context).unfocus(),
                     ),
                   ),
                   onSubmitted: (_) => FocusScope.of(context).unfocus(),
@@ -501,7 +647,9 @@ Future<void> showTagEditor(
                 setState(() => nameError = l.tagNameEmpty);
                 return;
               }
-              if (isCreate && await appDb.tagByName(name) != null) {
+              if (isCreate &&
+                  await appDb.tagByName(name, categoryId: effectiveCategoryId) !=
+                      null) {
                 setState(() => nameError = l.tagExists);
                 return;
               }
@@ -526,7 +674,7 @@ Future<void> showTagEditor(
   if (isCreate) {
     await appDb.getOrCreateTag(
       newName,
-      kind: kind,
+      categoryId: effectiveCategoryId,
       icon: effectiveIcon,
       glyph: finalGlyph,
       color: color,
@@ -540,6 +688,193 @@ Future<void> showTagEditor(
       icon: effectiveIcon,
       glyph: finalGlyph,
       color: color,
+    );
+  }
+}
+
+/// 新建/编辑高级标签组（名称 + 单选/多选 + 颜色 + 图标）
+Future<void> showCategoryEditor(
+  BuildContext context, {
+  TagCategory? existing,
+}) async {
+  final l = AppLocalizations.of(context)!;
+  final isCreate = existing == null;
+  final nameController = TextEditingController(text: existing?.name ?? '');
+  final glyphController =
+      TextEditingController(text: existing?.displayGlyph ?? '');
+  final hasGlyph = (existing?.glyph?.isNotEmpty ?? false);
+  int? icon = existing?.icon;
+  int? color = existing?.color;
+  var multi = existing?.multi ?? false;
+  String? nameError;
+  var tab = hasGlyph ? 1 : 0;
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(isCreate ? l.addTagCategory : l.editTagCategory),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: isCreate,
+                decoration: InputDecoration(
+                  labelText: l.tagName,
+                  border: const OutlineInputBorder(),
+                  errorText: nameError,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // 单选 / 多选
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: false, label: Text(l.categorySingle)),
+                  ButtonSegment(value: true, label: Text(l.categoryMulti)),
+                ],
+                selected: {multi},
+                onSelectionChanged: (s) => setState(() => multi = s.first),
+              ),
+              const SizedBox(height: 12),
+              Text(l.tagColor, style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _colorOption(
+                    context,
+                    label: l.defaultColor,
+                    selected: color == null,
+                    onTap: () => setState(() => color = null),
+                  ),
+                  for (final candidate in tagColorChoices)
+                    _colorOption(
+                      context,
+                      argb: candidate,
+                      selected: color == candidate,
+                      onTap: () => setState(() => color = candidate),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 0, label: Text(l.tagIcon)),
+                  ButtonSegment(value: 1, label: Text(l.tagEmoji)),
+                ],
+                selected: {tab},
+                onSelectionChanged: (s) => setState(() => tab = s.first),
+              ),
+              const SizedBox(height: 12),
+              if (tab == 0)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _iconOption(
+                      context,
+                      iconData: null,
+                      label: l.noIcon,
+                      selected: icon == null &&
+                          glyphController.text.trim().isEmpty,
+                      onTap: () => setState(() {
+                        icon = null;
+                        glyphController.clear();
+                      }),
+                    ),
+                    for (final candidate in tagIconChoices)
+                      _iconOption(
+                        context,
+                        iconData: candidate,
+                        selected: icon == candidate.codePoint &&
+                            glyphController.text.trim().isEmpty,
+                        tint: color,
+                        onTap: () => setState(() {
+                          icon = candidate.codePoint;
+                          glyphController.clear();
+                        }),
+                      ),
+                  ],
+                )
+              else ...[
+                TextField(
+                  controller: glyphController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: l.glyphHint,
+                    border: const OutlineInputBorder(),
+                    errorText: _glyphError(glyphController.text, l),
+                  ),
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final candidate in tagEmojiChoices)
+                      _emojiOption(
+                        context,
+                        emoji: candidate,
+                        selected: glyphController.text == candidate,
+                        onTap: () =>
+                            setState(() => glyphController.text = candidate),
+                      ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.trim().isEmpty) {
+                setState(() => nameError = l.tagNameEmpty);
+                return;
+              }
+              if (_glyphError(glyphController.text, l) != null) return;
+              Navigator.pop(context, true);
+            },
+            child: Text(l.save),
+          ),
+        ],
+      ),
+    ),
+  );
+  final newName = nameController.text.trim();
+  final finalGlyph = _validatedGlyph(glyphController.text);
+  nameController.dispose();
+  glyphController.dispose();
+  if (ok != true || !context.mounted) return;
+  final effectiveIcon = finalGlyph == null ? icon : null;
+  if (isCreate) {
+    await appDb.createTagCategory(
+      name: newName,
+      multi: multi,
+      color: color,
+      icon: effectiveIcon,
+      glyph: finalGlyph,
+    );
+  } else {
+    await appDb.updateTagCategory(
+      existing.id,
+      name: newName,
+      multi: multi,
+      color: color,
+      icon: effectiveIcon,
+      glyph: finalGlyph,
     );
   }
 }
@@ -667,6 +1002,7 @@ class TagDetailPage extends StatelessWidget {
             break;
           }
         }
+        final advancedStyle = current.category != null;
         return Scaffold(
           appBar: AppBar(
             title: Row(
@@ -678,7 +1014,9 @@ class TagDetailPage extends StatelessWidget {
                 ],
                 Flexible(
                   child: Text(
-                    '#${current.tag.name}',
+                    advancedStyle
+                        ? current.tag.name
+                        : '#${current.tag.name}',
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

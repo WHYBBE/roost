@@ -41,10 +41,14 @@ void main() {
     );
   }
 
-  test('新建数据库自动播种 5 个心情标签', () async {
-    final moods = await db.moodTags();
-    expect(moods, hasLength(moodPresets.length));
-    expect(moods.every((t) => t.tagKind == TagKind.mood), isTrue);
+  test('新建数据库自动播种内置"心情"高级标签组（5 个选项）', () async {
+    final moodCat = await db.watchMoodCategory().first;
+    expect(moodCat, isNotNull);
+    expect(moodCat!.builtin, isTrue);
+    expect(moodCat.multi, isFalse);
+    final options = await db.categoryTags(moodCat.id);
+    expect(options, hasLength(moodPresets.length));
+    expect(options.every((t) => t.icon != null && t.color != null), isTrue);
   });
 
   test('formatDay pads correctly', () {
@@ -108,9 +112,9 @@ void main() {
     final a = await insert('flutter thoughts', day: '2026-09-16', createdAt: now);
     final b = await insert('sql notes', day: '2026-09-15', createdAt: now);
     final c = await insert('flutter again', day: '2026-09-14', createdAt: now);
-    await db.setThoughtTags(a.id, ['flutter']);
-    await db.setThoughtTags(b.id, ['sql']);
-    await db.setThoughtTags(c.id, ['flutter']);
+    await db.setThoughtNormalTags(a.id, ['flutter']);
+    await db.setThoughtNormalTags(b.id, ['sql']);
+    await db.setThoughtNormalTags(c.id, ['flutter']);
 
     final all = await db.watchSearch('flutter').first;
     expect(all, hasLength(2));
@@ -234,67 +238,141 @@ void main() {
       b = await insert('sql notes', day: '2026-09-15', createdAt: now);
     });
 
-    test('getOrCreateTag 去重，kind 仅创建时生效', () async {
-      final t1 = await db.getOrCreateTag('工作', kind: TagKind.mood);
-      final t2 = await db.getOrCreateTag('工作 ');
+    Future<int> moodCategoryId() async =>
+        (await db.watchMoodCategory().first)!.id;
+
+    test('getOrCreateTag 同组内去重；跨组同名互不影响', () async {
+      final t1 = await db.getOrCreateTag('工作 ');
+      final t2 = await db.getOrCreateTag('工作');
       expect(t2.id, t1.id);
-      expect(t2.tagKind, TagKind.mood);
+      expect(t2.categoryId, isNull);
+
+      final cat = await db.createTagCategory(name: '项目');
+      final inCat = await db.getOrCreateTag('工作', categoryId: cat);
+      expect(inCat.id, isNot(t1.id));
+      expect(inCat.categoryId, cat);
+      final again = await db.getOrCreateTag('工作', categoryId: cat);
+      expect(again.id, inCat.id);
     });
 
-    test('setThoughtTags 整体替换并去重', () async {
-      await db.setThoughtTags(a.id, ['flutter', '工作', 'flutter', '工作']);
-      final names = (await db.tagsFor(a.id)).map((t) => t.name);
-      expect(names, unorderedEquals(['flutter', '工作']));
+    test('setThoughtNormalTags 整体替换并去重（不影响高级标签）', () async {
+      final moodCat = await moodCategoryId();
+      await db.setThoughtCategoryTags(a.id, moodCat, ['平静']);
+      await db.setThoughtNormalTags(a.id, ['flutter', '工作', 'flutter']);
+      final tags = await db.tagsFor(a.id);
+      expect(tags.where((t) => t.isNormal).map((t) => t.tag.name),
+          unorderedEquals(['flutter', '工作']));
+      expect(tags.where((t) => !t.isNormal).map((t) => t.tag.name), ['平静']);
 
-      await db.setThoughtTags(a.id, ['flutter']);
-      expect((await db.tagsFor(a.id)).map((t) => t.name), ['flutter']);
+      await db.setThoughtNormalTags(a.id, ['flutter']);
+      final after = await db.tagsFor(a.id);
+      expect(after.where((t) => t.isNormal).map((t) => t.tag.name), ['flutter']);
+      expect(after.where((t) => !t.isNormal), hasLength(1));
     });
 
-    test('心情标签通过 setThoughtTags 标记后可用于筛选', () async {
-      final mood = await db.getOrCreateTag('平静', kind: TagKind.mood);
-      await db.setThoughtTags(a.id, [mood.name, 'flutter']);
-      await db.setThoughtTags(b.id, ['flutter']);
+    test('高级标签组：单选只保留一个，多选可多个', () async {
+      final single = await db.createTagCategory(name: '天气');
+      final multi = await db.createTagCategory(name: '食物', multi: true);
+      await db.setThoughtCategoryTags(a.id, single, ['晴', '雨']);
+      await db.setThoughtCategoryTags(a.id, multi, ['面', '饭', '面']);
+      final tags = await db.tagsFor(a.id);
+      expect(
+        tags.where((t) => t.category?.id == single).map((t) => t.tag.name),
+        ['晴'],
+      );
+      expect(
+        tags
+            .where((t) => t.category?.id == multi)
+            .map((t) => t.tag.name)
+            .toSet(),
+        {'面', '饭'},
+      );
+    });
 
-      // 心情标签出现在 watchTagsWithCount 中（kind=mood, count>0）
+    test('思绪添加/移除标签组；移除时该组标签值一并移除，选项定义保留', () async {
+      final cat = await db.createTagCategory(name: '洗澡');
+      await db.addThoughtCategory(a.id, cat);
+      await db.setThoughtCategoryTags(a.id, cat, ['已洗']);
+      expect(await db.thoughtCategoryIds(a.id), {cat});
+
+      await db.removeThoughtCategory(a.id, cat);
+      expect(await db.thoughtCategoryIds(a.id), isEmpty);
+      expect(
+        (await db.tagsFor(a.id)).where((t) => t.category?.id == cat),
+        isEmpty,
+      );
+      expect(await db.categoryTags(cat), hasLength(1));
+    });
+
+    test('删除标签组级联清理选项与思绪关联', () async {
+      final cat = await db.createTagCategory(name: '天气');
+      await db.addThoughtCategory(a.id, cat);
+      await db.setThoughtCategoryTags(a.id, cat, ['晴']);
+      await db.deleteTagCategory(cat);
+      expect(await db.watchTagCategories().first.then(
+            (list) => list.where((c) => c.id == cat).toList(),
+          ), isEmpty);
+      expect(await db.categoryTags(cat), isEmpty);
+      expect(await db.thoughtCategoryIds(a.id), isEmpty);
+      expect(await db.tagsFor(a.id), isEmpty);
+    });
+
+    test('内置"心情"组不可删除', () async {
+      final moodCat = await moodCategoryId();
+      await db.deleteTagCategory(moodCat);
+      expect(
+        (await db.watchTagCategories().first).where((c) => c.id == moodCat),
+        hasLength(1),
+      );
+    });
+
+    test('心情标签（内置组）用于计数与筛选', () async {
+      final moodCat = await moodCategoryId();
+      await db.addThoughtCategory(a.id, moodCat);
+      await db.setThoughtCategoryTags(a.id, moodCat, ['平静']);
+      await db.setThoughtNormalTags(b.id, ['flutter']);
+
       final tags = await db.watchTagsWithCount().first;
-      final moodItem = tags.firstWhere((t) => t.tag.id == mood.id);
+      final moodItem = tags.firstWhere((t) => t.tag.name == '平静');
       expect(moodItem.count, 1);
-      expect(moodItem.tag.tagKind, TagKind.mood);
+      expect(moodItem.category?.builtin, isTrue);
 
-      // 按心情标签名筛选
-      final byMood = await db.watchSearch('', tagName: mood.name).first;
+      final byMood = await db.watchSearch('', tagName: '平静').first;
       expect(byMood, hasLength(1));
       expect(byMood.single.content, 'flutter diary');
     });
 
-    test('watchAllThoughtTags 映射', () async {
-      await db.setThoughtTags(a.id, ['flutter']);
-      await db.setThoughtTags(b.id, ['flutter', 'sql']);
+    test('watchAllThoughtTags 映射（含所属组）', () async {
+      final moodCat = await moodCategoryId();
+      await db.setThoughtNormalTags(a.id, ['flutter']);
+      await db.setThoughtCategoryTags(a.id, moodCat, ['平静']);
+      await db.setThoughtNormalTags(b.id, ['flutter', 'sql']);
 
       final map = await db.watchAllThoughtTags().first;
-      expect(map[a.id], hasLength(1));
+      expect(map[a.id], hasLength(2));
+      expect(map[a.id]!.where((t) => t.isBuiltin), hasLength(1));
       expect(map[b.id], hasLength(2));
     });
 
     test('watchEntriesWithTag', () async {
-      await db.setThoughtTags(a.id, ['shared']);
-      await db.setThoughtTags(b.id, ['shared']);
+      await db.setThoughtNormalTags(a.id, ['shared']);
+      await db.setThoughtNormalTags(b.id, ['shared']);
 
-      final entries =
-          await db.watchEntriesWithTag((await db.getOrCreateTag('shared')).id)
-              .first;
+      final entries = await db
+          .watchEntriesWithTag((await db.getOrCreateTag('shared')).id)
+          .first;
       expect(entries, hasLength(2));
     });
 
-    test('renameTag 重命名，重名时合并', () async {
-      await db.setThoughtTags(a.id, ['old']);
-      await db.setThoughtTags(b.id, ['new']);
+    test('renameTag 重命名，同组重名时合并', () async {
+      await db.setThoughtNormalTags(a.id, ['old']);
+      await db.setThoughtNormalTags(b.id, ['new']);
 
       await db.renameTag((await db.getOrCreateTag('old')).id, 'renamed');
-      expect((await db.tagsFor(a.id)).map((t) => t.name), ['renamed']);
+      expect((await db.tagsFor(a.id)).map((t) => t.tag.name), ['renamed']);
       expect(
         (await db.watchTagsWithCount().first)
-            .where((t) => t.tag.tagKind == TagKind.normal)
+            .where((t) => t.category == null)
             .length,
         2,
       );
@@ -302,18 +380,17 @@ void main() {
       // 重命名为已存在的 'new' → 合并，'renamed' 标签消失
       await db.renameTag((await db.getOrCreateTag('renamed')).id, 'new');
       final tags = await db.watchTagsWithCount().first;
-      final normal = tags.where((t) => t.tag.tagKind == TagKind.normal).toList();
+      final normal = tags.where((t) => t.category == null).toList();
       expect(normal, hasLength(1));
       expect(normal.single.tag.name, 'new');
       expect(normal.single.count, 2);
-      expect((await db.tagsFor(a.id)).map((t) => t.name), ['new']);
+      expect((await db.tagsFor(a.id)).map((t) => t.tag.name), ['new']);
     });
 
     test('setTagAppearance 设置图标与颜色（可留空）', () async {
       final tag = await db.getOrCreateTag('styled');
 
-      await db.setTagAppearance(tag.id,
-          icon: 0x1F3E0, color: 0xFF009688);
+      await db.setTagAppearance(tag.id, icon: 0x1F3E0, color: 0xFF009688);
       final after = (await db.watchTagsWithCount().first)
           .firstWhere((t) => t.tag.name == 'styled')
           .tag;
@@ -330,13 +407,13 @@ void main() {
     });
 
     test('deleteTag 删除标签但保留思绪（联结行级联清理）', () async {
-      await db.setThoughtTags(a.id, ['temp']);
+      await db.setThoughtNormalTags(a.id, ['temp']);
       final tag = await db.getOrCreateTag('temp');
 
       await db.deleteTag(tag.id);
       expect(
         (await db.watchTagsWithCount().first)
-            .where((t) => t.tag.tagKind == TagKind.normal),
+            .where((t) => t.category == null),
         isEmpty,
       );
       expect(await db.tagsFor(a.id), isEmpty);
@@ -362,52 +439,61 @@ void main() {
       await dir.delete(recursive: true);
     });
 
-    test('清空全部数据并恢复预设心情', () async {
-      await db.setThoughtTags(a.id, ['工作']);
+    test('清空全部数据并恢复预设心情；自定义标签组一并清空', () async {
+      await db.setThoughtNormalTags(a.id, ['工作']);
+      await db.createTagCategory(name: '天气');
       await db.resetAllData();
       expect(await db.select(db.thoughts).get(), isEmpty);
       expect(await db.select(db.thoughtTags).get(), isEmpty);
-      final moods = (await db.select(db.tags).get())
-          .where((t) => t.tagKind == TagKind.mood)
-          .toList();
-      expect(moods, hasLength(moodPresets.length));
-      expect(
-        moods.every((t) => t.icon != null && t.color != null),
-        isTrue,
-      );
+      expect(await db.select(db.thoughtCategories).get(), isEmpty);
+      final cats = await db.watchTagCategories().first;
+      expect(cats.where((c) => !c.builtin), isEmpty);
+      final moodCat = cats.firstWhere((c) => c.builtin);
+      final options = await db.categoryTags(moodCat.id);
+      expect(options, hasLength(moodPresets.length));
+      expect(options.every((t) => t.icon != null && t.color != null), isTrue);
     });
 
     test('重置心情标签：预设恢复，普通标签与思绪保留', () async {
       final t2 = await insert('另一条',
           day: AppDatabase.today(), createdAt: DateTime(2026, 9, 19, 9));
-      final mood =
-          await db.getOrCreateTag('心情X', kind: TagKind.mood, icon: 1, color: 2);
-      await db.setThoughtTags(a.id, [mood.name, '工作']);
+      final moodCat = await moodCategoryId();
+      final custom = await db.getOrCreateTag('心情X',
+          categoryId: moodCat, icon: 1, color: 2);
+      await db.addThoughtCategory(a.id, moodCat);
+      await db.setThoughtCategoryTags(a.id, moodCat, [custom.name]);
+      await db.setThoughtNormalTags(a.id, ['工作']);
       await db.resetMoodTags();
       // 自定义心情被清掉，预设已恢复
-      final moods = (await db.select(db.tags).get())
-          .where((t) => t.tagKind == TagKind.mood)
-          .toList();
-      expect(moods.map((t) => t.name), isNot(contains('心情X')));
-      expect(moods, hasLength(moodPresets.length));
+      final options = await db.categoryTags(moodCat);
+      expect(options.map((t) => t.name), isNot(contains('心情X')));
+      expect(options, hasLength(moodPresets.length));
       // 心情联结被清掉，普通标签与思绪保留
-      expect((await db.tagsFor(a.id)).map((t) => t.name), ['工作']);
+      expect((await db.tagsFor(a.id)).map((t) => t.tag.name), ['工作']);
       expect((await db.watchAllEntries().first).map((e) => e.id),
           containsAll([a.id, t2.id]));
     });
 
-    test('导出/清空/导入（合并）往返，重复导入去重', () async {
+    test('导出/清空/导入（合并）往返：普通标签、高级标签组与关联', () async {
       final t2 = await insert('第二条',
           day: '2026-09-18', createdAt: DateTime(2026, 9, 18, 9));
-      await db.setThoughtTags(a.id, ['焦虑']);
-      await db.setThoughtTags(t2.id, ['工作']);
+      final moodCat = await moodCategoryId();
+      final weather = await db.createTagCategory(name: '天气', multi: true);
+      await db.addThoughtCategory(a.id, moodCat);
+      await db.setThoughtCategoryTags(a.id, moodCat, ['焦虑']);
+      await db.addThoughtCategory(t2.id, weather);
+      await db.setThoughtCategoryTags(t2.id, weather, ['晴']);
+      await db.setThoughtNormalTags(t2.id, ['工作']);
       // 手动改一下心情标签外观，验证导入合并时沿用现有定义
       await db.setTagAppearance(
-          (await db.tagByName('焦虑'))!.id, color: 0xFF123456);
+          (await db.tagByName('焦虑', categoryId: moodCat))!.id,
+          color: 0xFF123456);
 
       final data = await db.exportData();
       expect((data['thoughts'] as List), hasLength(3));
       expect((data['tags'] as List), isNotEmpty);
+      expect((data['tagCategories'] as List), isNotEmpty);
+      expect((data['thoughtCategories'] as List), isNotEmpty);
 
       await db.resetAllData();
       expect(await db.select(db.thoughts).get(), isEmpty);
@@ -417,11 +503,18 @@ void main() {
       final entries = await db.watchAllEntries().first;
       expect(entries, hasLength(3));
       final restored = entries.firstWhere((e) => e.content == a.content);
-      expect((await db.tagsFor(restored.id)).map((t) => t.name),
-          contains('焦虑'));
-      // 导入时沿用现有标签定义（自定义颜色保留）
-      final mood = await db.tagByName('焦虑');
+      final restoredTags = await db.tagsFor(restored.id);
+      expect(restoredTags.map((t) => t.tag.name), contains('焦虑'));
+      expect(restoredTags.where((t) => t.isBuiltin), hasLength(1));
+      // 导入时沿用现有标签定义（自定义颜色保留）；内置组重建后 id 变化
+      final moodCat2 = (await db.watchMoodCategory().first)!.id;
+      final mood = await db.tagByName('焦虑', categoryId: moodCat2);
       expect(mood?.color, 0xFF123456);
+      // 自定义标签组与选项随导入恢复
+      final weatherIn =
+          (await db.watchTagCategories().first).firstWhere((c) => c.name == '天气');
+      expect(weatherIn.multi, isTrue);
+      expect((await db.categoryTags(weatherIn.id)).map((t) => t.name), ['晴']);
 
       // 再次导入：全部命中去重，不新增
       expect(await db.importData(data), 0);
@@ -447,13 +540,13 @@ void main() {
     });
 
     test('删除思绪时级联清理其标签联结行', () async {
-      await db.setThoughtTags(a.id, ['flutter']);
+      await db.setThoughtNormalTags(a.id, ['flutter']);
       final tag = await db.getOrCreateTag('flutter');
 
       await db.deleteThought(a.id);
       // 'flutter' 标签仍存在（无使用者→count 0），但联结行已清理
       final normal = (await db.watchTagsWithCount().first)
-          .where((t) => t.tag.tagKind == TagKind.normal)
+          .where((t) => t.category == null)
           .toList();
       expect(normal.single.tag.id, tag.id);
       expect(normal.single.count, 0);
@@ -1038,7 +1131,7 @@ void main() {
         day: '2026-09-21',
         createdAt: DateTime(2026, 9, 21, 9),
       );
-      await db.setThoughtTags(id, ['测试标签']);
+      await db.setThoughtNormalTags(id, ['测试标签']);
       // 归档后：活跃列表与搜索都不再出现
       await db.archiveThought(id);
       expect(await db.watchAllEntries().first, isEmpty);

@@ -267,5 +267,22 @@
   "lockTurnOffBody": "关闭后，私密思绪将不再需要解锁即可查看（私密标记仍保留）。",
   "lockLockNow": "立即上锁",
   "lockedBadge": "私密",
-  "lockProtectedHint": "私密思绪不出现在搜索与漫步中。"
+  "lockProtectedHint": "私密思绪不出现在搜索与漫步中。",
+  "advancedTagsSection": "高级标签",
+  "advancedTagsHint": "给思绪按需添加标签组；组内可单选或多选。",
+  "advancedTagsEmpty": "还没有添加标签组",
+  "addTagCategory": "添加标签组",
+  "removeTagCategory": "移除标签组",
+  "allTagCategoriesAdded": "已添加全部标签组",
+  "addOption": "新建选项",
+  "optionsEmpty": "还没有选项，点右上角 + 新建",
+  "optionCount": "{count, plural, =0{无选项} other{{count} 个选项}}",
+  "@optionCount": { "placeholders": { "count": { "type": "int" } } },
+  "categorySingle": "单选",
+  "categoryMulti": "多选",
+  "editTagCategory": "编辑标签组",
+  "deleteTagCategory": "删除标签组",
+  "deleteTagCategoryBody": "将删除「{name}」及其全部选项，相关思绪上的该组标签值也会一并移除。",
+  "@deleteTagCategoryBody": { "placeholders": { "name": { "type": "String" } } },
+  "normalTagsSection": "普通标签"
 }

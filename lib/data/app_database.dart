@@ -14,8 +14,10 @@ bool isEmojiCodepoint(int codePoint) =>
 
 @DriftDatabase(tables: [
   Thoughts,
+  TagCategories,
   Tags,
   ThoughtTags,
+  ThoughtCategories,
   Attachments,
   AttachmentBlobs,
   Comments,
@@ -32,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
   static const int trashRetentionDays = 7;
@@ -40,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
-        // 不做兼容迁移：版本不一致直接清空重建，由 UI 引导用户清理异常数据
+        // 不做兼容迁移：版本不一致即丢弃全部业务表后重建
         onUpgrade: _wipeRebuild,
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
@@ -48,35 +50,49 @@ class AppDatabase extends _$AppDatabase {
           final needsSeed = details.wasCreated ||
               (details.versionBefore != null &&
                   details.versionBefore != details.versionNow);
-          if (needsSeed) await _seedMoodPresets();
+          if (needsSeed) await _seedMoodCategory();
         },
       );
 
+  /// 丢弃全部业务表（版本无关于历史结构）后重建
   Future<void> _wipeRebuild(Migrator m, int from, int to) async {
-    await m.deleteTable('attachment_blobs');
-    await m.deleteTable('attachments');
-    await m.deleteTable('thought_tags');
-    await m.deleteTable('comments');
-    await m.deleteTable('reactions');
-    await m.deleteTable('calendar_events');
-    await m.deleteTable('event_statuses');
-    await m.deleteTable('event_types');
-    await m.deleteTable('tags');
-    await m.deleteTable('thoughts');
+    await customStatement('PRAGMA foreign_keys = OFF');
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table'",
+    ).get();
+    for (final row in rows) {
+      final name = row.read<String>('name');
+      if (name.startsWith('sqlite_')) continue;
+      await customStatement('DROP TABLE IF EXISTS "$name"');
+    }
+    await customStatement('PRAGMA foreign_keys = ON');
     await m.createAll();
   }
 
-  Future<void> _seedMoodPresets() async {
+  /// 播种内置"心情"高级标签组及其预设选项（不可删除）
+  Future<void> _seedMoodCategory() async {
+    final categoryName = seedUseChinese ? '心情' : 'Mood';
+    final existing = await (select(tagCategories)
+          ..where((c) => c.builtin.equals(true)))
+        .getSingleOrNull();
+    final categoryId = existing?.id ??
+        await into(tagCategories).insert(
+          TagCategoriesCompanion.insert(
+            name: categoryName,
+            builtin: const Value(true),
+          ),
+        );
     for (final preset in moodPresets) {
-      final name = seedUseChinese ? preset.nameZh : preset.nameEn;
-      final existing =
-          await (select(tags)..where((t) => t.name.equals(name)))
-              .getSingleOrNull();
-      if (existing != null) continue;
+      final presetName = seedUseChinese ? preset.nameZh : preset.nameEn;
+      final dup = await (select(tags)
+            ..where((t) =>
+                t.name.equals(presetName) & t.categoryId.equals(categoryId)))
+          .getSingleOrNull();
+      if (dup != null) continue;
       await into(tags).insert(
         TagsCompanion.insert(
-          name: name,
-          kind: Value(TagKind.mood.value),
+          name: presetName,
+          categoryId: Value(categoryId),
           icon: Value(preset.icon.codePoint),
           color: Value(preset.color),
         ),
@@ -91,6 +107,8 @@ class AppDatabase extends _$AppDatabase {
       final ok = rows.isNotEmpty && rows.first.read<String>('quick_check') == 'ok';
       if (!ok) return false;
       await select(tags).get();
+      await select(tagCategories).get();
+      await select(thoughtCategories).get();
       await select(thoughts).get();
       await select(eventTypes).get();
       await select(eventStatuses).get();
@@ -175,15 +193,22 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM event_statuses');
       await customStatement('DELETE FROM event_types');
       await customStatement('DELETE FROM thoughts');
+      await customStatement('DELETE FROM thought_categories');
       await customStatement('DELETE FROM tags');
+      await customStatement('DELETE FROM tag_categories');
     });
-    await _seedMoodPresets();
+    await _seedMoodCategory();
   }
 
-  /// 重置心情标签：删除全部心情标签（联结级联清理），恢复预设
+  /// 重置心情标签组：删除内置组下全部选项（联结级联清理），恢复预设
   Future<void> resetMoodTags() async {
-    await (delete(tags)..where((t) => t.kind.equals(TagKind.mood.value))).go();
-    await _seedMoodPresets();
+    final cat = await (select(tagCategories)
+          ..where((c) => c.builtin.equals(true)))
+        .getSingleOrNull();
+    if (cat != null) {
+      await (delete(tags)..where((t) => t.categoryId.equals(cat.id))).go();
+    }
+    await _seedMoodCategory();
   }
 
   /// 完整导出为纯数据结构（文件读写交给 UI 层）。
@@ -191,8 +216,10 @@ class AppDatabase extends _$AppDatabase {
   /// attachments 同样以思绪下标表达，data 为 base64。
   Future<Map<String, dynamic>> exportData() async {
     final thoughtRows = await select(thoughts).get();
+    final categoryRows = await select(tagCategories).get();
     final tagRows = await select(tags).get();
     final linkRows = await select(thoughtTags).get();
+    final thoughtCategoryRows = await select(thoughtCategories).get();
     final attachmentRows = await select(attachments).get();
     final blobRows = await select(attachmentBlobs).get();
     final commentRows = await select(comments).get();
@@ -201,6 +228,14 @@ class AppDatabase extends _$AppDatabase {
     final statusRows = await select(eventStatuses).get();
     final eventRows = await select(calendarEvents).get();
     final tagNameById = {for (final t in tagRows) t.id: t.name};
+    final categoryIndexById = <int, int>{
+      for (var i = 0; i < categoryRows.length; i++) categoryRows[i].id: i,
+    };
+    // 标签 → 所属组在 tagCategories 中的下标（null = 普通标签）
+    final tagCategoryIndex = <int, int?>{
+      for (final t in tagRows)
+        t.id: t.categoryId == null ? null : categoryIndexById[t.categoryId],
+    };
     final blobById = {for (final b in blobRows) b.attachmentId: b.data};
     final typeIdByIndex = <int, int>{
       for (var i = 0; i < typeRows.length; i++) typeRows[i].id: i,
@@ -222,11 +257,27 @@ class AppDatabase extends _$AppDatabase {
             'locked': t.locked,
           },
       ],
+      // 高级标签组
+      'tagCategories': [
+        for (final c in categoryRows)
+          {
+            'name': c.name,
+            'multi': c.multi,
+            'builtin': c.builtin,
+            'color': c.color,
+            'icon': c.icon,
+            'glyph': c.glyph,
+            'sortOrder': c.sortOrder,
+          },
+      ],
       'tags': [
         for (final t in tagRows)
           {
             'name': t.name,
-            'kind': t.kind,
+            // 所属高级标签组在 tagCategories 中的下标；null = 普通标签
+            'category': t.categoryId == null
+                ? null
+                : categoryIndexById[t.categoryId],
             'icon': t.icon,
             'glyph': t.glyph,
             'color': t.color,
@@ -237,7 +288,18 @@ class AppDatabase extends _$AppDatabase {
           {
             'thought': thoughtRows.indexWhere((t) => t.id == l.thoughtId),
             'tag': tagNameById[l.tagId],
+            // 所属高级标签组下标（null = 普通标签），用于同名标签的定位
+            'category': tagCategoryIndex[l.tagId],
           },
+      ],
+      'thoughtCategories': [
+        for (final l in thoughtCategoryRows)
+          if (thoughtRows.indexWhere((t) => t.id == l.thoughtId) >= 0 &&
+              categoryIndexById.containsKey(l.categoryId))
+            {
+              'thought': thoughtRows.indexWhere((t) => t.id == l.thoughtId),
+              'category': categoryIndexById[l.categoryId],
+            },
       ],
       'attachments': [
         for (final a in attachmentRows)
@@ -321,8 +383,11 @@ class AppDatabase extends _$AppDatabase {
   /// 返回新增思绪数。
   Future<int> importData(Map<String, dynamic> data) async {
     final thoughtsIn = (data['thoughts'] as List?) ?? const [];
+    final categoriesIn = (data['tagCategories'] as List?) ?? const [];
     final tagsIn = (data['tags'] as List?) ?? const [];
     final linksIn = (data['links'] as List?) ?? const [];
+    final thoughtCategoriesIn =
+        (data['thoughtCategories'] as List?) ?? const [];
     final attachmentsIn = (data['attachments'] as List?) ?? const [];
     var imported = 0;
     await transaction(() async {
@@ -360,13 +425,39 @@ class AppDatabase extends _$AppDatabase {
         importedIndexes.add(i);
         imported++;
       }
+      // 高级标签组：按名称合并（内置"心情"组已存在则沿用）
+      final categoryIdByIndex = <int, int>{};
+      for (var i = 0; i < categoriesIn.length; i++) {
+        final m = categoriesIn[i] as Map;
+        final name = ((m['name'] ?? '') as String).trim();
+        if (name.isEmpty) continue;
+        final existing = await (select(tagCategories)
+              ..where((c) => c.name.equals(name)))
+            .getSingleOrNull();
+        if (existing != null) {
+          categoryIdByIndex[i] = existing.id;
+          continue;
+        }
+        final id = await into(tagCategories).insert(
+          TagCategoriesCompanion.insert(
+            name: name,
+            multi: Value((m['multi'] as bool?) ?? false),
+            color: Value((m['color'] as num?)?.toInt()),
+            icon: Value((m['icon'] as num?)?.toInt()),
+            glyph: Value(m['glyph'] as String?),
+            sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
+          ),
+        );
+        categoryIdByIndex[i] = id;
+      }
       for (final raw in tagsIn) {
         final m = raw as Map;
         final name = ((m['name'] ?? '') as String).trim();
         if (name.isEmpty) continue;
+        final catIndex = (m['category'] as num?)?.toInt();
         await getOrCreateTag(
           name,
-          kind: TagKind.fromValue((m['kind'] as num?)?.toInt() ?? 0),
+          categoryId: catIndex == null ? null : categoryIdByIndex[catIndex],
           icon: (m['icon'] as num?)?.toInt(),
           glyph: m['glyph'] as String?,
           color: (m['color'] as num?)?.toInt(),
@@ -377,7 +468,11 @@ class AppDatabase extends _$AppDatabase {
         final tid = thoughtIdByIndex[(m['thought'] as num?)?.toInt() ?? -1];
         final tagName = m['tag'] as String?;
         if (tid == null || tagName == null) continue;
-        final tag = await tagByName(tagName);
+        final catIndex = (m['category'] as num?)?.toInt();
+        final tag = await tagByName(
+          tagName,
+          categoryId: catIndex == null ? null : categoryIdByIndex[catIndex],
+        );
         if (tag == null) continue;
         await into(thoughtTags).insert(
           ThoughtTagsCompanion.insert(thoughtId: tid, tagId: tag.id),
@@ -412,6 +507,20 @@ class AppDatabase extends _$AppDatabase {
             attachmentId: Value(attachmentId),
             data: Uint8List.fromList(bytes),
           ),
+        );
+      }
+      // 思绪已添加的高级标签组关联
+      for (final raw in thoughtCategoriesIn) {
+        final m = raw as Map;
+        final tid = thoughtIdByIndex[(m['thought'] as num?)?.toInt() ?? -1];
+        final cid = categoryIdByIndex[(m['category'] as num?)?.toInt() ?? -1];
+        if (tid == null || cid == null) continue;
+        await into(thoughtCategories).insert(
+          ThoughtCategoriesCompanion.insert(
+            thoughtId: tid,
+            categoryId: cid,
+          ),
+          mode: InsertMode.insertOrIgnore,
         );
       }
       final typesIn = (data['eventTypes'] as List?) ?? const [];
@@ -1139,30 +1248,107 @@ class AppDatabase extends _$AppDatabase {
     return days;
   }
 
-  // ---------- 标签 ----------
+  // ---------- 高级标签组 ----------
 
-  /// 按名称查找标签（重名唯一）
-  Future<Tag?> tagByName(String name) {
-    return (select(tags)..where((t) => t.name.equals(name))).getSingleOrNull();
+  /// 全部高级标签组（内置在前，其后按 sortOrder、id）
+  Stream<List<TagCategory>> watchTagCategories() {
+    return (select(tagCategories)..orderBy([
+          (c) => OrderingTerm.desc(c.builtin),
+          (c) => OrderingTerm.asc(c.sortOrder),
+          (c) => OrderingTerm.asc(c.id),
+        ]))
+        .watch();
   }
 
-  /// 获取或创建标签（按名称唯一）；仅创建时应用 kind/icon/glyph/color
+  /// 内置"心情"组（首页筛选与洞察心情分布用）
+  Stream<TagCategory?> watchMoodCategory() {
+    return (select(tagCategories)..where((c) => c.builtin.equals(true)))
+        .watchSingleOrNull();
+  }
+
+  /// 新建高级标签组（自定义；builtin 仅种子使用）
+  Future<int> createTagCategory({
+    required String name,
+    bool multi = false,
+    int? color,
+    int? icon,
+    String? glyph,
+  }) {
+    return into(tagCategories).insert(
+      TagCategoriesCompanion.insert(
+        name: name,
+        multi: Value(multi),
+        color: Value(color),
+        icon: Value(icon),
+        glyph: Value(glyph),
+      ),
+    );
+  }
+
+  /// 更新高级标签组（名称/选择模式/外观）
+  Future<void> updateTagCategory(
+    int id, {
+    required String name,
+    required bool multi,
+    int? color,
+    int? icon,
+    String? glyph,
+  }) {
+    return (update(tagCategories)..where((c) => c.id.equals(id))).write(
+      TagCategoriesCompanion(
+        name: Value(name),
+        multi: Value(multi),
+        color: Value(color),
+        icon: Value(icon),
+        glyph: Value(glyph),
+      ),
+    );
+  }
+
+  /// 删除高级标签组（其选项与思绪关联由外键级联清理）；内置组不可删除
+  Future<void> deleteTagCategory(int id) async {
+    final cat = await (select(tagCategories)..where((c) => c.id.equals(id)))
+        .getSingleOrNull();
+    if (cat == null || cat.builtin) return;
+    await (delete(tagCategories)..where((c) => c.id.equals(id))).go();
+  }
+
+  /// 某高级标签组的全部选项
+  Future<List<Tag>> categoryTags(int categoryId) {
+    return (select(tags)
+          ..where((t) => t.categoryId.equals(categoryId))
+          ..orderBy([(t) => OrderingTerm.asc(t.id)]))
+        .get();
+  }
+
+  // ---------- 标签 ----------
+
+  /// 按名称查找标签（同组内重名唯一；categoryId 为空即普通标签）
+  Future<Tag?> tagByName(String name, {int? categoryId}) {
+    return (select(tags)
+          ..where((t) =>
+              t.name.equals(name) &
+              (categoryId == null
+                  ? t.categoryId.isNull()
+                  : t.categoryId.equals(categoryId))))
+        .getSingleOrNull();
+  }
+
+  /// 获取或创建标签（同组内按名称唯一）；仅创建时应用 icon/glyph/color
   Future<Tag> getOrCreateTag(
     String name, {
-    TagKind kind = TagKind.normal,
+    int? categoryId,
     int? icon,
     String? glyph,
     int? color,
   }) async {
     final trimmed = name.trim();
-    final existing =
-        await (select(tags)..where((t) => t.name.equals(trimmed)))
-            .getSingleOrNull();
+    final existing = await tagByName(trimmed, categoryId: categoryId);
     if (existing != null) return existing;
     final id = await into(tags).insert(
       TagsCompanion.insert(
         name: trimmed,
-        kind: Value(kind.value),
+        categoryId: Value(categoryId),
         icon: Value(icon),
         glyph: Value(glyph),
         color: Value(color),
@@ -1171,12 +1357,25 @@ class AppDatabase extends _$AppDatabase {
     return (select(tags)..where((t) => t.id.equals(id))).getSingle();
   }
 
-  /// 设置某条思绪的标签（整体替换；心情标签与普通标签同名唯一）
-  Future<void> setThoughtTags(int thoughtId, List<String> names) async {
+  /// 设置某条思绪的普通标签（整体替换；高级标签不动）
+  Future<void> setThoughtNormalTags(int thoughtId, List<String> names) async {
     await transaction(() async {
-      await (delete(thoughtTags)
-              ..where((t) => t.thoughtId.equals(thoughtId)))
-          .go();
+      // 仅清理普通标签（categoryId 为空）的联结
+      final normalIds = await (select(tags)
+            ..where((t) => t.categoryId.isNull()))
+          .get();
+      final normalIdSet = normalIds.map((t) => t.id).toSet();
+      final joins = await (select(thoughtTags)
+            ..where((t) => t.thoughtId.equals(thoughtId)))
+          .get();
+      for (final j in joins) {
+        if (normalIdSet.contains(j.tagId)) {
+          await (delete(thoughtTags)
+                ..where((t) =>
+                    t.thoughtId.equals(thoughtId) & t.tagId.equals(j.tagId)))
+              .go();
+        }
+      }
       final unique =
           names.map((n) => n.trim()).where((n) => n.isNotEmpty).toSet();
       for (final name in unique) {
@@ -1189,28 +1388,124 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  /// 某条思绪的全部标签（一次性查询）
-  Future<List<Tag>> tagsFor(int thoughtId) async {
-    final q = select(thoughtTags).join([
-      innerJoin(tags, tags.id.equalsExp(thoughtTags.tagId)),
-    ])
-      ..addColumns([tags.id, tags.name, tags.kind, tags.icon, tags.color, tags.createdAt])
-      ..where(thoughtTags.thoughtId.equals(thoughtId));
-    final rows = await q.get();
-    return rows.map((r) => r.readTable(tags)).toList();
+  /// 某条思绪已添加的高级标签组 id
+  Future<Set<int>> thoughtCategoryIds(int thoughtId) async {
+    final rows = await (select(thoughtCategories)
+          ..where((t) => t.thoughtId.equals(thoughtId)))
+        .get();
+    return rows.map((r) => r.categoryId).toSet();
   }
 
-  /// 全部思绪的标签映射（thoughtId → 标签列表）
-  Stream<Map<int, List<Tag>>> watchAllThoughtTags() {
+  /// 已添加的高级标签组 id 流
+  Stream<Set<int>> watchThoughtCategoryIds(int thoughtId) {
+    return (select(thoughtCategories)
+          ..where((t) => t.thoughtId.equals(thoughtId)))
+        .watch()
+        .map((rows) => rows.map((r) => r.categoryId).toSet());
+  }
+
+  /// 给思绪添加一个高级标签组（已存在则忽略）
+  Future<void> addThoughtCategory(int thoughtId, int categoryId) async {
+    await into(thoughtCategories).insert(
+      ThoughtCategoriesCompanion.insert(
+        thoughtId: thoughtId,
+        categoryId: categoryId,
+      ),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  /// 移除思绪的高级标签组（该组下的标签值一并从思绪移除）
+  Future<void> removeThoughtCategory(int thoughtId, int categoryId) async {
+    await transaction(() async {
+      final tagRows = await (select(tags)
+            ..where((t) => t.categoryId.equals(categoryId)))
+          .get();
+      for (final t in tagRows) {
+        await (delete(thoughtTags)
+              ..where((j) =>
+                  j.thoughtId.equals(thoughtId) & j.tagId.equals(t.id)))
+            .go();
+      }
+      await (delete(thoughtCategories)
+            ..where((j) =>
+                j.thoughtId.equals(thoughtId) & j.categoryId.equals(categoryId)))
+          .go();
+    });
+  }
+
+  /// 设置某条思绪在指定高级标签组下的选项（整体替换该组；
+  /// 单选组传入多个时只取第一个）
+  Future<void> setThoughtCategoryTags(
+    int thoughtId,
+    int categoryId,
+    List<String> names,
+  ) async {
+    await transaction(() async {
+      final cat = await (select(tagCategories)
+            ..where((c) => c.id.equals(categoryId)))
+          .getSingleOrNull();
+      final tagRows = await (select(tags)
+            ..where((t) => t.categoryId.equals(categoryId)))
+          .get();
+      final tagIdSet = tagRows.map((t) => t.id).toSet();
+      final joins = await (select(thoughtTags)
+            ..where((t) => t.thoughtId.equals(thoughtId)))
+          .get();
+      for (final j in joins) {
+        if (tagIdSet.contains(j.tagId)) {
+          await (delete(thoughtTags)
+                ..where((t) =>
+                    t.thoughtId.equals(thoughtId) & t.tagId.equals(j.tagId)))
+              .go();
+        }
+      }
+      var unique =
+          names.map((n) => n.trim()).where((n) => n.isNotEmpty).toSet().toList();
+      if (cat != null && !cat.multi && unique.length > 1) {
+        unique = [unique.first];
+      }
+      for (final name in unique) {
+        final tag = await getOrCreateTag(name, categoryId: categoryId);
+        await into(thoughtTags).insert(
+          ThoughtTagsCompanion.insert(thoughtId: thoughtId, tagId: tag.id),
+          mode: InsertMode.insertOrIgnore,
+        );
+      }
+    });
+  }
+
+  /// 某条思绪的全部标签（含其所属高级标签组；一次性查询）
+  Future<List<TagWithCategory>> tagsFor(int thoughtId) async {
     final q = select(thoughtTags).join([
       innerJoin(tags, tags.id.equalsExp(thoughtTags.tagId)),
+      leftOuterJoin(tagCategories, tagCategories.id.equalsExp(tags.categoryId)),
+    ])
+      ..where(thoughtTags.thoughtId.equals(thoughtId));
+    final rows = await q.get();
+    return rows
+        .map((r) => TagWithCategory(
+              tag: r.readTable(tags),
+              category: r.readTableOrNull(tagCategories),
+            ))
+        .toList();
+  }
+
+  /// 全部思绪的标签映射（thoughtId → 标签列表，含所属高级标签组）
+  Stream<Map<int, List<TagWithCategory>>> watchAllThoughtTags() {
+    final q = select(thoughtTags).join([
+      innerJoin(tags, tags.id.equalsExp(thoughtTags.tagId)),
+      leftOuterJoin(tagCategories, tagCategories.id.equalsExp(tags.categoryId)),
     ]);
     return q.watch().map((rows) {
-      final map = <int, List<Tag>>{};
+      final map = <int, List<TagWithCategory>>{};
       for (final r in rows) {
-        map
-            .putIfAbsent(r.read(thoughtTags.thoughtId)!, () => [])
-            .add(r.readTable(tags));
+        map.putIfAbsent(r.read(thoughtTags.thoughtId)!, () => []).add(
+              TagWithCategory(
+                tag: r.readTable(tags),
+                category: r.readTableOrNull(tagCategories),
+              ),
+            );
       }
       return map;
     });
@@ -1230,6 +1525,10 @@ class AppDatabase extends _$AppDatabase {
             thoughts.archivedAt.isNull() &
             thoughts.deletedAt.isNull(),
       ),
+      leftOuterJoin(
+        tagCategories,
+        tagCategories.id.equalsExp(tags.categoryId),
+      ),
     ])
       ..addColumns([usage])
       ..groupBy([tags.id])
@@ -1241,18 +1540,11 @@ class AppDatabase extends _$AppDatabase {
           (rows) => rows
               .map((r) => TagWithCount(
                     tag: r.readTable(tags),
+                    category: r.readTableOrNull(tagCategories),
                     count: r.read(usage) ?? 0,
                   ))
               .toList(),
         );
-  }
-
-  /// 全部心情标签（编辑器选择用）
-  Future<List<Tag>> moodTags() {
-    return (select(tags)
-          ..where((t) => t.kind.equals(TagKind.mood.value))
-          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
-        .get();
   }
 
   /// 某个标签下的全部思绪（仅活跃）
@@ -1270,13 +1562,21 @@ class AppDatabase extends _$AppDatabase {
     return q.watch().map((rows) => rows.map((r) => r.readTable(thoughts)).toList());
   }
 
-  /// 重命名标签；若新名称已存在则合并到已存在标签（联结行去重）
+  /// 重命名标签；同组内若新名称已存在则合并到已存在标签（联结行去重）
   Future<void> renameTag(int tagId, String newName) async {
     final trimmed = newName.trim();
     if (trimmed.isEmpty) return;
     await transaction(() async {
+      final target = await (select(tags)..where((t) => t.id.equals(tagId)))
+          .getSingleOrNull();
+      if (target == null) return;
+      final targetCategory = target.categoryId;
       final existing = await (select(tags)
-              ..where((t) => t.name.equals(trimmed)))
+            ..where((t) =>
+                t.name.equals(trimmed) &
+                (targetCategory == null
+                    ? t.categoryId.isNull()
+                    : t.categoryId.equals(targetCategory))))
           .getSingleOrNull();
       if (existing != null && existing.id != tagId) {
         final joins = await (select(thoughtTags)
@@ -1313,6 +1613,22 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// 更新高级标签组外观（名称由 updateTagCategory 负责）
+  Future<void> setCategoryAppearance(
+    int categoryId, {
+    int? icon,
+    String? glyph,
+    int? color,
+  }) async {
+    await (update(tagCategories)..where((c) => c.id.equals(categoryId))).write(
+      TagCategoriesCompanion(
+        icon: Value(icon),
+        glyph: Value(glyph),
+        color: Value(color),
+      ),
+    );
+  }
+
   /// 删除标签（联结行由外键级联删除，思绪保留）
   Future<void> deleteTag(int tagId) async {
     await (delete(tags)..where((t) => t.id.equals(tagId))).go();
@@ -1326,12 +1642,24 @@ class AppDatabase extends _$AppDatabase {
   static String today() => formatDay(DateTime.now());
 }
 
-/// 标签及其使用数量
+/// 标签、其使用数量与所属高级标签组
 class TagWithCount {
   final Tag tag;
+  final TagCategory? category;
   final int count;
 
-  const TagWithCount({required this.tag, required this.count});
+  const TagWithCount({required this.tag, this.category, required this.count});
+}
+
+/// 标签及其所属高级标签组（category 为空即普通标签）
+class TagWithCategory {
+  final Tag tag;
+  final TagCategory? category;
+
+  const TagWithCategory({required this.tag, this.category});
+
+  bool get isNormal => category == null;
+  bool get isBuiltin => category?.builtin ?? false;
 }
 
 /// 待办聚合视图的一条：事件实例 + 所属类型 + 当前状态 + 完成态状态 id。

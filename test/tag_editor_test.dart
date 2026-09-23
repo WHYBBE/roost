@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:roost/data/app_database.dart';
-import 'package:roost/data/thoughts_table.dart';
 import 'package:roost/l10n/app_localizations.dart';
 import 'package:roost/pages/tags_page.dart';
 
@@ -19,7 +18,6 @@ Widget _harness() {
             tag: Tag(
               id: 1,
               name: '测试',
-              kind: TagKind.normal.value,
               icon: null,
               glyph: null,
               color: null,

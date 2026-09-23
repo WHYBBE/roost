@@ -1,15 +1,24 @@
 import 'package:drift/drift.dart';
 
-/// 标签种类：普通标签 / 心情（特殊标签）
-enum TagKind {
-  normal(0),
-  mood(1);
-
-  final int value;
-  const TagKind(this.value);
-
-  static TagKind fromValue(int v) => TagKind.values
-      .firstWhere((k) => k.value == v, orElse: () => TagKind.normal);
+/// 高级标签组：一组预设选项（心情、天气、食物、洗澡状态…）。
+/// 内置的"心情"组由种子创建（builtin = true，不可删除）。
+/// 每条思绪按需"添加标签组"后才出现该组的候选项
+@DataClassName('TagCategory')
+class TagCategories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  // TagCategory.multi = true 时组内可多选，否则单选
+  BoolColumn get multi => boolean().withDefault(const Constant(false))();
+  // 内置（种子创建，不可删除/改名）
+  BoolColumn get builtin => boolean().withDefault(const Constant(false))();
+  // ARGB32，null = 使用主题默认
+  IntColumn get color => integer().nullable()();
+  // Material Icons codepoint，null = 无图标
+  IntColumn get icon => integer().nullable()();
+  // 单字符图标（emoji/任意字符），与 icon 互斥，glyph 优先
+  TextColumn get glyph => text().nullable()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 @DataClassName('ThoughtEntry')
@@ -32,12 +41,15 @@ class Thoughts extends Table {
   BoolColumn get locked => boolean().withDefault(const Constant(false))();
 }
 
+/// 标签：categoryId 为空 = 普通标签（自由输入、多选）；
+/// 非空 = 高级标签组的候选值（预设选项，单选/多选由组决定）
 @DataClassName('Tag')
 class Tags extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get name => text().unique()();
-  // TagKind.normal / TagKind.mood（存 int，Dart 侧转换）
-  IntColumn get kind => integer().withDefault(const Constant(0))();
+  TextColumn get name => text()();
+  IntColumn get categoryId => integer()
+      .nullable()
+      .references(TagCategories, #id, onDelete: KeyAction.cascade)();
   // 自定义图标（Material Icons codepoint），null = 无图标
   IntColumn get icon => integer().nullable()();
   // 自定义字符图标（任意 emoji/字符），null = 无；与 icon 互斥，glyph 优先
@@ -47,7 +59,7 @@ class Tags extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-/// 思绪 ↔ 标签 多对多联结表（心情标签也是普通联结）
+/// 思绪 ↔ 标签 多对多联结表（普通标签与高级标签值共用）
 @DataClassName('ThoughtTag')
 class ThoughtTags extends Table {
   IntColumn get thoughtId =>
@@ -57,6 +69,19 @@ class ThoughtTags extends Table {
 
   @override
   Set<Column> get primaryKey => {thoughtId, tagId};
+}
+
+/// 思绪 ↔ 高级标签组 关联：给某条思绪"添加"了哪些标签组。
+/// 添加后编辑器才显示该组的候选项（即使一个值都没选也保留关联）
+@DataClassName('ThoughtCategory')
+class ThoughtCategories extends Table {
+  IntColumn get thoughtId =>
+      integer().references(Thoughts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get categoryId =>
+      integer().references(TagCategories, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column> get primaryKey => {thoughtId, categoryId};
 }
 
 /// 附件类型

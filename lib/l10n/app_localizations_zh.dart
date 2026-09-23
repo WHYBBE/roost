@@ -834,4 +834,59 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lockProtectedHint => '私密思绪不出现在搜索与漫步中。';
+
+  @override
+  String get advancedTagsSection => '高级标签';
+
+  @override
+  String get advancedTagsHint => '给思绪按需添加标签组；组内可单选或多选。';
+
+  @override
+  String get advancedTagsEmpty => '还没有添加标签组';
+
+  @override
+  String get addTagCategory => '添加标签组';
+
+  @override
+  String get removeTagCategory => '移除标签组';
+
+  @override
+  String get allTagCategoriesAdded => '已添加全部标签组';
+
+  @override
+  String get addOption => '新建选项';
+
+  @override
+  String get optionsEmpty => '还没有选项，点右上角 + 新建';
+
+  @override
+  String optionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个选项',
+      zero: '无选项',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get categorySingle => '单选';
+
+  @override
+  String get categoryMulti => '多选';
+
+  @override
+  String get editTagCategory => '编辑标签组';
+
+  @override
+  String get deleteTagCategory => '删除标签组';
+
+  @override
+  String deleteTagCategoryBody(String name) {
+    return '将删除「$name」及其全部选项，相关思绪上的该组标签值也会一并移除。';
+  }
+
+  @override
+  String get normalTagsSection => '普通标签';
 }

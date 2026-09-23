@@ -867,4 +867,60 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get lockProtectedHint =>
       'Private thoughts are excluded from search and wander.';
+
+  @override
+  String get advancedTagsSection => 'Advanced tags';
+
+  @override
+  String get advancedTagsHint =>
+      'Add tag groups to a thought as needed; each group can be single- or multi-select.';
+
+  @override
+  String get advancedTagsEmpty => 'No tag groups added yet';
+
+  @override
+  String get addTagCategory => 'Add tag group';
+
+  @override
+  String get removeTagCategory => 'Remove tag group';
+
+  @override
+  String get allTagCategoriesAdded => 'All tag groups added';
+
+  @override
+  String get addOption => 'New option';
+
+  @override
+  String get optionsEmpty => 'No options yet — tap + to add';
+
+  @override
+  String optionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count options',
+      zero: 'No options',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get categorySingle => 'Single';
+
+  @override
+  String get categoryMulti => 'Multi';
+
+  @override
+  String get editTagCategory => 'Edit tag group';
+
+  @override
+  String get deleteTagCategory => 'Delete tag group';
+
+  @override
+  String deleteTagCategoryBody(String name) {
+    return 'Deletes \"$name\" and all its options; those values are removed from thoughts.';
+  }
+
+  @override
+  String get normalTagsSection => 'Tags';
 }

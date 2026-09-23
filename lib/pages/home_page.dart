@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/app_database.dart';
 import '../data/database_provider.dart';
-import '../data/thoughts_table.dart';
+
 import '../l10n/app_localizations.dart';
 import '../ui/entry_widgets.dart';
 import '../ui/tag_view.dart';
@@ -77,9 +77,10 @@ class _HomePageState extends State<HomePage> {
                 stream: appDb.watchTagsWithCount(),
                 builder: (context, tagSnap) {
                   final tags = tagSnap.data ?? const <TagWithCount>[];
+                  // 心情筛选：内置"心情"高级标签组的选项
                   final moodTags = tags
                       .where((t) =>
-                          t.tag.tagKind == TagKind.mood && t.count > 0)
+                          (t.category?.builtin ?? false) && t.count > 0)
                       .toList();
                   if (tags.isEmpty) return const SizedBox.shrink();
                   return Padding(
@@ -136,10 +137,11 @@ class _HomePageState extends State<HomePage> {
                       groups.putIfAbsent(e.day, () => []).add(e);
                     }
                     final days = groups.keys.toList();
-                    return StreamBuilder<Map<int, List<Tag>>>(
+                    return StreamBuilder<Map<int, List<TagWithCategory>>>(
                       stream: appDb.watchAllThoughtTags(),
                       builder: (context, tagSnap) {
-                        final tagMap = tagSnap.data ?? const <int, List<Tag>>{};
+                        final tagMap =
+                            tagSnap.data ?? const <int, List<TagWithCategory>>{};
                         return ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                           itemCount: days.length,

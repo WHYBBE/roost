@@ -557,6 +557,545 @@ class ThoughtsCompanion extends UpdateCompanion<ThoughtEntry> {
   }
 }
 
+class $TagCategoriesTable extends TagCategories
+    with TableInfo<$TagCategoriesTable, TagCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TagCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _multiMeta = const VerificationMeta('multi');
+  @override
+  late final GeneratedColumn<bool> multi = GeneratedColumn<bool>(
+    'multi',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("multi" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _builtinMeta = const VerificationMeta(
+    'builtin',
+  );
+  @override
+  late final GeneratedColumn<bool> builtin = GeneratedColumn<bool>(
+    'builtin',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("builtin" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<int> icon = GeneratedColumn<int>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _glyphMeta = const VerificationMeta('glyph');
+  @override
+  late final GeneratedColumn<String> glyph = GeneratedColumn<String>(
+    'glyph',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    multi,
+    builtin,
+    color,
+    icon,
+    glyph,
+    sortOrder,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tag_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TagCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('multi')) {
+      context.handle(
+        _multiMeta,
+        multi.isAcceptableOrUnknown(data['multi']!, _multiMeta),
+      );
+    }
+    if (data.containsKey('builtin')) {
+      context.handle(
+        _builtinMeta,
+        builtin.isAcceptableOrUnknown(data['builtin']!, _builtinMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
+    if (data.containsKey('glyph')) {
+      context.handle(
+        _glyphMeta,
+        glyph.isAcceptableOrUnknown(data['glyph']!, _glyphMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TagCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TagCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      multi: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}multi'],
+      )!,
+      builtin: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}builtin'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      ),
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon'],
+      ),
+      glyph: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}glyph'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TagCategoriesTable createAlias(String alias) {
+    return $TagCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class TagCategory extends DataClass implements Insertable<TagCategory> {
+  final int id;
+  final String name;
+  final bool multi;
+  final bool builtin;
+  final int? color;
+  final int? icon;
+  final String? glyph;
+  final int sortOrder;
+  final DateTime createdAt;
+  const TagCategory({
+    required this.id,
+    required this.name,
+    required this.multi,
+    required this.builtin,
+    this.color,
+    this.icon,
+    this.glyph,
+    required this.sortOrder,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['multi'] = Variable<bool>(multi);
+    map['builtin'] = Variable<bool>(builtin);
+    if (!nullToAbsent || color != null) {
+      map['color'] = Variable<int>(color);
+    }
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<int>(icon);
+    }
+    if (!nullToAbsent || glyph != null) {
+      map['glyph'] = Variable<String>(glyph);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TagCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return TagCategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      multi: Value(multi),
+      builtin: Value(builtin),
+      color: color == null && nullToAbsent
+          ? const Value.absent()
+          : Value(color),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
+      glyph: glyph == null && nullToAbsent
+          ? const Value.absent()
+          : Value(glyph),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TagCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TagCategory(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      multi: serializer.fromJson<bool>(json['multi']),
+      builtin: serializer.fromJson<bool>(json['builtin']),
+      color: serializer.fromJson<int?>(json['color']),
+      icon: serializer.fromJson<int?>(json['icon']),
+      glyph: serializer.fromJson<String?>(json['glyph']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'multi': serializer.toJson<bool>(multi),
+      'builtin': serializer.toJson<bool>(builtin),
+      'color': serializer.toJson<int?>(color),
+      'icon': serializer.toJson<int?>(icon),
+      'glyph': serializer.toJson<String?>(glyph),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TagCategory copyWith({
+    int? id,
+    String? name,
+    bool? multi,
+    bool? builtin,
+    Value<int?> color = const Value.absent(),
+    Value<int?> icon = const Value.absent(),
+    Value<String?> glyph = const Value.absent(),
+    int? sortOrder,
+    DateTime? createdAt,
+  }) => TagCategory(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    multi: multi ?? this.multi,
+    builtin: builtin ?? this.builtin,
+    color: color.present ? color.value : this.color,
+    icon: icon.present ? icon.value : this.icon,
+    glyph: glyph.present ? glyph.value : this.glyph,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TagCategory copyWithCompanion(TagCategoriesCompanion data) {
+    return TagCategory(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      multi: data.multi.present ? data.multi.value : this.multi,
+      builtin: data.builtin.present ? data.builtin.value : this.builtin,
+      color: data.color.present ? data.color.value : this.color,
+      icon: data.icon.present ? data.icon.value : this.icon,
+      glyph: data.glyph.present ? data.glyph.value : this.glyph,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagCategory(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('multi: $multi, ')
+          ..write('builtin: $builtin, ')
+          ..write('color: $color, ')
+          ..write('icon: $icon, ')
+          ..write('glyph: $glyph, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    multi,
+    builtin,
+    color,
+    icon,
+    glyph,
+    sortOrder,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TagCategory &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.multi == this.multi &&
+          other.builtin == this.builtin &&
+          other.color == this.color &&
+          other.icon == this.icon &&
+          other.glyph == this.glyph &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt);
+}
+
+class TagCategoriesCompanion extends UpdateCompanion<TagCategory> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<bool> multi;
+  final Value<bool> builtin;
+  final Value<int?> color;
+  final Value<int?> icon;
+  final Value<String?> glyph;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  const TagCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.multi = const Value.absent(),
+    this.builtin = const Value.absent(),
+    this.color = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.glyph = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  TagCategoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.multi = const Value.absent(),
+    this.builtin = const Value.absent(),
+    this.color = const Value.absent(),
+    this.icon = const Value.absent(),
+    this.glyph = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<TagCategory> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<bool>? multi,
+    Expression<bool>? builtin,
+    Expression<int>? color,
+    Expression<int>? icon,
+    Expression<String>? glyph,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (multi != null) 'multi': multi,
+      if (builtin != null) 'builtin': builtin,
+      if (color != null) 'color': color,
+      if (icon != null) 'icon': icon,
+      if (glyph != null) 'glyph': glyph,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  TagCategoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<bool>? multi,
+    Value<bool>? builtin,
+    Value<int?>? color,
+    Value<int?>? icon,
+    Value<String?>? glyph,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+  }) {
+    return TagCategoriesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      multi: multi ?? this.multi,
+      builtin: builtin ?? this.builtin,
+      color: color ?? this.color,
+      icon: icon ?? this.icon,
+      glyph: glyph ?? this.glyph,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (multi.present) {
+      map['multi'] = Variable<bool>(multi.value);
+    }
+    if (builtin.present) {
+      map['builtin'] = Variable<bool>(builtin.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<int>(icon.value);
+    }
+    if (glyph.present) {
+      map['glyph'] = Variable<String>(glyph.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TagCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('multi: $multi, ')
+          ..write('builtin: $builtin, ')
+          ..write('color: $color, ')
+          ..write('icon: $icon, ')
+          ..write('glyph: $glyph, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -583,17 +1122,20 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
-  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
   @override
-  late final GeneratedColumn<int> kind = GeneratedColumn<int>(
-    'kind',
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultValue: const Constant(0),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tag_categories (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _iconMeta = const VerificationMeta('icon');
   @override
@@ -638,7 +1180,7 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    kind,
+    categoryId,
     icon,
     glyph,
     color,
@@ -667,10 +1209,10 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('kind')) {
+    if (data.containsKey('category_id')) {
       context.handle(
-        _kindMeta,
-        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
       );
     }
     if (data.containsKey('icon')) {
@@ -714,10 +1256,10 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      kind: attachedDatabase.typeMapping.read(
+      categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}kind'],
-      )!,
+        data['${effectivePrefix}category_id'],
+      ),
       icon: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}icon'],
@@ -746,7 +1288,7 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
 class Tag extends DataClass implements Insertable<Tag> {
   final int id;
   final String name;
-  final int kind;
+  final int? categoryId;
   final int? icon;
   final String? glyph;
   final int? color;
@@ -754,7 +1296,7 @@ class Tag extends DataClass implements Insertable<Tag> {
   const Tag({
     required this.id,
     required this.name,
-    required this.kind,
+    this.categoryId,
     this.icon,
     this.glyph,
     this.color,
@@ -765,7 +1307,9 @@ class Tag extends DataClass implements Insertable<Tag> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
-    map['kind'] = Variable<int>(kind);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<int>(categoryId);
+    }
     if (!nullToAbsent || icon != null) {
       map['icon'] = Variable<int>(icon);
     }
@@ -783,7 +1327,9 @@ class Tag extends DataClass implements Insertable<Tag> {
     return TagsCompanion(
       id: Value(id),
       name: Value(name),
-      kind: Value(kind),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       glyph: glyph == null && nullToAbsent
           ? const Value.absent()
@@ -803,7 +1349,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     return Tag(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      kind: serializer.fromJson<int>(json['kind']),
+      categoryId: serializer.fromJson<int?>(json['categoryId']),
       icon: serializer.fromJson<int?>(json['icon']),
       glyph: serializer.fromJson<String?>(json['glyph']),
       color: serializer.fromJson<int?>(json['color']),
@@ -816,7 +1362,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
-      'kind': serializer.toJson<int>(kind),
+      'categoryId': serializer.toJson<int?>(categoryId),
       'icon': serializer.toJson<int?>(icon),
       'glyph': serializer.toJson<String?>(glyph),
       'color': serializer.toJson<int?>(color),
@@ -827,7 +1373,7 @@ class Tag extends DataClass implements Insertable<Tag> {
   Tag copyWith({
     int? id,
     String? name,
-    int? kind,
+    Value<int?> categoryId = const Value.absent(),
     Value<int?> icon = const Value.absent(),
     Value<String?> glyph = const Value.absent(),
     Value<int?> color = const Value.absent(),
@@ -835,7 +1381,7 @@ class Tag extends DataClass implements Insertable<Tag> {
   }) => Tag(
     id: id ?? this.id,
     name: name ?? this.name,
-    kind: kind ?? this.kind,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
     icon: icon.present ? icon.value : this.icon,
     glyph: glyph.present ? glyph.value : this.glyph,
     color: color.present ? color.value : this.color,
@@ -845,7 +1391,9 @@ class Tag extends DataClass implements Insertable<Tag> {
     return Tag(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      kind: data.kind.present ? data.kind.value : this.kind,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
       icon: data.icon.present ? data.icon.value : this.icon,
       glyph: data.glyph.present ? data.glyph.value : this.glyph,
       color: data.color.present ? data.color.value : this.color,
@@ -858,7 +1406,7 @@ class Tag extends DataClass implements Insertable<Tag> {
     return (StringBuffer('Tag(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('kind: $kind, ')
+          ..write('categoryId: $categoryId, ')
           ..write('icon: $icon, ')
           ..write('glyph: $glyph, ')
           ..write('color: $color, ')
@@ -869,14 +1417,14 @@ class Tag extends DataClass implements Insertable<Tag> {
 
   @override
   int get hashCode =>
-      Object.hash(id, name, kind, icon, glyph, color, createdAt);
+      Object.hash(id, name, categoryId, icon, glyph, color, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Tag &&
           other.id == this.id &&
           other.name == this.name &&
-          other.kind == this.kind &&
+          other.categoryId == this.categoryId &&
           other.icon == this.icon &&
           other.glyph == this.glyph &&
           other.color == this.color &&
@@ -886,7 +1434,7 @@ class Tag extends DataClass implements Insertable<Tag> {
 class TagsCompanion extends UpdateCompanion<Tag> {
   final Value<int> id;
   final Value<String> name;
-  final Value<int> kind;
+  final Value<int?> categoryId;
   final Value<int?> icon;
   final Value<String?> glyph;
   final Value<int?> color;
@@ -894,7 +1442,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   const TagsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.kind = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.icon = const Value.absent(),
     this.glyph = const Value.absent(),
     this.color = const Value.absent(),
@@ -903,7 +1451,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   TagsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
-    this.kind = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.icon = const Value.absent(),
     this.glyph = const Value.absent(),
     this.color = const Value.absent(),
@@ -912,7 +1460,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   static Insertable<Tag> custom({
     Expression<int>? id,
     Expression<String>? name,
-    Expression<int>? kind,
+    Expression<int>? categoryId,
     Expression<int>? icon,
     Expression<String>? glyph,
     Expression<int>? color,
@@ -921,7 +1469,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (kind != null) 'kind': kind,
+      if (categoryId != null) 'category_id': categoryId,
       if (icon != null) 'icon': icon,
       if (glyph != null) 'glyph': glyph,
       if (color != null) 'color': color,
@@ -932,7 +1480,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
   TagsCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
-    Value<int>? kind,
+    Value<int?>? categoryId,
     Value<int?>? icon,
     Value<String?>? glyph,
     Value<int?>? color,
@@ -941,7 +1489,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     return TagsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      kind: kind ?? this.kind,
+      categoryId: categoryId ?? this.categoryId,
       icon: icon ?? this.icon,
       glyph: glyph ?? this.glyph,
       color: color ?? this.color,
@@ -958,8 +1506,8 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (kind.present) {
-      map['kind'] = Variable<int>(kind.value);
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
     }
     if (icon.present) {
       map['icon'] = Variable<int>(icon.value);
@@ -981,7 +1529,7 @@ class TagsCompanion extends UpdateCompanion<Tag> {
     return (StringBuffer('TagsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('kind: $kind, ')
+          ..write('categoryId: $categoryId, ')
           ..write('icon: $icon, ')
           ..write('glyph: $glyph, ')
           ..write('color: $color, ')
@@ -1206,6 +1754,232 @@ class ThoughtTagsCompanion extends UpdateCompanion<ThoughtTag> {
     return (StringBuffer('ThoughtTagsCompanion(')
           ..write('thoughtId: $thoughtId, ')
           ..write('tagId: $tagId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ThoughtCategoriesTable extends ThoughtCategories
+    with TableInfo<$ThoughtCategoriesTable, ThoughtCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ThoughtCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _thoughtIdMeta = const VerificationMeta(
+    'thoughtId',
+  );
+  @override
+  late final GeneratedColumn<int> thoughtId = GeneratedColumn<int>(
+    'thought_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES thoughts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tag_categories (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [thoughtId, categoryId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'thought_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ThoughtCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('thought_id')) {
+      context.handle(
+        _thoughtIdMeta,
+        thoughtId.isAcceptableOrUnknown(data['thought_id']!, _thoughtIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_thoughtIdMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {thoughtId, categoryId};
+  @override
+  ThoughtCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ThoughtCategory(
+      thoughtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}thought_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ThoughtCategoriesTable createAlias(String alias) {
+    return $ThoughtCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class ThoughtCategory extends DataClass implements Insertable<ThoughtCategory> {
+  final int thoughtId;
+  final int categoryId;
+  const ThoughtCategory({required this.thoughtId, required this.categoryId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['thought_id'] = Variable<int>(thoughtId);
+    map['category_id'] = Variable<int>(categoryId);
+    return map;
+  }
+
+  ThoughtCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return ThoughtCategoriesCompanion(
+      thoughtId: Value(thoughtId),
+      categoryId: Value(categoryId),
+    );
+  }
+
+  factory ThoughtCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ThoughtCategory(
+      thoughtId: serializer.fromJson<int>(json['thoughtId']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'thoughtId': serializer.toJson<int>(thoughtId),
+      'categoryId': serializer.toJson<int>(categoryId),
+    };
+  }
+
+  ThoughtCategory copyWith({int? thoughtId, int? categoryId}) =>
+      ThoughtCategory(
+        thoughtId: thoughtId ?? this.thoughtId,
+        categoryId: categoryId ?? this.categoryId,
+      );
+  ThoughtCategory copyWithCompanion(ThoughtCategoriesCompanion data) {
+    return ThoughtCategory(
+      thoughtId: data.thoughtId.present ? data.thoughtId.value : this.thoughtId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ThoughtCategory(')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('categoryId: $categoryId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(thoughtId, categoryId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ThoughtCategory &&
+          other.thoughtId == this.thoughtId &&
+          other.categoryId == this.categoryId);
+}
+
+class ThoughtCategoriesCompanion extends UpdateCompanion<ThoughtCategory> {
+  final Value<int> thoughtId;
+  final Value<int> categoryId;
+  final Value<int> rowid;
+  const ThoughtCategoriesCompanion({
+    this.thoughtId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ThoughtCategoriesCompanion.insert({
+    required int thoughtId,
+    required int categoryId,
+    this.rowid = const Value.absent(),
+  }) : thoughtId = Value(thoughtId),
+       categoryId = Value(categoryId);
+  static Insertable<ThoughtCategory> custom({
+    Expression<int>? thoughtId,
+    Expression<int>? categoryId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (thoughtId != null) 'thought_id': thoughtId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ThoughtCategoriesCompanion copyWith({
+    Value<int>? thoughtId,
+    Value<int>? categoryId,
+    Value<int>? rowid,
+  }) {
+    return ThoughtCategoriesCompanion(
+      thoughtId: thoughtId ?? this.thoughtId,
+      categoryId: categoryId ?? this.categoryId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (thoughtId.present) {
+      map['thought_id'] = Variable<int>(thoughtId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ThoughtCategoriesCompanion(')
+          ..write('thoughtId: $thoughtId, ')
+          ..write('categoryId: $categoryId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3921,8 +4695,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ThoughtsTable thoughts = $ThoughtsTable(this);
+  late final $TagCategoriesTable tagCategories = $TagCategoriesTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $ThoughtTagsTable thoughtTags = $ThoughtTagsTable(this);
+  late final $ThoughtCategoriesTable thoughtCategories =
+      $ThoughtCategoriesTable(this);
   late final $AttachmentsTable attachments = $AttachmentsTable(this);
   late final $AttachmentBlobsTable attachmentBlobs = $AttachmentBlobsTable(
     this,
@@ -3938,8 +4715,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     thoughts,
+    tagCategories,
     tags,
     thoughtTags,
+    thoughtCategories,
     attachments,
     attachmentBlobs,
     comments,
@@ -3950,6 +4729,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tag_categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('tags', kind: UpdateKind.delete)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'thoughts',
@@ -3963,6 +4749,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('thought_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'thoughts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('thought_categories', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tag_categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('thought_categories', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -4065,6 +4865,27 @@ final class $$ThoughtsTableReferences
     ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_thoughtTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ThoughtCategoriesTable, List<ThoughtCategory>>
+  _thoughtCategoriesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.thoughtCategories,
+        aliasName: 'thoughts__id__thought_categories__thought_id',
+      );
+
+  $$ThoughtCategoriesTableProcessedTableManager get thoughtCategoriesRefs {
+    final manager = $$ThoughtCategoriesTableTableManager(
+      $_db,
+      $_db.thoughtCategories,
+    ).filter((f) => f.thoughtId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _thoughtCategoriesRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -4214,6 +5035,31 @@ class $$ThoughtsTableFilterComposer
           }) => $$ThoughtTagsTableFilterComposer(
             $db: $db,
             $table: $db.thoughtTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> thoughtCategoriesRefs(
+    Expression<bool> Function($$ThoughtCategoriesTableFilterComposer f) f,
+  ) {
+    final $$ThoughtCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtCategories,
+      getReferencedColumn: (t) => t.thoughtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughtCategories,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4444,6 +5290,32 @@ class $$ThoughtsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> thoughtCategoriesRefs<T extends Object>(
+    Expression<T> Function($$ThoughtCategoriesTableAnnotationComposer a) f,
+  ) {
+    final $$ThoughtCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.thoughtCategories,
+          getReferencedColumn: (t) => t.thoughtId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ThoughtCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.thoughtCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> attachmentsRefs<T extends Object>(
     Expression<T> Function($$AttachmentsTableAnnotationComposer a) f,
   ) {
@@ -4560,6 +5432,7 @@ class $$ThoughtsTableTableManager
           ThoughtEntry,
           PrefetchHooks Function({
             bool thoughtTagsRefs,
+            bool thoughtCategoriesRefs,
             bool attachmentsRefs,
             bool commentsRefs,
             bool reactionsRefs,
@@ -4632,6 +5505,7 @@ class $$ThoughtsTableTableManager
           prefetchHooksCallback:
               ({
                 thoughtTagsRefs = false,
+                thoughtCategoriesRefs = false,
                 attachmentsRefs = false,
                 commentsRefs = false,
                 reactionsRefs = false,
@@ -4641,6 +5515,7 @@ class $$ThoughtsTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (thoughtTagsRefs) db.thoughtTags,
+                    if (thoughtCategoriesRefs) db.thoughtCategories,
                     if (attachmentsRefs) db.attachments,
                     if (commentsRefs) db.comments,
                     if (reactionsRefs) db.reactions,
@@ -4664,6 +5539,27 @@ class $$ThoughtsTableTableManager
                                 table,
                                 p0,
                               ).thoughtTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.thoughtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (thoughtCategoriesRefs)
+                        await $_getPrefetchedData<
+                          ThoughtEntry,
+                          $ThoughtsTable,
+                          ThoughtCategory
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ThoughtsTableReferences
+                              ._thoughtCategoriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ThoughtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).thoughtCategoriesRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.thoughtId == item.id,
@@ -4776,17 +5672,493 @@ typedef $$ThoughtsTableProcessedTableManager =
       ThoughtEntry,
       PrefetchHooks Function({
         bool thoughtTagsRefs,
+        bool thoughtCategoriesRefs,
         bool attachmentsRefs,
         bool commentsRefs,
         bool reactionsRefs,
         bool calendarEventsRefs,
       })
     >;
+typedef $$TagCategoriesTableCreateCompanionBuilder =
+    TagCategoriesCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<bool> multi,
+      Value<bool> builtin,
+      Value<int?> color,
+      Value<int?> icon,
+      Value<String?> glyph,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+    });
+typedef $$TagCategoriesTableUpdateCompanionBuilder =
+    TagCategoriesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<bool> multi,
+      Value<bool> builtin,
+      Value<int?> color,
+      Value<int?> icon,
+      Value<String?> glyph,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+    });
+
+final class $$TagCategoriesTableReferences
+    extends BaseReferences<_$AppDatabase, $TagCategoriesTable, TagCategory> {
+  $$TagCategoriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$TagsTable, List<Tag>> _tagsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.tags,
+    aliasName: 'tag_categories__id__tags__category_id',
+  );
+
+  $$TagsTableProcessedTableManager get tagsRefs {
+    final manager = $$TagsTableTableManager(
+      $_db,
+      $_db.tags,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_tagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ThoughtCategoriesTable, List<ThoughtCategory>>
+  _thoughtCategoriesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.thoughtCategories,
+        aliasName: 'tag_categories__id__thought_categories__category_id',
+      );
+
+  $$ThoughtCategoriesTableProcessedTableManager get thoughtCategoriesRefs {
+    final manager = $$ThoughtCategoriesTableTableManager(
+      $_db,
+      $_db.thoughtCategories,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _thoughtCategoriesRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$TagCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $TagCategoriesTable> {
+  $$TagCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get multi => $composableBuilder(
+    column: $table.multi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get builtin => $composableBuilder(
+    column: $table.builtin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get glyph => $composableBuilder(
+    column: $table.glyph,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> tagsRefs(
+    Expression<bool> Function($$TagsTableFilterComposer f) f,
+  ) {
+    final $$TagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableFilterComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> thoughtCategoriesRefs(
+    Expression<bool> Function($$ThoughtCategoriesTableFilterComposer f) f,
+  ) {
+    final $$ThoughtCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.thoughtCategories,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughtCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$TagCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TagCategoriesTable> {
+  $$TagCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get multi => $composableBuilder(
+    column: $table.multi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get builtin => $composableBuilder(
+    column: $table.builtin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get glyph => $composableBuilder(
+    column: $table.glyph,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TagCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TagCategoriesTable> {
+  $$TagCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<bool> get multi =>
+      $composableBuilder(column: $table.multi, builder: (column) => column);
+
+  GeneratedColumn<bool> get builtin =>
+      $composableBuilder(column: $table.builtin, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get glyph =>
+      $composableBuilder(column: $table.glyph, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> tagsRefs<T extends Object>(
+    Expression<T> Function($$TagsTableAnnotationComposer a) f,
+  ) {
+    final $$TagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> thoughtCategoriesRefs<T extends Object>(
+    Expression<T> Function($$ThoughtCategoriesTableAnnotationComposer a) f,
+  ) {
+    final $$ThoughtCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.thoughtCategories,
+          getReferencedColumn: (t) => t.categoryId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ThoughtCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.thoughtCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$TagCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TagCategoriesTable,
+          TagCategory,
+          $$TagCategoriesTableFilterComposer,
+          $$TagCategoriesTableOrderingComposer,
+          $$TagCategoriesTableAnnotationComposer,
+          $$TagCategoriesTableCreateCompanionBuilder,
+          $$TagCategoriesTableUpdateCompanionBuilder,
+          (TagCategory, $$TagCategoriesTableReferences),
+          TagCategory,
+          PrefetchHooks Function({bool tagsRefs, bool thoughtCategoriesRefs})
+        > {
+  $$TagCategoriesTableTableManager(_$AppDatabase db, $TagCategoriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TagCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TagCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TagCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<bool> multi = const Value.absent(),
+                Value<bool> builtin = const Value.absent(),
+                Value<int?> color = const Value.absent(),
+                Value<int?> icon = const Value.absent(),
+                Value<String?> glyph = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => TagCategoriesCompanion(
+                id: id,
+                name: name,
+                multi: multi,
+                builtin: builtin,
+                color: color,
+                icon: icon,
+                glyph: glyph,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<bool> multi = const Value.absent(),
+                Value<bool> builtin = const Value.absent(),
+                Value<int?> color = const Value.absent(),
+                Value<int?> icon = const Value.absent(),
+                Value<String?> glyph = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => TagCategoriesCompanion.insert(
+                id: id,
+                name: name,
+                multi: multi,
+                builtin: builtin,
+                color: color,
+                icon: icon,
+                glyph: glyph,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TagCategoriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({tagsRefs = false, thoughtCategoriesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (tagsRefs) db.tags,
+                    if (thoughtCategoriesRefs) db.thoughtCategories,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (tagsRefs)
+                        await $_getPrefetchedData<
+                          TagCategory,
+                          $TagCategoriesTable,
+                          Tag
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TagCategoriesTableReferences
+                              ._tagsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TagCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).tagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (thoughtCategoriesRefs)
+                        await $_getPrefetchedData<
+                          TagCategory,
+                          $TagCategoriesTable,
+                          ThoughtCategory
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TagCategoriesTableReferences
+                              ._thoughtCategoriesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TagCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).thoughtCategoriesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$TagCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TagCategoriesTable,
+      TagCategory,
+      $$TagCategoriesTableFilterComposer,
+      $$TagCategoriesTableOrderingComposer,
+      $$TagCategoriesTableAnnotationComposer,
+      $$TagCategoriesTableCreateCompanionBuilder,
+      $$TagCategoriesTableUpdateCompanionBuilder,
+      (TagCategory, $$TagCategoriesTableReferences),
+      TagCategory,
+      PrefetchHooks Function({bool tagsRefs, bool thoughtCategoriesRefs})
+    >;
 typedef $$TagsTableCreateCompanionBuilder =
     TagsCompanion Function({
       Value<int> id,
       required String name,
-      Value<int> kind,
+      Value<int?> categoryId,
       Value<int?> icon,
       Value<String?> glyph,
       Value<int?> color,
@@ -4796,7 +6168,7 @@ typedef $$TagsTableUpdateCompanionBuilder =
     TagsCompanion Function({
       Value<int> id,
       Value<String> name,
-      Value<int> kind,
+      Value<int?> categoryId,
       Value<int?> icon,
       Value<String?> glyph,
       Value<int?> color,
@@ -4806,6 +6178,23 @@ typedef $$TagsTableUpdateCompanionBuilder =
 final class $$TagsTableReferences
     extends BaseReferences<_$AppDatabase, $TagsTable, Tag> {
   $$TagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TagCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.tagCategories.createAlias('tags__category_id__tag_categories__id');
+
+  $$TagCategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<int>('category_id');
+    if ($_column == null) return null;
+    final manager = $$TagCategoriesTableTableManager(
+      $_db,
+      $_db.tagCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$ThoughtTagsTable, List<ThoughtTag>>
   _thoughtTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -4844,11 +6233,6 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get kind => $composableBuilder(
-    column: $table.kind,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<int> get icon => $composableBuilder(
     column: $table.icon,
     builder: (column) => ColumnFilters(column),
@@ -4868,6 +6252,29 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$TagCategoriesTableFilterComposer get categoryId {
+    final $$TagCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> thoughtTagsRefs(
     Expression<bool> Function($$ThoughtTagsTableFilterComposer f) f,
@@ -4913,11 +6320,6 @@ class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get kind => $composableBuilder(
-    column: $table.kind,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get icon => $composableBuilder(
     column: $table.icon,
     builder: (column) => ColumnOrderings(column),
@@ -4937,6 +6339,29 @@ class $$TagsTableOrderingComposer extends Composer<_$AppDatabase, $TagsTable> {
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$TagCategoriesTableOrderingComposer get categoryId {
+    final $$TagCategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TagsTableAnnotationComposer
@@ -4954,9 +6379,6 @@ class $$TagsTableAnnotationComposer
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<int> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
   GeneratedColumn<int> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
 
@@ -4968,6 +6390,29 @@ class $$TagsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$TagCategoriesTableAnnotationComposer get categoryId {
+    final $$TagCategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> thoughtTagsRefs<T extends Object>(
     Expression<T> Function($$ThoughtTagsTableAnnotationComposer a) f,
@@ -5008,7 +6453,7 @@ class $$TagsTableTableManager
           $$TagsTableUpdateCompanionBuilder,
           (Tag, $$TagsTableReferences),
           Tag,
-          PrefetchHooks Function({bool thoughtTagsRefs})
+          PrefetchHooks Function({bool categoryId, bool thoughtTagsRefs})
         > {
   $$TagsTableTableManager(_$AppDatabase db, $TagsTable table)
     : super(
@@ -5025,7 +6470,7 @@ class $$TagsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<int> kind = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
                 Value<int?> icon = const Value.absent(),
                 Value<String?> glyph = const Value.absent(),
                 Value<int?> color = const Value.absent(),
@@ -5033,7 +6478,7 @@ class $$TagsTableTableManager
               }) => TagsCompanion(
                 id: id,
                 name: name,
-                kind: kind,
+                categoryId: categoryId,
                 icon: icon,
                 glyph: glyph,
                 color: color,
@@ -5043,7 +6488,7 @@ class $$TagsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
-                Value<int> kind = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
                 Value<int?> icon = const Value.absent(),
                 Value<String?> glyph = const Value.absent(),
                 Value<int?> color = const Value.absent(),
@@ -5051,7 +6496,7 @@ class $$TagsTableTableManager
               }) => TagsCompanion.insert(
                 id: id,
                 name: name,
-                kind: kind,
+                categoryId: categoryId,
                 icon: icon,
                 glyph: glyph,
                 color: color,
@@ -5063,28 +6508,67 @@ class $$TagsTableTableManager
                     (e.readTable(table), $$TagsTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({thoughtTagsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (thoughtTagsRefs) db.thoughtTags],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (thoughtTagsRefs)
-                    await $_getPrefetchedData<Tag, $TagsTable, ThoughtTag>(
-                      currentTable: table,
-                      referencedTable: $$TagsTableReferences
-                          ._thoughtTagsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$TagsTableReferences(db, table, p0).thoughtTagsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.tagId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({categoryId = false, thoughtTagsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (thoughtTagsRefs) db.thoughtTags,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable: $$TagsTableReferences
+                                        ._categoryIdTable(db),
+                                    referencedColumn: $$TagsTableReferences
+                                        ._categoryIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (thoughtTagsRefs)
+                        await $_getPrefetchedData<Tag, $TagsTable, ThoughtTag>(
+                          currentTable: table,
+                          referencedTable: $$TagsTableReferences
+                              ._thoughtTagsRefsTable(db),
+                          managerFromTypedResult: (p0) => $$TagsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).thoughtTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.tagId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -5101,7 +6585,7 @@ typedef $$TagsTableProcessedTableManager =
       $$TagsTableUpdateCompanionBuilder,
       (Tag, $$TagsTableReferences),
       Tag,
-      PrefetchHooks Function({bool thoughtTagsRefs})
+      PrefetchHooks Function({bool categoryId, bool thoughtTagsRefs})
     >;
 typedef $$ThoughtTagsTableCreateCompanionBuilder =
     ThoughtTagsCompanion Function({
@@ -5448,6 +6932,371 @@ typedef $$ThoughtTagsTableProcessedTableManager =
       (ThoughtTag, $$ThoughtTagsTableReferences),
       ThoughtTag,
       PrefetchHooks Function({bool thoughtId, bool tagId})
+    >;
+typedef $$ThoughtCategoriesTableCreateCompanionBuilder =
+    ThoughtCategoriesCompanion Function({
+      required int thoughtId,
+      required int categoryId,
+      Value<int> rowid,
+    });
+typedef $$ThoughtCategoriesTableUpdateCompanionBuilder =
+    ThoughtCategoriesCompanion Function({
+      Value<int> thoughtId,
+      Value<int> categoryId,
+      Value<int> rowid,
+    });
+
+final class $$ThoughtCategoriesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ThoughtCategoriesTable,
+          ThoughtCategory
+        > {
+  $$ThoughtCategoriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ThoughtsTable _thoughtIdTable(_$AppDatabase db) =>
+      db.thoughts.createAlias('thought_categories__thought_id__thoughts__id');
+
+  $$ThoughtsTableProcessedTableManager get thoughtId {
+    final $_column = $_itemColumn<int>('thought_id')!;
+
+    final manager = $$ThoughtsTableTableManager(
+      $_db,
+      $_db.thoughts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_thoughtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TagCategoriesTable _categoryIdTable(_$AppDatabase db) => db
+      .tagCategories
+      .createAlias('thought_categories__category_id__tag_categories__id');
+
+  $$TagCategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<int>('category_id')!;
+
+    final manager = $$TagCategoriesTableTableManager(
+      $_db,
+      $_db.tagCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ThoughtCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $ThoughtCategoriesTable> {
+  $$ThoughtCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$ThoughtsTableFilterComposer get thoughtId {
+    final $$ThoughtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableFilterComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TagCategoriesTableFilterComposer get categoryId {
+    final $$TagCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ThoughtCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ThoughtCategoriesTable> {
+  $$ThoughtCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$ThoughtsTableOrderingComposer get thoughtId {
+    final $$ThoughtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TagCategoriesTableOrderingComposer get categoryId {
+    final $$TagCategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ThoughtCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ThoughtCategoriesTable> {
+  $$ThoughtCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$ThoughtsTableAnnotationComposer get thoughtId {
+    final $$ThoughtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.thoughtId,
+      referencedTable: $db.thoughts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ThoughtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.thoughts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TagCategoriesTableAnnotationComposer get categoryId {
+    final $$TagCategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.tagCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagCategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tagCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ThoughtCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ThoughtCategoriesTable,
+          ThoughtCategory,
+          $$ThoughtCategoriesTableFilterComposer,
+          $$ThoughtCategoriesTableOrderingComposer,
+          $$ThoughtCategoriesTableAnnotationComposer,
+          $$ThoughtCategoriesTableCreateCompanionBuilder,
+          $$ThoughtCategoriesTableUpdateCompanionBuilder,
+          (ThoughtCategory, $$ThoughtCategoriesTableReferences),
+          ThoughtCategory,
+          PrefetchHooks Function({bool thoughtId, bool categoryId})
+        > {
+  $$ThoughtCategoriesTableTableManager(
+    _$AppDatabase db,
+    $ThoughtCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ThoughtCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ThoughtCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ThoughtCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> thoughtId = const Value.absent(),
+                Value<int> categoryId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ThoughtCategoriesCompanion(
+                thoughtId: thoughtId,
+                categoryId: categoryId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int thoughtId,
+                required int categoryId,
+                Value<int> rowid = const Value.absent(),
+              }) => ThoughtCategoriesCompanion.insert(
+                thoughtId: thoughtId,
+                categoryId: categoryId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ThoughtCategoriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({thoughtId = false, categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (thoughtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.thoughtId,
+                                referencedTable:
+                                    $$ThoughtCategoriesTableReferences
+                                        ._thoughtIdTable(db),
+                                referencedColumn:
+                                    $$ThoughtCategoriesTableReferences
+                                        ._thoughtIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (categoryId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.categoryId,
+                                referencedTable:
+                                    $$ThoughtCategoriesTableReferences
+                                        ._categoryIdTable(db),
+                                referencedColumn:
+                                    $$ThoughtCategoriesTableReferences
+                                        ._categoryIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ThoughtCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ThoughtCategoriesTable,
+      ThoughtCategory,
+      $$ThoughtCategoriesTableFilterComposer,
+      $$ThoughtCategoriesTableOrderingComposer,
+      $$ThoughtCategoriesTableAnnotationComposer,
+      $$ThoughtCategoriesTableCreateCompanionBuilder,
+      $$ThoughtCategoriesTableUpdateCompanionBuilder,
+      (ThoughtCategory, $$ThoughtCategoriesTableReferences),
+      ThoughtCategory,
+      PrefetchHooks Function({bool thoughtId, bool categoryId})
     >;
 typedef $$AttachmentsTableCreateCompanionBuilder =
     AttachmentsCompanion Function({
@@ -8206,9 +10055,13 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$ThoughtsTableTableManager get thoughts =>
       $$ThoughtsTableTableManager(_db, _db.thoughts);
+  $$TagCategoriesTableTableManager get tagCategories =>
+      $$TagCategoriesTableTableManager(_db, _db.tagCategories);
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$ThoughtTagsTableTableManager get thoughtTags =>
       $$ThoughtTagsTableTableManager(_db, _db.thoughtTags);
+  $$ThoughtCategoriesTableTableManager get thoughtCategories =>
+      $$ThoughtCategoriesTableTableManager(_db, _db.thoughtCategories);
   $$AttachmentsTableTableManager get attachments =>
       $$AttachmentsTableTableManager(_db, _db.attachments);
   $$AttachmentBlobsTableTableManager get attachmentBlobs =>
