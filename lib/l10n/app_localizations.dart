@@ -470,6 +470,36 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// No description provided for @settingsTabAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsTabAppearance;
+
+  /// No description provided for @settingsTabGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsTabGeneral;
+
+  /// No description provided for @settingsTabWriting.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing'**
+  String get settingsTabWriting;
+
+  /// No description provided for @settingsTabSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get settingsTabSecurity;
+
+  /// No description provided for @settingsTabData.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get settingsTabData;
+
   /// No description provided for @themeTitle.
   ///
   /// In en, this message translates to:

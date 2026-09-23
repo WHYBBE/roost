@@ -210,6 +210,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsTitle => '设置';
 
   @override
+  String get settingsTabAppearance => '外观';
+
+  @override
+  String get settingsTabGeneral => '通用';
+
+  @override
+  String get settingsTabWriting => '写作';
+
+  @override
+  String get settingsTabSecurity => '安全';
+
+  @override
+  String get settingsTabData => '数据';
+
+  @override
   String get themeTitle => '主题';
 
   @override

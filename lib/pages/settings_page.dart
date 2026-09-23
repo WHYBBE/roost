@@ -362,8 +362,319 @@ Future<void> _turnOffLock(BuildContext context) async {
   if (context.mounted) _snack(context, l.saved);
 }
 
-class SettingsPage extends StatelessWidget {
+/// 设置页：分 5 个 tab（外观 / 通用 / 写作 / 安全 / 数据）。
+/// 宽屏左侧竖排导航 + 右侧内容，窄屏顶部 TabBar
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage>
+    with SingleTickerProviderStateMixin {
+  static const _tabCount = 5;
+
+  late final TabController _tab = TabController(length: _tabCount, vsync: this)
+    ..addListener(_onTabChanged);
+
+  void _onTabChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _tab.removeListener(_onTabChanged);
+    _tab.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final wide = MediaQuery.sizeOf(context).width >= 720;
+
+    final tabs = <({IconData icon, IconData selected, String label})>[
+      (
+        icon: Icons.palette_outlined,
+        selected: Icons.palette,
+        label: l.settingsTabAppearance,
+      ),
+      (
+        icon: Icons.tune_outlined,
+        selected: Icons.tune,
+        label: l.settingsTabGeneral,
+      ),
+      (
+        icon: Icons.edit_note_outlined,
+        selected: Icons.edit_note,
+        label: l.settingsTabWriting,
+      ),
+      (
+        icon: Icons.lock_outline,
+        selected: Icons.lock,
+        label: l.settingsTabSecurity,
+      ),
+      (
+        icon: Icons.storage_outlined,
+        selected: Icons.storage,
+        label: l.settingsTabData,
+      ),
+    ];
+
+    final pages = [
+      _appearanceTab(context),
+      _generalTab(context),
+      _writingTab(context),
+      _securityTab(context),
+      _dataTab(context),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        // 桌面端内嵌为根页时展示保险库切换；移动端经路由推入时保留默认返回键
+        leading: (ModalRoute.of(context)?.canPop ?? false)
+            ? null
+            : appBarVaultSwitcher(context),
+        title: Text(l.settingsTitle),
+        bottom: wide
+            ? null
+            : TabBar(
+                controller: _tab,
+                isScrollable: true,
+                tabAlignment: TabAlignment.center,
+                tabs: [
+                  for (final t in tabs)
+                    Tab(icon: Icon(t.icon), text: t.label),
+                ],
+              ),
+      ),
+      body: wide
+          ? Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _tab.index,
+                  onDestinationSelected: (i) => _tab.animateTo(i),
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    for (final t in tabs)
+                      NavigationRailDestination(
+                        icon: Icon(t.icon),
+                        selectedIcon: Icon(t.selected),
+                        label: Text(t.label),
+                      ),
+                  ],
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: TabBarView(controller: _tab, children: pages),
+                ),
+              ],
+            )
+          : TabBarView(controller: _tab, children: pages),
+    );
+  }
+
+  /// 单个 tab：居中限宽 + 纵向列表
+  Widget _panel(BuildContext context, List<Widget> children) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: children,
+        ),
+      ),
+    );
+  }
+
+  // ---------- 外观 ----------
+
+  Widget _appearanceTab(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final settings = AppSettings.instance;
+    return _panel(context, [
+      Text(l.themeTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
+      SegmentedButton<ThemeSetting>(
+        segments: [
+          ButtonSegment(
+            value: ThemeSetting.system,
+            label: Text(l.themeSystem),
+            icon: const Icon(Icons.brightness_auto_outlined),
+          ),
+          ButtonSegment(
+            value: ThemeSetting.light,
+            label: Text(l.themeLight),
+            icon: const Icon(Icons.light_mode_outlined),
+          ),
+          ButtonSegment(
+            value: ThemeSetting.dark,
+            label: Text(l.themeDark),
+            icon: const Icon(Icons.dark_mode_outlined),
+          ),
+        ],
+        selected: {settings.theme},
+        onSelectionChanged: (s) => settings.setTheme(s.first),
+      ),
+      const SizedBox(height: 24),
+      Text(l.themeColorTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
+      // 圆形色点自动换行，窄屏也不溢出
+      Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _seedSwatch(
+            context,
+            color: const Color(defaultSeedColor),
+            selected: settings.seedColor == defaultSeedColor,
+            isDefault: true,
+            onTap: () => settings.setSeedColor(defaultSeedColor),
+          ),
+          for (final c in tagColorChoices)
+            _seedSwatch(
+              context,
+              color: Color(c),
+              selected: settings.seedColor == c,
+              onTap: () => settings.setSeedColor(c),
+            ),
+        ],
+      ),
+    ]);
+  }
+
+  // ---------- 通用 ----------
+
+  Widget _generalTab(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final settings = AppSettings.instance;
+    return _panel(context, [
+      Text(l.languageTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
+      SegmentedButton<LanguageSetting>(
+        segments: [
+          ButtonSegment(
+            value: LanguageSetting.system,
+            label: Text(l.languageSystem),
+            icon: const Icon(Icons.public),
+          ),
+          ButtonSegment(
+            value: LanguageSetting.zh,
+            label: Text(l.languageZh),
+          ),
+          ButtonSegment(
+            value: LanguageSetting.en,
+            label: Text(l.languageEn),
+          ),
+        ],
+        selected: {settings.language},
+        onSelectionChanged: (s) => settings.setLanguage(s.first),
+      ),
+      const SizedBox(height: 24),
+      Text(l.weekStartTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
+      SegmentedButton<WeekStart>(
+        segments: [
+          ButtonSegment(
+            value: WeekStart.sunday,
+            label: Text(l.weekStartSunday),
+          ),
+          ButtonSegment(
+            value: WeekStart.monday,
+            label: Text(l.weekStartMonday),
+          ),
+        ],
+        selected: {settings.weekStart},
+        onSelectionChanged: (s) => settings.setWeekStart(s.first),
+      ),
+    ]);
+  }
+
+  // ---------- 写作 ----------
+
+  Widget _writingTab(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    return _panel(context, [
+      Text(l.templatesTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 4),
+      Text(l.templatesHint, style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 8),
+      Card(
+        child: ListTile(
+          leading: const Icon(Icons.article_outlined),
+          title: Text(l.manageTemplates),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const TemplatesPage()),
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  // ---------- 安全 ----------
+
+  Widget _securityTab(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final settings = AppSettings.instance;
+    return _panel(context, [
+      Text(l.lockTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 4),
+      Text(l.lockSectionHint, style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 8),
+      Card(
+        child: Column(
+          children: [
+            if (!settings.lockConfigured)
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: Text(l.lockTitle),
+                subtitle: Text(l.lockProtectedHint),
+                onTap: () => _enableLock(context),
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: Text(l.lockTitle),
+                trailing: Text(
+                  settings.lockMethod == LockMethod.pin
+                      ? l.lockPin
+                      : l.lockPattern,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.password),
+                title: Text(l.lockChange),
+                onTap: () => _changeLock(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.lock_clock),
+                title: Text(l.lockLockNow),
+                onTap: () => LockSession.instance.lock(),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.lock_open_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  l.lockTurnOff,
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.error),
+                ),
+                onTap: () => _turnOffLock(context),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ]);
+  }
+
+  // ---------- 数据 ----------
+
   Widget _buildVaultTile(BuildContext context, VaultMeta vault) {
     final l = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
@@ -402,307 +713,71 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _dataTab(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final settings = AppSettings.instance;
-
-    return Scaffold(
-      appBar: AppBar(
-        // 桌面端内嵌为根页时展示保险库切换；移动端经路由推入时保留默认返回键
-        leading: (ModalRoute.of(context)?.canPop ?? false)
-            ? null
-            : appBarVaultSwitcher(context),
-        title: Text(l.settingsTitle),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(
-                l.themeTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<ThemeSetting>(
-                segments: [
-                  ButtonSegment(
-                    value: ThemeSetting.system,
-                    label: Text(l.themeSystem),
-                    icon: const Icon(Icons.brightness_auto_outlined),
-                  ),
-                  ButtonSegment(
-                    value: ThemeSetting.light,
-                    label: Text(l.themeLight),
-                    icon: const Icon(Icons.light_mode_outlined),
-                  ),
-                  ButtonSegment(
-                    value: ThemeSetting.dark,
-                    label: Text(l.themeDark),
-                    icon: const Icon(Icons.dark_mode_outlined),
-                  ),
-                ],
-                selected: {settings.theme},
-                onSelectionChanged: (s) => settings.setTheme(s.first),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.themeColorTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              // 统一圆形网格：两行（默认+5 / 5），点阵对齐
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _seedSwatch(
-                        context,
-                        color: const Color(defaultSeedColor),
-                        selected: settings.seedColor == defaultSeedColor,
-                        isDefault: true,
-                        onTap: () => settings.setSeedColor(defaultSeedColor),
-                      ),
-                      for (final c in tagColorChoices.take(5)) ...[
-                        const SizedBox(width: 10),
-                        _seedSwatch(
-                          context,
-                          color: Color(c),
-                          selected: settings.seedColor == c,
-                          onTap: () => settings.setSeedColor(c),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final c in tagColorChoices.skip(5)) ...[
-                        _seedSwatch(
-                          context,
-                          color: Color(c),
-                          selected: settings.seedColor == c,
-                          onTap: () => settings.setSeedColor(c),
-                        ),
-                        if (c != tagColorChoices.last)
-                          const SizedBox(width: 10),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.languageTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<LanguageSetting>(
-                segments: [
-                  ButtonSegment(
-                    value: LanguageSetting.system,
-                    label: Text(l.languageSystem),
-                    icon: const Icon(Icons.public),
-                  ),
-                  ButtonSegment(
-                    value: LanguageSetting.zh,
-                    label: Text(l.languageZh),
-                  ),
-                  ButtonSegment(
-                    value: LanguageSetting.en,
-                    label: Text(l.languageEn),
-                  ),
-                ],
-                selected: {settings.language},
-                onSelectionChanged: (s) => settings.setLanguage(s.first),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.weekStartTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<WeekStart>(
-                segments: [
-                  ButtonSegment(
-                    value: WeekStart.sunday,
-                    label: Text(l.weekStartSunday),
-                  ),
-                  ButtonSegment(
-                    value: WeekStart.monday,
-                    label: Text(l.weekStartMonday),
-                  ),
-                ],
-                selected: {settings.weekStart},
-                onSelectionChanged: (s) => settings.setWeekStart(s.first),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.templatesTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l.templatesHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.article_outlined),
-                  title: Text(l.manageTemplates),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TemplatesPage()),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.lockTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l.lockSectionHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Column(
-                  children: [
-                    if (!settings.lockConfigured)
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: Text(l.lockTitle),
-                        subtitle: Text(l.lockProtectedHint),
-                        onTap: () => _enableLock(context),
-                      )
-                    else ...[
-                      ListTile(
-                        leading: const Icon(Icons.lock_outline),
-                        title: Text(l.lockTitle),
-                        trailing: Text(
-                          settings.lockMethod == LockMethod.pin
-                              ? l.lockPin
-                              : l.lockPattern,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant),
-                        ),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.password),
-                        title: Text(l.lockChange),
-                        onTap: () => _changeLock(context),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.lock_clock),
-                        title: Text(l.lockLockNow),
-                        onTap: () => LockSession.instance.lock(),
-                      ),
-                      ListTile(
-                        leading: Icon(
-                          Icons.lock_open_outlined,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        title: Text(
-                          l.lockTurnOff,
-                          style: TextStyle(
-                              color: Theme.of(context).colorScheme.error),
-                        ),
-                        onTap: () => _turnOffLock(context),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.vaultTitle,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                l.vaultSectionHint,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Column(
-                  children: [
-                    for (final vault in DataStore.instance.vaults)
-                      _buildVaultTile(context, vault),
-                    ListTile(
-                      leading: const Icon(Icons.add),
-                      title: Text(l.createVault),
-                      onTap: () => _createVault(context),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l.dataSection,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.inventory_2_outlined),
-                      title: Text(l.archiveTrashTitle),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const ArchiveTrashPage()),
-                      ),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.save_alt_outlined),
-                      title: Text(l.exportData),
-                      onTap: () => _exportData(context),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.download_outlined),
-                      title: Text(l.importData),
-                      onTap: () => _importData(context),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.restart_alt_outlined),
-                      title: Text(l.resetMoodTags),
-                      onTap: () => _resetMoodTags(context),
-                    ),
-                    ListTile(
-                      leading: Icon(
-                        Icons.delete_forever_outlined,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      title: Text(
-                        l.resetAllData,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      onTap: () => _resetAllData(context),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+    return _panel(context, [
+      Text(l.vaultTitle, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 4),
+      Text(l.vaultSectionHint, style: Theme.of(context).textTheme.bodySmall),
+      const SizedBox(height: 8),
+      Card(
+        child: Column(
+          children: [
+            for (final vault in DataStore.instance.vaults)
+              _buildVaultTile(context, vault),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: Text(l.createVault),
+              onTap: () => _createVault(context),
+            ),
+          ],
         ),
       ),
-    );
+      const SizedBox(height: 24),
+      Text(l.dataSection, style: Theme.of(context).textTheme.titleMedium),
+      const SizedBox(height: 8),
+      Card(
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: Text(l.archiveTrashTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ArchiveTrashPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.save_alt_outlined),
+              title: Text(l.exportData),
+              onTap: () => _exportData(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: Text(l.importData),
+              onTap: () => _importData(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restart_alt_outlined),
+              title: Text(l.resetMoodTags),
+              onTap: () => _resetMoodTags(context),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_forever_outlined,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                l.resetAllData,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              onTap: () => _resetAllData(context),
+            ),
+          ],
+        ),
+      ),
+    ]);
   }
 }

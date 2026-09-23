@@ -215,6 +215,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsTabAppearance => 'Appearance';
+
+  @override
+  String get settingsTabGeneral => 'General';
+
+  @override
+  String get settingsTabWriting => 'Writing';
+
+  @override
+  String get settingsTabSecurity => 'Security';
+
+  @override
+  String get settingsTabData => 'Data';
+
+  @override
   String get themeTitle => 'Theme';
 
   @override
