@@ -139,6 +139,19 @@ void main() {
     expect(await db.watchDay(day).first, isEmpty);
   });
 
+  test('updateThought 可改记录日（补记与改日期）', () async {
+    final now = DateTime(2026, 9, 16, 10, 30);
+    final entry = await insert('a', day: '2026-09-16', createdAt: now);
+
+    await db.updateThought(entry.id, 'a', day: '2026-09-10');
+    expect(await db.watchDay('2026-09-10').first, hasLength(1));
+    expect(await db.watchDay('2026-09-16').first, isEmpty);
+
+    // 不传 day 时保持原记录日
+    await db.updateThought(entry.id, 'a2');
+    expect((await db.watchDay('2026-09-10').first).single.content, 'a2');
+  });
+
   group('attachments', () {
     final now = DateTime(2026, 9, 16, 10, 30);
 

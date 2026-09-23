@@ -552,9 +552,15 @@ Future<void> showEntryEditor(
   BuildContext context, {
   ThoughtEntry? existing,
   String? initialText,
+  // 新建时的记录日（如从日历选中某天补记）；为空则今天
+  String? initialDay,
 }) async {
   final l = AppLocalizations.of(context)!;
   final controller = TextEditingController(text: existing?.content ?? initialText ?? '');
+  // 记录日：补记/改日期共用；编辑已有思绪时沿用其日期
+  var recordDay = existing != null
+      ? DateTime.parse(existing.day)
+      : (initialDay != null ? DateTime.parse(initialDay) : DateTime.now());
   var saved = false;
   // 已有标签（含所属高级标签组）
   final existingTags = existing == null
@@ -684,8 +690,8 @@ Future<void> showEntryEditor(
           ),
         );
         if (type == null || !context.mounted) return;
-        // 思绪当天（新建思绪即今天）
-        final day = existing?.day ?? AppDatabase.today();
+        // 思绪当天（取编辑器当前选定的记录日）
+        final day = AppDatabase.formatDay(recordDay);
         // 当天已被该类型事件覆盖的（含每年循环与区间），仅这些可直接关联
         final year = DateTime.parse(day).year;
         final dayEvents = (await appDb.watchEvents().first)
@@ -813,6 +819,41 @@ Future<void> showEntryEditor(
                     hintText: l.thoughtHint,
                     border: const OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 8),
+                // 记录日：可补记为过去某天，或修改已有记录的日期
+                Row(
+                  children: [
+                    Icon(
+                      Icons.event_outlined,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(l.recordDay,
+                        style: Theme.of(context).textTheme.labelLarge),
+                    const Spacer(),
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+                      label: Text(
+                        MaterialLocalizations.of(context)
+                            .formatMediumDate(recordDay),
+                      ),
+                      onPressed: () async {
+                        final today = DateTime.now();
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              recordDay.isAfter(today) ? today : recordDay,
+                          firstDate: DateTime(2000),
+                          lastDate: today,
+                        );
+                        if (picked == null || !context.mounted) return;
+                        setState(() => recordDay = DateTime(
+                            picked.year, picked.month, picked.day));
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 // ---------- 高级标签：按需添加标签组，组内单选/多选 ----------
@@ -1160,15 +1201,20 @@ Future<void> showEntryEditor(
                 _addTagsFromField(tagController, normalTags, () {});
                 final text = controller.text.trim();
                 if (text.isEmpty) return;
+                final dayStr = AppDatabase.formatDay(recordDay);
                 var thoughtId = existing?.id;
                 if (existing == null) {
                   thoughtId = await appDb.insertThought(
                     content: text,
-                    day: AppDatabase.today(),
+                    day: dayStr,
                     locked: locked,
                   );
                 } else {
-                  await appDb.updateThought(existing.id, text);
+                  await appDb.updateThought(
+                    existing.id,
+                    text,
+                    day: existing.day == dayStr ? null : dayStr,
+                  );
                   if (existing.locked != locked) {
                     await appDb.setThoughtLocked(existing.id, locked);
                   }
@@ -1213,7 +1259,7 @@ Future<void> showEntryEditor(
                 if (pendingTypeId != null) {
                   await appDb.insertEvent(
                     typeId: pendingTypeId!,
-                    startDate: existing?.day ?? AppDatabase.today(),
+                    startDate: dayStr,
                     annual: pendingAnnual,
                     title: text,
                     statusId: pendingStatusId,

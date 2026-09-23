@@ -55,6 +55,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get emptyDay => '这一天没有记录。';
 
   @override
+  String get addEntry => '记一条';
+
+  @override
+  String get recordDay => '记录日';
+
+  @override
   String get moodLabel => '心情';
 
   @override

@@ -249,12 +249,27 @@ class _CalendarPageState extends State<CalendarPage> {
                                       badgesByDay, dotsByDay, locale),
                               const SizedBox(height: 24),
                               if (_selectedDay != null) ...[
-                                Text(
-                                  DateFormat.yMMMMd(locale)
-                                      .format(DateTime.parse(_selectedDay!)),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        DateFormat.yMMMMd(locale).format(
+                                            DateTime.parse(_selectedDay!)),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium,
+                                      ),
+                                    ),
+                                    // 补记：在该天新建一条思绪
+                                    TextButton.icon(
+                                      icon: const Icon(Icons.add, size: 18),
+                                      label: Text(l.addEntry),
+                                      onPressed: () => showEntryEditor(
+                                        context,
+                                        initialDay: _selectedDay,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
                                 // 当日计数器：+1/−1 计次

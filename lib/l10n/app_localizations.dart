@@ -188,6 +188,18 @@ abstract class AppLocalizations {
   /// **'Nothing recorded on this day.'**
   String get emptyDay;
 
+  /// No description provided for @addEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Add entry'**
+  String get addEntry;
+
+  /// No description provided for @recordDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get recordDay;
+
   /// No description provided for @moodLabel.
   ///
   /// In en, this message translates to:

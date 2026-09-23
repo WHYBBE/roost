@@ -661,10 +661,12 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<int> updateThought(int id, String content) {
+  /// 更新内容；传 [day] 即改记录日（用于补记与改日期）
+  Future<int> updateThought(int id, String content, {String? day}) {
     return (update(thoughts)..where((t) => t.id.equals(id))).write(
       ThoughtsCompanion(
         content: Value(content),
+        day: day == null ? const Value.absent() : Value(day),
         updatedAt: Value(DateTime.now().millisecondsSinceEpoch),
       ),
     );

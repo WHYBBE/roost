@@ -55,6 +55,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyDay => 'Nothing recorded on this day.';
 
   @override
+  String get addEntry => 'Add entry';
+
+  @override
+  String get recordDay => 'Date';
+
+  @override
   String get moodLabel => 'Mood';
 
   @override
