@@ -10,6 +10,7 @@ import '../settings/lock_session.dart';
 import '../ui/lock_widgets.dart';
 import '../ui/vault_switcher.dart';
 import 'archive_trash_page.dart';
+import 'templates_page.dart';
 
 import '../l10n/app_localizations.dart';
 
@@ -539,6 +540,27 @@ class SettingsPage extends StatelessWidget {
                 ],
                 selected: {settings.weekStart},
                 onSelectionChanged: (s) => settings.setWeekStart(s.first),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l.templatesTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l.templatesHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.article_outlined),
+                  title: Text(l.manageTemplates),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const TemplatesPage()),
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               Text(

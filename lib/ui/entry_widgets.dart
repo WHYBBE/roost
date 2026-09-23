@@ -8,6 +8,7 @@ import '../data/app_database.dart';
 import '../data/database_provider.dart';
 import '../data/thoughts_table.dart';
 import '../l10n/app_localizations.dart';
+import '../pages/templates_page.dart';
 import '../settings/lock_session.dart';
 import 'attachment_widgets.dart';
 import 'lock_widgets.dart';
@@ -820,7 +821,17 @@ Future<void> showEntryEditor(
                     border: const OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 8),
+                // 模板：从预设文本一键插入（如"今日三问"）
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.article_outlined, size: 18),
+                    label: Text(l.insertTemplate),
+                    onPressed: () => _pickTemplate(
+                        context, controller, () => setState(() {})),
+                  ),
+                ),
+                const SizedBox(height: 4),
                 // 记录日：可补记为过去某天，或修改已有记录的日期
                 Row(
                   children: [
@@ -1339,6 +1350,102 @@ void _addTagsFromField(
   }
   controller.clear();
   onChanged();
+}
+
+/// 选择模板插入：列出模板，点选即插入文本；底部可进入模板管理
+Future<void> _pickTemplate(
+  BuildContext context,
+  TextEditingController controller,
+  VoidCallback onChanged,
+) async {
+  final l = AppLocalizations.of(context)!;
+  final templates = await appDb.watchEntryTemplates().first;
+  if (!context.mounted) return;
+  final picked = await showModalBottomSheet<Object>(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l.pickTemplate,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+          if (templates.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l.templatesEmpty,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final t in templates)
+                    ListTile(
+                      leading: const Icon(Icons.article_outlined),
+                      title: Text(t.name),
+                      subtitle: Text(
+                        t.content,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => Navigator.pop(context, t),
+                    ),
+                ],
+              ),
+            ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: Text(l.manageTemplates),
+            onTap: () => Navigator.pop(context, 'manage'),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ),
+  );
+  if (picked == null || !context.mounted) return;
+  if (picked is EntryTemplate) {
+    _insertTemplateText(controller, picked.content);
+    onChanged();
+  } else if (picked == 'manage') {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TemplatesPage()),
+    );
+  }
+}
+
+/// 把模板文本插入到光标处；输入框为空则直接填入
+void _insertTemplateText(TextEditingController controller, String content) {
+  final text = controller.text;
+  if (text.trim().isEmpty) {
+    controller.text = content;
+    controller.selection = TextSelection.collapsed(offset: content.length);
+    return;
+  }
+  final selection = controller.selection;
+  final offset = selection.isValid ? selection.start : text.length;
+  final before = text.substring(0, offset);
+  final after = text.substring(offset);
+  final separator = before.isEmpty || before.endsWith('\n') ? '' : '\n';
+  final inserted = '$separator$content';
+  controller.text = '$before$inserted$after';
+  controller.selection =
+      TextSelection.collapsed(offset: before.length + inserted.length);
 }
 
 /// 选择要添加到这条思绪的高级标签组（已添加的不再列出）

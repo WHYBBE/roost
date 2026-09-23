@@ -332,6 +332,102 @@ abstract class AppLocalizations {
   /// **'Show less'**
   String get collapse;
 
+  /// No description provided for @templatesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing templates'**
+  String get templatesTitle;
+
+  /// No description provided for @templatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reusable multi-line snippets (e.g. \"Three questions\") you can insert while writing.'**
+  String get templatesHint;
+
+  /// No description provided for @manageTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage templates'**
+  String get manageTemplates;
+
+  /// No description provided for @insertTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert template'**
+  String get insertTemplate;
+
+  /// No description provided for @pickTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a template'**
+  String get pickTemplate;
+
+  /// No description provided for @newTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'New template'**
+  String get newTemplate;
+
+  /// No description provided for @editTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get editTemplate;
+
+  /// No description provided for @templateName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get templateName;
+
+  /// No description provided for @templateContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get templateContent;
+
+  /// No description provided for @templateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple lines allowed; still editable after inserting.'**
+  String get templateHint;
+
+  /// No description provided for @templatesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet.\nTap + to add one, e.g. \"Three questions\".'**
+  String get templatesEmpty;
+
+  /// No description provided for @templateNameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name can\'t be empty'**
+  String get templateNameEmpty;
+
+  /// No description provided for @templateContentEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Template content can\'t be empty'**
+  String get templateContentEmpty;
+
+  /// No description provided for @deleteTemplateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this template?'**
+  String get deleteTemplateTitle;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get moveDown;
+
   /// No description provided for @onThisDay.
   ///
   /// In en, this message translates to:

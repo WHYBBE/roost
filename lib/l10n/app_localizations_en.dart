@@ -127,6 +127,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collapse => 'Show less';
 
   @override
+  String get templatesTitle => 'Writing templates';
+
+  @override
+  String get templatesHint =>
+      'Reusable multi-line snippets (e.g. \"Three questions\") you can insert while writing.';
+
+  @override
+  String get manageTemplates => 'Manage templates';
+
+  @override
+  String get insertTemplate => 'Insert template';
+
+  @override
+  String get pickTemplate => 'Choose a template';
+
+  @override
+  String get newTemplate => 'New template';
+
+  @override
+  String get editTemplate => 'Edit template';
+
+  @override
+  String get templateName => 'Template name';
+
+  @override
+  String get templateContent => 'Content';
+
+  @override
+  String get templateHint =>
+      'Multiple lines allowed; still editable after inserting.';
+
+  @override
+  String get templatesEmpty =>
+      'No templates yet.\nTap + to add one, e.g. \"Three questions\".';
+
+  @override
+  String get templateNameEmpty => 'Template name can\'t be empty';
+
+  @override
+  String get templateContentEmpty => 'Template content can\'t be empty';
+
+  @override
+  String get deleteTemplateTitle => 'Delete this template?';
+
+  @override
+  String get moveUp => 'Move up';
+
+  @override
+  String get moveDown => 'Move down';
+
+  @override
   String onThisDay(int years) {
     return 'On this day, $years year(s) ago';
   }

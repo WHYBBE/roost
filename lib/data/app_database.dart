@@ -14,6 +14,7 @@ bool isEmojiCodepoint(int codePoint) =>
 
 @DriftDatabase(tables: [
   Thoughts,
+  EntryTemplates,
   TagCategories,
   Tags,
   ThoughtTags,
@@ -34,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   /// 回收站保留天数：超期由 [purgeExpiredTrash] 永久清除
   static const int trashRetentionDays = 7;
@@ -108,6 +109,7 @@ class AppDatabase extends _$AppDatabase {
       if (!ok) return false;
       await select(tags).get();
       await select(tagCategories).get();
+      await select(entryTemplates).get();
       await select(thoughtCategories).get();
       await select(thoughts).get();
       await select(eventTypes).get();
@@ -196,6 +198,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM thought_categories');
       await customStatement('DELETE FROM tags');
       await customStatement('DELETE FROM tag_categories');
+      await customStatement('DELETE FROM entry_templates');
     });
     await _seedMoodCategory();
   }
@@ -209,6 +212,74 @@ class AppDatabase extends _$AppDatabase {
       await (delete(tags)..where((t) => t.categoryId.equals(cat.id))).go();
     }
     await _seedMoodCategory();
+  }
+
+  // ---------- 写作模板 ----------
+
+  /// 全部模板（按 sortOrder、id）
+  Stream<List<EntryTemplate>> watchEntryTemplates() {
+    return (select(entryTemplates)..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.asc(t.id),
+        ]))
+        .watch();
+  }
+
+  Future<List<EntryTemplate>> _orderedTemplates() {
+    return (select(entryTemplates)..orderBy([
+          (t) => OrderingTerm.asc(t.sortOrder),
+          (t) => OrderingTerm.asc(t.id),
+        ]))
+        .get();
+  }
+
+  /// 新建模板（追加到末尾）
+  Future<int> createEntryTemplate({
+    required String name,
+    required String content,
+  }) async {
+    final list = await _orderedTemplates();
+    return into(entryTemplates).insert(
+      EntryTemplatesCompanion.insert(
+        name: name,
+        content: content,
+        sortOrder: Value(list.length),
+      ),
+    );
+  }
+
+  Future<void> updateEntryTemplate(
+    int id, {
+    required String name,
+    required String content,
+  }) {
+    return (update(entryTemplates)..where((t) => t.id.equals(id))).write(
+      EntryTemplatesCompanion(
+        name: Value(name),
+        content: Value(content),
+      ),
+    );
+  }
+
+  Future<void> deleteEntryTemplate(int id) {
+    return (delete(entryTemplates)..where((t) => t.id.equals(id))).go();
+  }
+
+  /// 上移/下移：delta 为 -1 / +1，与相邻模板交换顺序后重排 sortOrder
+  Future<void> moveEntryTemplate(int id, int delta) async {
+    final list = await _orderedTemplates();
+    final index = list.indexWhere((t) => t.id == id);
+    final target = index + delta;
+    if (index < 0 || target < 0 || target >= list.length) return;
+    final reordered = [...list];
+    reordered.insert(target, reordered.removeAt(index));
+    await transaction(() async {
+      for (var i = 0; i < reordered.length; i++) {
+        await (update(entryTemplates)
+              ..where((t) => t.id.equals(reordered[i].id)))
+            .write(EntryTemplatesCompanion(sortOrder: Value(i)));
+      }
+    });
   }
 
   /// 完整导出为纯数据结构（文件读写交给 UI 层）。
@@ -227,6 +298,7 @@ class AppDatabase extends _$AppDatabase {
     final typeRows = await select(eventTypes).get();
     final statusRows = await select(eventStatuses).get();
     final eventRows = await select(calendarEvents).get();
+    final templateRows = await _orderedTemplates();
     final tagNameById = {for (final t in tagRows) t.id: t.name};
     final categoryIndexById = <int, int>{
       for (var i = 0; i < categoryRows.length; i++) categoryRows[i].id: i,
@@ -255,6 +327,15 @@ class AppDatabase extends _$AppDatabase {
             'archivedAt': t.archivedAt,
             'deletedAt': t.deletedAt,
             'locked': t.locked,
+          },
+      ],
+      // 写作模板
+      'templates': [
+        for (final t in templateRows)
+          {
+            'name': t.name,
+            'content': t.content,
+            'sortOrder': t.sortOrder,
           },
       ],
       // 高级标签组
@@ -383,6 +464,7 @@ class AppDatabase extends _$AppDatabase {
   /// 返回新增思绪数。
   Future<int> importData(Map<String, dynamic> data) async {
     final thoughtsIn = (data['thoughts'] as List?) ?? const [];
+    final templatesIn = (data['templates'] as List?) ?? const [];
     final categoriesIn = (data['tagCategories'] as List?) ?? const [];
     final tagsIn = (data['tags'] as List?) ?? const [];
     final linksIn = (data['links'] as List?) ?? const [];
@@ -424,6 +506,18 @@ class AppDatabase extends _$AppDatabase {
         thoughtIdByIndex[i] = id;
         importedIndexes.add(i);
         imported++;
+      }
+      // 写作模板：按名称合并（同名已存在则跳过）
+      for (final raw in templatesIn) {
+        final m = raw as Map;
+        final name = ((m['name'] ?? '') as String).trim();
+        final content = (m['content'] ?? '') as String;
+        if (name.isEmpty || content.trim().isEmpty) continue;
+        final dup = await (select(entryTemplates)
+              ..where((t) => t.name.equals(name)))
+            .getSingleOrNull();
+        if (dup != null) continue;
+        await createEntryTemplate(name: name, content: content);
       }
       // 高级标签组：按名称合并（内置"心情"组已存在则沿用）
       final categoryIdByIndex = <int, int>{};

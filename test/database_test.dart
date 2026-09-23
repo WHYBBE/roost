@@ -152,6 +152,52 @@ void main() {
     expect((await db.watchDay('2026-09-10').first).single.content, 'a2');
   });
 
+  group('writing templates', () {
+    test('新建按顺序追加，可上移/下移/编辑/删除', () async {
+      final a = await db.createEntryTemplate(
+          name: '今日三问', content: '1. 发生了什么？\n2. 学到了什么？\n3. 感恩什么？');
+      final b = await db.createEntryTemplate(name: '晨间日记', content: '天气：');
+
+      var list = await db.watchEntryTemplates().first;
+      expect(list.map((t) => t.name), ['今日三问', '晨间日记']);
+
+      // 下移第一个 → 顺序交换
+      await db.moveEntryTemplate(a, 1);
+      list = await db.watchEntryTemplates().first;
+      expect(list.map((t) => t.name), ['晨间日记', '今日三问']);
+      // 越界移动无效
+      await db.moveEntryTemplate(a, 1);
+      list = await db.watchEntryTemplates().first;
+      expect(list.map((t) => t.name), ['晨间日记', '今日三问']);
+
+      await db.updateEntryTemplate(a, name: '今日三问', content: '更新后的内容');
+      list = await db.watchEntryTemplates().first;
+      expect(list.firstWhere((t) => t.id == a).content, '更新后的内容');
+
+      await db.deleteEntryTemplate(b);
+      list = await db.watchEntryTemplates().first;
+      expect(list, hasLength(1));
+      expect(list.single.id, a);
+    });
+
+    test('导出/导入往返：同名模板不重复', () async {
+      await db.createEntryTemplate(name: '今日三问', content: '问题一\n问题二');
+      final data = await db.exportData();
+      final templates = (data['templates'] as List);
+      expect(templates, hasLength(1));
+      expect((templates.single as Map)['name'], '今日三问');
+
+      final other = AppDatabase.connect(NativeDatabase.memory());
+      await other.importData(data);
+      // 再次导入应跳过同名
+      await other.importData(data);
+      final list = await other.watchEntryTemplates().first;
+      expect(list, hasLength(1));
+      expect(list.single.content, '问题一\n问题二');
+      await other.close();
+    });
+  });
+
   group('attachments', () {
     final now = DateTime(2026, 9, 16, 10, 30);
 

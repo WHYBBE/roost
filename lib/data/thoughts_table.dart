@@ -84,6 +84,17 @@ class ThoughtCategories extends Table {
   Set<Column> get primaryKey => {thoughtId, categoryId};
 }
 
+/// 写作模板：一段多行文本（如"今日三问"），写思绪时一键插入编辑器。
+/// 纯辅助文本，不与思绪产生关联
+@DataClassName('EntryTemplate')
+class EntryTemplates extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get content => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 /// 附件类型
 enum AttachmentKind {
   image(0),

@@ -127,6 +127,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapse => '收起';
 
   @override
+  String get templatesTitle => '写作模板';
+
+  @override
+  String get templatesHint => '预设多行文本（如“今日三问”），写思绪时一键插入。';
+
+  @override
+  String get manageTemplates => '管理模板';
+
+  @override
+  String get insertTemplate => '插入模板';
+
+  @override
+  String get pickTemplate => '选择模板';
+
+  @override
+  String get newTemplate => '新建模板';
+
+  @override
+  String get editTemplate => '编辑模板';
+
+  @override
+  String get templateName => '模板名称';
+
+  @override
+  String get templateContent => '内容';
+
+  @override
+  String get templateHint => '可含多行；插入后可自由编辑。';
+
+  @override
+  String get templatesEmpty => '还没有模板。\n点右下角 + 新建一个，如“今日三问”。';
+
+  @override
+  String get templateNameEmpty => '模板名不能为空';
+
+  @override
+  String get templateContentEmpty => '模板内容不能为空';
+
+  @override
+  String get deleteTemplateTitle => '删除这个模板？';
+
+  @override
+  String get moveUp => '上移';
+
+  @override
+  String get moveDown => '下移';
+
+  @override
   String onThisDay(int years) {
     return '$years 年前的今天';
   }
